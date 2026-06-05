@@ -1,8 +1,4 @@
 <div class="toolbar">
-  <sbb-button size="m" (click)="newSession()">
-    + New Session
-  </sbb-button>
-
   @if (store.session()) {
     <sbb-secondary-button size="m" (click)="reset()"
       [attr.disabled]="store.loading() ? '' : null">
@@ -57,16 +53,14 @@
     <sbb-divider orientation="vertical"></sbb-divider>
 
     <span class="label">Policy</span>
-    <sbb-tag
-      [class.active-tag]="policy() === 'random'"
-      (click)="setPolicy('random')">
-      Random
-    </sbb-tag>
-    <sbb-tag
-      [class.active-tag]="policy() === 'shortest_path'"
-      (click)="setPolicy('shortest_path')">
-      Shortest Path
-    </sbb-tag>
+    <sbb-radio-button-group
+      orientation="horizontal"
+      size="s"
+      [value]="policy()"
+      (change)="onPolicyChange($event)">
+      <sbb-radio-button value="random">Random</sbb-radio-button>
+      <sbb-radio-button value="shortest_path">Shortest Path</sbb-radio-button>
+    </sbb-radio-button-group>
   }
 
   <div class="spacer"></div>

@@ -30,6 +30,13 @@ export class ToolbarComponent {
     this.policy.set(p);
   }
 
+  onPolicyChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    if (target?.value) {
+      this.setPolicy(target.value as PolicyName);
+    }
+  }
+
   togglePlay() {
     this.store.togglePlay(this.policy(), this.speed());
   }

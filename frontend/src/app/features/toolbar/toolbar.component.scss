@@ -28,16 +28,7 @@ sbb-button {
 }
 
 sbb-tag {
-  cursor: pointer;
-  transition: all 0.15s;
   user-select: none;
-
-  &.active-tag {
-    --sbb-tag-background-color: var(--sbb-color-charcoal, #212121);
-    --sbb-tag-color: white;
-    background: var(--sbb-color-charcoal, #212121) !important;
-    color: white !important;
-  }
 
   &.done-tag {
     --sbb-tag-background-color: #00973b;
