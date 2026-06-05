@@ -9,6 +9,16 @@ import {
   PolicyName,
 } from './models';
 
+export interface PlayRequest {
+  speed?: number;
+  policy?: PolicyName;
+}
+
+export interface PlayStatus {
+  session_id: string;
+  playing: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
@@ -36,6 +46,22 @@ export class ApiService {
 
   reset(sessionId: string) {
     return this.http.post(`${this.base}/session/${sessionId}/reset`, {});
+  }
+
+  play(sessionId: string, req: PlayRequest = {}) {
+    return this.http.post(`${this.base}/session/${sessionId}/play`, {
+      speed: 5,
+      policy: 'shortest_path',
+      ...req,
+    });
+  }
+
+  pause(sessionId: string) {
+    return this.http.post(`${this.base}/session/${sessionId}/pause`, {});
+  }
+
+  playStatus(sessionId: string): Observable<PlayStatus> {
+    return this.http.get<PlayStatus>(`${this.base}/session/${sessionId}/play_status`);
   }
 
   manualAction(sessionId: string, handle: number, action: number) {

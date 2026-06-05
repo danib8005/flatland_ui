@@ -9,16 +9,44 @@
 
   <div class="separator"></div>
 
+  @if (store.session()) {
+    <button class="btn btn-play"
+            [class.active]="store.playing()"
+            (click)="togglePlay()"
+            [disabled]="store.episodeDone()">
+      @if (store.playing()) {
+        <span>⏸ Pause</span>
+      } @else {
+        <span>▶ Play</span>
+      }
+    </button>
+
+    <div class="speed-control">
+      <label>Speed</label>
+      <input
+        type="range"
+        min="1"
+        max="20"
+        step="1"
+        [value]="speed()"
+        (input)="onSpeedChange($event)"
+        class="slider" />
+      <span class="speed-value">{{ speed() }} st/s</span>
+    </div>
+  }
+
+  <div class="separator"></div>
+
   <button class="btn" (click)="step(1)"
-          [disabled]="!store.session() || store.loading() || store.episodeDone()">
+          [disabled]="!store.session() || store.loading() || store.episodeDone() || store.playing()">
     Step 1
   </button>
   <button class="btn" (click)="step(10)"
-          [disabled]="!store.session() || store.loading() || store.episodeDone()">
+          [disabled]="!store.session() || store.loading() || store.episodeDone() || store.playing()">
     Step 10
   </button>
   <button class="btn" (click)="step(50)"
-          [disabled]="!store.session() || store.loading() || store.episodeDone()">
+          [disabled]="!store.session() || store.loading() || store.episodeDone() || store.playing()">
     Step 50
   </button>
 
@@ -35,6 +63,12 @@
   </button>
 
   <div class="spacer"></div>
+
+  @if (store.wsConnected()) {
+    <span class="ws-dot connected" title="WebSocket connected"></span>
+  } @else if (store.session()) {
+    <span class="ws-dot disconnected" title="WebSocket disconnected"></span>
+  }
 
   @if (store.episodeDone()) {
     <span class="badge badge-done">Episode finished</span>

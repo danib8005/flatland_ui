@@ -1,5 +1,6 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, inject, signal } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
+import { PolicyName } from '../../core/models';
 
 @Component({
   selector: 'app-toolbar',
@@ -10,7 +11,8 @@ import { SessionStore } from '../../core/session.store';
 })
 export class ToolbarComponent {
   store = inject(SessionStore);
-  policy = signal<'random' | 'shortest_path'>('shortest_path');
+  policy = signal<PolicyName>('shortest_path');
+  speed = signal(5);
 
   newSession() {
     this.store.newSession();
@@ -24,7 +26,20 @@ export class ToolbarComponent {
     this.store.step(this.policy(), n);
   }
 
-  setPolicy(p: 'random' | 'shortest_path') {
+  setPolicy(p: PolicyName) {
     this.policy.set(p);
+  }
+
+  togglePlay() {
+    this.store.togglePlay(this.policy(), this.speed());
+  }
+
+  onSpeedChange(ev: Event) {
+    const v = +(ev.target as HTMLInputElement).value;
+    this.speed.set(v);
+    if (this.store.playing()) {
+      // Restart play with new speed
+      this.store.play(this.policy(), v);
+    }
   }
 }

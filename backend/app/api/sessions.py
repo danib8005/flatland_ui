@@ -1,8 +1,11 @@
+import asyncio
+
 from fastapi import APIRouter, HTTPException
 from typing import List
 
 from app.core.session_manager import session_manager
 from app.core.serializer import serialize_env
+from app.core.ws_manager import ws_manager
 from app.models.session import (
     SessionCreateRequest,
     SessionInfo,
@@ -44,14 +47,23 @@ def _is_done(env) -> bool:
     except Exception:
         pass
     try:
-        all_arrived = all(
-            getattr(a.state, "name", str(a.state)) == "DONE" for a in env.agents
-        )
-        if all_arrived:
-            return True
+        return all(getattr(a.state, "name", str(a.state)) == "DONE" for a in env.agents)
+    except Exception:
+        return False
+
+
+def _build_state_payload(session_id: str, env) -> dict:
+    state = serialize_env(env)
+    state["episode_done"] = _is_done(env)
+    return {"type": "state", "session_id": session_id, "state": state}
+
+
+async def _broadcast_state(session_id: str, env):
+    """Fire-and-forget broadcast to WebSocket clients."""
+    try:
+        await ws_manager.broadcast(session_id, _build_state_payload(session_id, env))
     except Exception:
         pass
-    return False
 
 
 @router.post("", response_model=SessionInfo)
@@ -89,7 +101,7 @@ def get_state(session_id: str):
 
 
 @router.post("/{session_id}/step")
-def step(session_id: str, req: StepRequest):
+async def step(session_id: str, req: StepRequest):
     session = session_manager.get(session_id)
     if not session:
         raise HTTPException(404, f"Session {session_id} not found")
@@ -142,6 +154,9 @@ def step(session_id: str, req: StepRequest):
             all_done = True
             break
 
+    # Broadcast state to WebSocket clients
+    await _broadcast_state(session_id, env)
+
     return {
         "session_id": session_id,
         "elapsed_steps": int(env._elapsed_steps),
@@ -153,18 +168,21 @@ def step(session_id: str, req: StepRequest):
 
 
 @router.post("/{session_id}/reset")
-def reset_session(session_id: str):
+async def reset_session(session_id: str):
     session = session_manager.get(session_id)
     if not session:
         raise HTTPException(404, f"Session {session_id} not found")
     obs, info = session.env.reset()
     session.last_observations = obs
     session.last_info = info
+
+    await _broadcast_state(session_id, session.env)
+
     return {"session_id": session_id, "reset": True, "elapsed_steps": 0}
 
 
 @router.post("/{session_id}/action")
-def manual_action(session_id: str, req: ActionRequest):
+async def manual_action(session_id: str, req: ActionRequest):
     session = session_manager.get(session_id)
     if not session:
         raise HTTPException(404, f"Session {session_id} not found")
@@ -174,6 +192,9 @@ def manual_action(session_id: str, req: ActionRequest):
     next_obs, rewards, dones, info = env.step({req.handle: req.action})
     session.last_observations = next_obs
     session.last_info = info
+
+    await _broadcast_state(session_id, env)
+
     return {
         "session_id": session_id,
         "handle": req.handle,
