@@ -1,7 +1,17 @@
+/* Forcieren Light-Mode bevor Lyne-Themes laden */
+:root {
+  color-scheme: light only;
+}
+
 @import "@sbb-esta/lyne-elements/standard-theme.css";
 @import "@sbb-esta/lyne-elements/core.css";
 @import "@sbb-esta/lyne-elements/typography.css";
 @import "@sbb-esta/lyne-elements/normalize.css";
+
+/* Override falls Lyne automatisch dark-mode-Variablen setzt */
+:root, html, body {
+  color-scheme: light only;
+}
 
 * {
   box-sizing: border-box;
