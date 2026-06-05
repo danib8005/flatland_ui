@@ -11,6 +11,7 @@ export class SessionStore {
   readonly selectedHandles = signal<Set<number>>(new Set());
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly message = signal<string | null>(null);
 
   readonly agents = computed<AgentDTO[]>(() => this.state()?.agents ?? []);
   readonly elapsedSteps = computed(() => this.state()?.elapsed_steps ?? 0);
@@ -18,10 +19,12 @@ export class SessionStore {
   readonly width = computed(() => this.state()?.width ?? 0);
   readonly height = computed(() => this.state()?.height ?? 0);
   readonly railGrid = computed<number[][]>(() => this.state()?.rail_grid ?? []);
+  readonly episodeDone = computed(() => this.state()?.episode_done ?? false);
 
   newSession() {
     this.loading.set(true);
     this.error.set(null);
+    this.message.set(null);
     this.api.createSession({}).subscribe({
       next: (s) => {
         this.session.set(s);
@@ -52,11 +55,36 @@ export class SessionStore {
   step(policy: 'random' | 'shortest_path', n_steps: number = 1) {
     const s = this.session();
     if (!s) return;
+    if (this.episodeDone()) {
+      this.message.set('Episode finished. Use Reset to start again.');
+      return;
+    }
     this.loading.set(true);
+    this.error.set(null);
     this.api.step(s.id, policy, n_steps).subscribe({
-      next: () => this.refreshState(),
+      next: (res) => {
+        if (res.message) {
+          this.message.set(res.message);
+        }
+        this.refreshState();
+      },
       error: (e) => {
         this.error.set(`Step failed: ${e.message}`);
+        this.loading.set(false);
+      },
+    });
+  }
+
+  reset() {
+    const s = this.session();
+    if (!s) return;
+    this.loading.set(true);
+    this.error.set(null);
+    this.message.set(null);
+    this.api.reset(s.id).subscribe({
+      next: () => this.refreshState(),
+      error: (e) => {
+        this.error.set(`Reset failed: ${e.message}`);
         this.loading.set(false);
       },
     });

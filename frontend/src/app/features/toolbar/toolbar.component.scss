@@ -8,6 +8,10 @@
   flex-shrink: 0;
 }
 
+.spacer {
+  flex: 1;
+}
+
 .btn {
   padding: 8px 16px;
   border: 1px solid var(--sbb-color-cloud, #d2d2d2);
@@ -39,6 +43,16 @@
   }
 }
 
+.btn-secondary {
+  background: var(--sbb-color-charcoal, #212121);
+  color: white;
+  border-color: var(--sbb-color-charcoal, #212121);
+
+  &:hover:not(:disabled) {
+    background: #404040;
+  }
+}
+
 .btn-toggle {
   padding: 6px 12px;
   border: 1px solid var(--sbb-color-cloud, #d2d2d2);
@@ -64,4 +78,24 @@
   font-size: 13px;
   color: var(--sbb-color-granite, #686868);
   margin-right: 4px;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-done {
+  background: #00973b;
+  color: white;
+}
+
+.info-msg {
+  font-size: 13px;
+  color: var(--sbb-color-orange, #ffaa00);
+  font-weight: 600;
 }

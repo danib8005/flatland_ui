@@ -7,7 +7,6 @@ from app.models.session import (
     SessionCreateRequest,
     SessionInfo,
     StepRequest,
-    StepResult,
 )
 from app.models.agent import ActionRequest
 from app.policies.random_policy import RandomPolicy
@@ -17,14 +16,13 @@ router = APIRouter()
 
 
 def _to_plain(value):
-    """Konvertiert numpy types zu plain Python types."""
     if value is None:
         return None
     if isinstance(value, dict):
         return {str(k): _to_plain(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
         return [_to_plain(v) for v in value]
-    if hasattr(value, "item"):  # numpy scalar
+    if hasattr(value, "item"):
         try:
             return value.item()
         except Exception:
@@ -37,6 +35,23 @@ def _to_plain(value):
         return float(value)
     except Exception:
         return str(value)
+
+
+def _is_done(env) -> bool:
+    try:
+        if env._elapsed_steps >= env._max_episode_steps:
+            return True
+    except Exception:
+        pass
+    try:
+        all_arrived = all(
+            getattr(a.state, "name", str(a.state)) == "DONE" for a in env.agents
+        )
+        if all_arrived:
+            return True
+    except Exception:
+        pass
+    return False
 
 
 @router.post("", response_model=SessionInfo)
@@ -68,7 +83,9 @@ def get_state(session_id: str):
     session = session_manager.get(session_id)
     if not session:
         raise HTTPException(404, f"Session {session_id} not found")
-    return serialize_env(session.env)
+    state = serialize_env(session.env)
+    state["episode_done"] = _is_done(session.env)
+    return state
 
 
 @router.post("/{session_id}/step")
@@ -78,6 +95,17 @@ def step(session_id: str, req: StepRequest):
         raise HTTPException(404, f"Session {session_id} not found")
 
     env = session.env
+
+    if _is_done(env):
+        return {
+            "session_id": session_id,
+            "elapsed_steps": int(env._elapsed_steps),
+            "rewards": {},
+            "dones": {"__all__": True},
+            "all_done": True,
+            "episode_done": True,
+            "message": "Episode finished. Use 'Reset' to start again.",
+        }
 
     if req.policy == "random":
         try:
@@ -95,10 +123,19 @@ def step(session_id: str, req: StepRequest):
     all_done = False
 
     for _ in range(req.n_steps):
+        if _is_done(env):
+            all_done = True
+            break
         handles = env.get_agent_handles()
         observations = session.last_observations or {}
         actions = policy.act_many(handles, observations)
-        next_obs, rewards, dones, info = env.step(actions)
+        try:
+            next_obs, rewards, dones, info = env.step(actions)
+        except Exception as e:
+            if "Episode is done" in str(e):
+                all_done = True
+                break
+            raise
         session.last_observations = next_obs
         session.last_info = info
         if dones.get("__all__", False):
@@ -111,7 +148,19 @@ def step(session_id: str, req: StepRequest):
         "rewards": _to_plain(rewards),
         "dones": _to_plain(dones),
         "all_done": bool(all_done),
+        "episode_done": _is_done(env),
     }
+
+
+@router.post("/{session_id}/reset")
+def reset_session(session_id: str):
+    session = session_manager.get(session_id)
+    if not session:
+        raise HTTPException(404, f"Session {session_id} not found")
+    obs, info = session.env.reset()
+    session.last_observations = obs
+    session.last_info = info
+    return {"session_id": session_id, "reset": True, "elapsed_steps": 0}
 
 
 @router.post("/{session_id}/action")
@@ -120,6 +169,8 @@ def manual_action(session_id: str, req: ActionRequest):
     if not session:
         raise HTTPException(404, f"Session {session_id} not found")
     env = session.env
+    if _is_done(env):
+        raise HTTPException(409, "Episode is done, cannot apply action")
     next_obs, rewards, dones, info = env.step({req.handle: req.action})
     session.last_observations = next_obs
     session.last_info = info

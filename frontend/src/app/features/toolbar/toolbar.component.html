@@ -1,31 +1,45 @@
 <div class="toolbar">
   <button class="btn btn-primary" (click)="newSession()">+ New Session</button>
 
+  @if (store.session()) {
+    <button class="btn btn-secondary" (click)="reset()" [disabled]="store.loading()">
+      ↻ Reset
+    </button>
+  }
+
   <div class="separator"></div>
 
-  <button class="btn" (click)="step(1)" [disabled]="!store.session() || store.loading()">
+  <button class="btn" (click)="step(1)"
+          [disabled]="!store.session() || store.loading() || store.episodeDone()">
     Step 1
   </button>
-  <button class="btn" (click)="step(10)" [disabled]="!store.session() || store.loading()">
+  <button class="btn" (click)="step(10)"
+          [disabled]="!store.session() || store.loading() || store.episodeDone()">
     Step 10
   </button>
-  <button class="btn" (click)="step(50)" [disabled]="!store.session() || store.loading()">
+  <button class="btn" (click)="step(50)"
+          [disabled]="!store.session() || store.loading() || store.episodeDone()">
     Step 50
   </button>
 
   <div class="separator"></div>
 
   <span class="label">Policy:</span>
-  <button
-    class="btn-toggle"
-    [class.active]="policy() === 'random'"
-    (click)="setPolicy('random')">
+  <button class="btn-toggle" [class.active]="policy() === 'random'"
+          (click)="setPolicy('random')">
     Random
   </button>
-  <button
-    class="btn-toggle"
-    [class.active]="policy() === 'shortest_path'"
-    (click)="setPolicy('shortest_path')">
+  <button class="btn-toggle" [class.active]="policy() === 'shortest_path'"
+          (click)="setPolicy('shortest_path')">
     Shortest Path
   </button>
+
+  <div class="spacer"></div>
+
+  @if (store.episodeDone()) {
+    <span class="badge badge-done">Episode finished</span>
+  }
+  @if (store.message(); as msg) {
+    <span class="info-msg">{{ msg }}</span>
+  }
 </div>

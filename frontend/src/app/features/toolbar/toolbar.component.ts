@@ -16,6 +16,10 @@ export class ToolbarComponent {
     this.store.newSession();
   }
 
+  reset() {
+    this.store.reset();
+  }
+
   step(n: number) {
     this.store.step(this.policy(), n);
   }

@@ -26,6 +26,7 @@ export interface SessionState {
   max_episode_steps: number;
   agents: AgentDTO[];
   rail_grid: number[][];
+  episode_done?: boolean;
 }
 
 export interface StepResult {
@@ -34,6 +35,8 @@ export interface StepResult {
   rewards: Record<string, number>;
   dones: Record<string, boolean>;
   all_done: boolean;
+  episode_done?: boolean;
+  message?: string;
 }
 
 export interface SessionCreateRequest {

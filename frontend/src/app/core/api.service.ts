@@ -34,6 +34,10 @@ export class ApiService {
     });
   }
 
+  reset(sessionId: string) {
+    return this.http.post(`${this.base}/session/${sessionId}/reset`, {});
+  }
+
   manualAction(sessionId: string, handle: number, action: number) {
     return this.http.post(`${this.base}/session/${sessionId}/action`, {
       handle,
