@@ -25,10 +25,11 @@ export class SessionStore {
 
   readonly playing = signal(false);
   readonly playSpeed = signal(5);
+  readonly panResetTrigger = signal(0);
   readonly wsConnected = computed(() => this.ws.connected());
 
   readonly showMap = signal(true);
-  readonly showMarey = signal(true);
+  readonly showMarey = signal(false);
 
   readonly trajectories = signal<Map<number, TrajectoryPoint[]>>(new Map());
 
@@ -163,6 +164,7 @@ export class SessionStore {
   reset() {
     const s = this.session();
     if (!s) return;
+    this.panResetTrigger.update((v) => v + 1);
     this.loading.set(true);
     this.error.set(null);
     this.message.set(null);
@@ -219,5 +221,46 @@ export class SessionStore {
 
   clearSelection() {
     this.selectedHandles.set(new Set());
+  }
+
+  // ========== Decision Override (T6) ==========
+
+  readonly showDecisions = signal(true);
+  readonly decisionVisible = signal<Set<number>>(new Set());
+
+  isDecisionVisibleFor(handle: number): boolean {
+    const perAgent = this.decisionVisible();
+    if (perAgent.size === 0) return this.showDecisions();
+    return perAgent.has(handle);
+  }
+
+  toggleDecisionFor(handle: number) {
+    const cur = new Set(this.decisionVisible());
+    if (cur.has(handle)) cur.delete(handle);
+    else cur.add(handle);
+    this.decisionVisible.set(cur);
+  }
+
+  toggleAllDecisions() {
+    this.showDecisions.update((v) => !v);
+    this.decisionVisible.set(new Set());
+  }
+
+  setOverride(handle: number, action: number) {
+    const s = this.session();
+    if (!s) return;
+    this.api.setOverride(s.id, handle, action as any).subscribe({
+      next: () => this.refreshState(),
+      error: (e: any) => this.error.set('Override failed: ' + e.message),
+    });
+  }
+
+  clearOverride(handle: number) {
+    const s = this.session();
+    if (!s) return;
+    this.api.clearOverride(s.id, handle).subscribe({
+      next: () => this.refreshState(),
+      error: (e: any) => this.error.set('Clear override failed: ' + e.message),
+    });
   }
 }

@@ -1,15 +1,22 @@
 @if (store.session()) {
   <svg
+    #svgRoot
     class="flatland-svg"
     [attr.viewBox]="viewBox()"
-    preserveAspectRatio="xMidYMid meet">
+    preserveAspectRatio="xMidYMid meet"
+    (mousedown)="onMouseDown($event)"
+    (mousemove)="onMouseMove($event)"
+    (mouseup)="onMouseUp()"
+    (mouseleave)="onMouseLeave()">
 
+    <!-- Background -->
     <rect
       x="0" y="0"
       [attr.width]="store.width() * cellSize"
       [attr.height]="store.height() * cellSize"
       class="bg" />
 
+    <!-- Rail Tiles -->
     @for (t of tiles(); track trackByTile($index, t)) {
       <image
         [attr.href]="tileHref(t)"
@@ -21,12 +28,13 @@
         class="rail-tile" />
     }
 
+    <!-- Targets -->
     @for (a of agents(); track trackByAgent($index, a)) {
       <rect
         [attr.x]="targetX(a) - 8"
         [attr.y]="targetY(a) - 8"
         width="16"
-        height="16"
+        height="14"
         [attr.fill]="agentColor(a.handle)"
         opacity="0.5"
         stroke="white"
@@ -34,6 +42,40 @@
         class="target" />
     }
 
+    <!-- Decision Layer: Path + Decision-Cell-Marker -->
+    @for (layer of decisionLayers(); track trackByLayer($index, layer)) {
+      <g class="decision-layer">
+        <path
+          [attr.d]="layer.pathD"
+          [attr.stroke]="layer.color"
+          stroke-width="3"
+          fill="none"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="4 3"
+          opacity="0.55"
+          class="decision-path" />
+
+        <circle
+          [attr.cx]="layer.decisionCx"
+          [attr.cy]="layer.decisionCy"
+          r="9"
+          fill="none"
+          [attr.stroke]="layer.color"
+          stroke-width="2.5"
+          opacity="0.9"
+          class="decision-marker" />
+
+        <circle
+          [attr.cx]="layer.decisionCx"
+          [attr.cy]="layer.decisionCy"
+          r="4"
+          [attr.fill]="layer.color"
+          opacity="0.9" />
+      </g>
+    }
+
+    <!-- Agents -->
     @for (a of agents(); track trackByAgent($index, a)) {
       <g
         class="agent"
@@ -57,7 +99,51 @@
         </text>
       </g>
     }
+
+    <!-- Decision Pills (rechts unter Agent) -->
+    @for (layer of decisionLayers(); track trackByLayer($index, layer)) {
+      <g class="decision-pills" opacity="0.9">
+        @for (pill of layer.options; track trackByPill($index, pill); let i = $index) {
+          <g
+            class="pill"
+            [class.override]="pill.isOverride"
+            (click)="onPillClick(layer.handle, pill.action, pill.isOverride)">
+            <rect
+              [attr.x]="layer.pillsX"
+              [attr.y]="layer.pillsY + i * 16"
+              width="56"
+              height="14"
+              rx="8"
+              ry="8"
+              [attr.fill]="pill.isOverride ? '#eb0000' : 'white'"
+              [attr.stroke]="layer.color"
+              stroke-width="1.5"
+              class="pill-bg" />
+            <text
+              [attr.x]="layer.pillsX + 28"
+              [attr.y]="layer.pillsY + i * 16 + 10"
+              text-anchor="middle"
+              font-size="9"
+              font-weight="600"
+              [attr.fill]="pill.isOverride ? 'white' : '#212121'"
+              class="pill-text">
+              {{ pill.label }}
+            </text>
+          </g>
+        }
+      </g>
+    }
+
   </svg>
+
+  <!-- Map Navigation Overlay (unten links) -->
+  <div class="map-nav-overlay">
+    <button class="nav-btn nav-up" (click)="panStep(0, 1)" title="Pan up">↑</button>
+    <button class="nav-btn nav-left" (click)="panStep(1, 0)" title="Pan left">←</button>
+    <button class="nav-btn nav-center" (click)="resetPan()" title="Center">⌂</button>
+    <button class="nav-btn nav-right" (click)="panStep(-1, 0)" title="Pan right">→</button>
+    <button class="nav-btn nav-down" (click)="panStep(0, -1)" title="Pan down">↓</button>
+  </div>
 } @else {
   <div class="empty-state">
     <p>Keine aktive Session.</p>

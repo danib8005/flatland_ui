@@ -2,20 +2,11 @@
   @if (store.session(); as s) {
     <h3 class="section-title">Session</h3>
     <div class="info-row">
-      <span class="label">ID</span>
-      <span class="value mono">{{ s.id }}</span>
-    </div>
-    <div class="info-row">
       <span class="label">Grid</span>
       <span class="value">{{ s.width }} × {{ s.height }}</span>
     </div>
-    <div class="info-row">
-      <span class="label">Agents</span>
-      <span class="value">{{ s.num_agents }}</span>
-    </div>
 
     @if (store.state()) {
-      <h3 class="section-title">Progress</h3>
       <div class="progress-row">
         <span class="step-counter">{{ store.elapsedSteps() }} / {{ store.maxSteps() }}</span>
         <span class="step-pct">{{ progress() }}%</span>
@@ -24,13 +15,47 @@
         <div class="progress-fill" [style.width.%]="progress()"></div>
       </div>
 
-      <h3 class="section-title">Agent States</h3>
-      @for (entry of stats() | keyvalue; track entry.key) {
-        <div class="info-row">
-          <span class="label">{{ entry.key }}</span>
-          <span class="value">{{ entry.value }}</span>
-        </div>
-      }
+      <h3 class="section-title">Agents ({{ store.agents().length }})</h3>
+      <div class="agent-list">
+        @for (a of store.agents(); track a.handle) {
+          <div
+            class="agent-card"
+            [class.selected]="isSelected(a.handle)"
+            (click)="toggleSelect(a.handle)">
+
+            <div class="agent-header">
+              <span class="agent-dot" [style.background]="agentColor(a.handle)"></span>
+              <span class="agent-name">Train {{ a.handle }}</span>
+              <span class="agent-state state-{{ a.state.toLowerCase() }}">{{ a.state }}</span>
+            </div>
+
+            <div class="agent-meta">
+              <span class="cell-type-badge cell-{{ a.cell_type.toLowerCase() }}">
+                {{ a.cell_type }}
+              </span>
+              @if (a.position) {
+                <span class="agent-pos">[{{ a.position[0] }}, {{ a.position[1] }}]</span>
+              }
+            </div>
+
+            @if (a.next_decision; as nd) {
+              <div class="agent-actions" (click)="$event.stopPropagation()">
+                <span class="actions-label">Next: {{ nd.cell_type }}</span>
+                <div class="action-buttons">
+                  @for (opt of nd.options; track opt.action) {
+                    <button
+                      class="action-btn"
+                      [class.override]="isOverrideOption(a.handle, opt.action)"
+                      (click)="onActionClick(a.handle, opt.action, isOverrideOption(a.handle, opt.action))">
+                      {{ opt.label }}
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
 
       <h3 class="section-title">Connection</h3>
       <div class="info-row">
@@ -40,16 +65,6 @@
             <span class="dot connected"></span> Connected
           } @else {
             <span class="dot disconnected"></span> Offline
-          }
-        </span>
-      </div>
-      <div class="info-row">
-        <span class="label">Play</span>
-        <span class="value">
-          @if (store.playing()) {
-            <span class="badge running">{{ store.playSpeed() }} st/s</span>
-          } @else {
-            Idle
           }
         </span>
       </div>

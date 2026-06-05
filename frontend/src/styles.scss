@@ -1,4 +1,7 @@
-@use "@sbb-esta/lyne-elements/standard-theme.css";
+@import "@sbb-esta/lyne-elements/standard-theme.css";
+@import "@sbb-esta/lyne-elements/core.css";
+@import "@sbb-esta/lyne-elements/typography.css";
+@import "@sbb-esta/lyne-elements/normalize.css";
 
 * {
   box-sizing: border-box;
@@ -8,7 +11,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: "Helvetica Now Text", "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--sbb-typo-font-family, "Helvetica Now Text", "Helvetica Neue", Arial, sans-serif);
   background: var(--sbb-color-milk, #f6f6f6);
   color: var(--sbb-color-charcoal, #212121);
 }

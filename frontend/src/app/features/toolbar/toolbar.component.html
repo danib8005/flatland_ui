@@ -36,20 +36,23 @@
       <span class="speed-value">{{ speed() }} st/s</span>
     </div>
 
-    <sbb-divider orientation="vertical"></sbb-divider>
+    <!-- Step-Buttons nur sichtbar wenn NICHT Playing -->
+    @if (!store.playing()) {
+      <sbb-divider orientation="vertical"></sbb-divider>
 
-    <sbb-transparent-button size="s" (click)="step(1)"
-      [attr.disabled]="(store.loading() || store.episodeDone() || store.playing()) ? '' : null">
-      Step 1
-    </sbb-transparent-button>
-    <sbb-transparent-button size="s" (click)="step(10)"
-      [attr.disabled]="(store.loading() || store.episodeDone() || store.playing()) ? '' : null">
-      Step 10
-    </sbb-transparent-button>
-    <sbb-transparent-button size="s" (click)="step(50)"
-      [attr.disabled]="(store.loading() || store.episodeDone() || store.playing()) ? '' : null">
-      Step 50
-    </sbb-transparent-button>
+      <sbb-secondary-button size="s" (click)="step(1)"
+        [attr.disabled]="(store.loading() || store.episodeDone()) ? '' : null">
+        Step 1
+      </sbb-secondary-button>
+      <sbb-secondary-button size="s" (click)="step(10)"
+        [attr.disabled]="(store.loading() || store.episodeDone()) ? '' : null">
+        Step 10
+      </sbb-secondary-button>
+      <sbb-secondary-button size="s" (click)="step(50)"
+        [attr.disabled]="(store.loading() || store.episodeDone()) ? '' : null">
+        Step 50
+      </sbb-secondary-button>
+    }
 
     <sbb-divider orientation="vertical"></sbb-divider>
 

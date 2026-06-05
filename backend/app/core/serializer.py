@@ -2,6 +2,7 @@ from typing import Any, Dict, List
 from flatland.envs.rail_env import RailEnv
 
 from app.core.tile_resolver import build_rail_tiles
+from app.core.cell_classifier import classify_cell_type, lookahead_to_decision
 
 
 def _safe_int(v):
@@ -22,7 +23,7 @@ def _safe_pos(v):
         return None
 
 
-def serialize_agent(agent) -> Dict[str, Any]:
+def serialize_agent(env, agent, override_action=None) -> Dict[str, Any]:
     state_val = agent.state
     if hasattr(state_val, "name"):
         state_str = state_val.name
@@ -36,6 +37,19 @@ def serialize_agent(agent) -> Dict[str, Any]:
     except Exception:
         pass
 
+    # Cell type classification
+    try:
+        cell_type = classify_cell_type(env, agent)
+    except Exception:
+        cell_type = "UNKNOWN"
+
+    # Lookahead to next decision point
+    next_decision = None
+    try:
+        next_decision = lookahead_to_decision(env, agent)
+    except Exception:
+        next_decision = None
+
     return {
         "handle": int(agent.handle),
         "position": _safe_pos(agent.position),
@@ -47,6 +61,9 @@ def serialize_agent(agent) -> Dict[str, Any]:
         "speed": speed,
         "earliest_departure": _safe_int(agent.earliest_departure),
         "latest_arrival": _safe_int(agent.latest_arrival),
+        "cell_type": cell_type,
+        "next_decision": next_decision,
+        "override_action": override_action,
     }
 
 
@@ -55,7 +72,8 @@ def serialize_rail_grid(env: RailEnv) -> List[List[int]]:
     return [[int(grid[r, c]) for c in range(env.width)] for r in range(env.height)]
 
 
-def serialize_env(env: RailEnv) -> Dict[str, Any]:
+def serialize_env(env: RailEnv, overrides: Dict[int, int] = None) -> Dict[str, Any]:
+    overrides = overrides or {}
     rail_grid = serialize_rail_grid(env)
     return {
         "width": int(env.width),
@@ -63,7 +81,10 @@ def serialize_env(env: RailEnv) -> Dict[str, Any]:
         "num_agents": len(env.agents),
         "elapsed_steps": int(env._elapsed_steps),
         "max_episode_steps": int(env._max_episode_steps),
-        "agents": [serialize_agent(a) for a in env.agents],
+        "agents": [
+            serialize_agent(env, a, overrides.get(a.handle))
+            for a in env.agents
+        ],
         "rail_grid": rail_grid,
         "rail_tiles": build_rail_tiles(rail_grid),
     }

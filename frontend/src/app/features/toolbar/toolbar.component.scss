@@ -137,3 +137,23 @@ sbb-tag {
   color: var(--sbb-color-orange, #ffaa00);
   font-weight: 600;
 }
+
+/* Step-Buttons (transparent-button) sichtbar machen */
+sbb-transparent-button {
+  --sbb-button-color: var(--sbb-color-charcoal, #212121);
+  --sbb-button-text-color: var(--sbb-color-charcoal, #212121);
+  --sbb-button-background-color: transparent;
+  --sbb-button-border-color: var(--sbb-color-cloud, #d2d2d2);
+
+  border: 1.5px solid var(--sbb-color-cloud, #d2d2d2);
+  border-radius: 4px;
+  background: white;
+  color: var(--sbb-color-charcoal, #212121);
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+sbb-transparent-button:hover {
+  border-color: var(--sbb-color-charcoal, #212121);
+  background: var(--sbb-color-milk, #f6f6f6);
+}

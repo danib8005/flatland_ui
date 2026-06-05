@@ -2,80 +2,61 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
+  ActionInt,
+  PlayRequest,
+  PolicyName,
   SessionInfo,
   SessionState,
-  StepResult,
-  SessionCreateRequest,
-  PolicyName,
+  StepResponse,
 } from './models';
 
-export interface PlayRequest {
-  speed?: number;
-  policy?: PolicyName;
-}
-
-export interface PlayStatus {
-  session_id: string;
-  playing: boolean;
-}
+const API_BASE = 'http://localhost:8000';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
-  private base = '/api';
 
-  createSession(req: SessionCreateRequest = {}): Observable<SessionInfo> {
-    return this.http.post<SessionInfo>(`${this.base}/session`, {
-      width: 30,
-      height: 30,
-      number_of_agents: 3,
-      ...req,
-    });
+  createSession(opts: any = {}): Observable<SessionInfo> {
+    return this.http.post<SessionInfo>(`${API_BASE}/session`, opts);
   }
 
-  getState(sessionId: string): Observable<SessionState> {
-    return this.http.get<SessionState>(`${this.base}/session/${sessionId}/state`);
+  getState(id: string): Observable<SessionState> {
+    return this.http.get<SessionState>(`${API_BASE}/session/${id}/state`);
   }
 
-  step(sessionId: string, policy: PolicyName, n_steps: number = 1): Observable<StepResult> {
-    return this.http.post<StepResult>(`${this.base}/session/${sessionId}/step`, {
+  step(id: string, policy: PolicyName, n_steps: number = 1): Observable<StepResponse> {
+    return this.http.post<StepResponse>(`${API_BASE}/session/${id}/step`, {
       policy,
       n_steps,
     });
   }
 
-  reset(sessionId: string) {
-    return this.http.post(`${this.base}/session/${sessionId}/reset`, {});
+  reset(id: string): Observable<{ session_id: string; reset: boolean }> {
+    return this.http.post<{ session_id: string; reset: boolean }>(
+      `${API_BASE}/session/${id}/reset`,
+      {},
+    );
   }
 
-  play(sessionId: string, req: PlayRequest = {}) {
-    return this.http.post(`${this.base}/session/${sessionId}/play`, {
-      speed: 5,
-      policy: 'shortest_path',
-      ...req,
-    });
+  play(id: string, req: PlayRequest = {}): Observable<any> {
+    return this.http.post(`${API_BASE}/session/${id}/play`, req);
   }
 
-  pause(sessionId: string) {
-    return this.http.post(`${this.base}/session/${sessionId}/pause`, {});
+  pause(id: string): Observable<any> {
+    return this.http.post(`${API_BASE}/session/${id}/pause`, {});
   }
 
-  playStatus(sessionId: string): Observable<PlayStatus> {
-    return this.http.get<PlayStatus>(`${this.base}/session/${sessionId}/play_status`);
+  playStatus(id: string): Observable<{ session_id: string; playing: boolean }> {
+    return this.http.get<any>(`${API_BASE}/session/${id}/play_status`);
   }
 
-  manualAction(sessionId: string, handle: number, action: number) {
-    return this.http.post(`${this.base}/session/${sessionId}/action`, {
-      handle,
+  setOverride(id: string, handle: number, action: ActionInt): Observable<any> {
+    return this.http.post(`${API_BASE}/session/${id}/agent/${handle}/override`, {
       action,
     });
   }
 
-  deleteSession(sessionId: string) {
-    return this.http.delete(`${this.base}/session/${sessionId}`);
-  }
-
-  listSessions(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.base}/session`);
+  clearOverride(id: string, handle: number): Observable<any> {
+    return this.http.delete(`${API_BASE}/session/${id}/agent/${handle}/override`);
   }
 }
