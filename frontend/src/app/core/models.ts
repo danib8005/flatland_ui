@@ -18,6 +18,14 @@ export interface AgentDTO {
   latest_arrival: number | null;
 }
 
+export interface RailTile {
+  r: number;
+  c: number;
+  svg: string;
+  rot: number;
+  unknown?: number;
+}
+
 export interface SessionState {
   width: number;
   height: number;
@@ -26,6 +34,7 @@ export interface SessionState {
   max_episode_steps: number;
   agents: AgentDTO[];
   rail_grid: number[][];
+  rail_tiles: RailTile[];
   episode_done?: boolean;
 }
 

@@ -12,18 +12,15 @@
 }
 
 .bg {
-  fill: #fafafa;
+  fill: #f6f6f6;
 }
 
-.rail-cell {
-  fill: #d2d2d2;
-  stroke: #686868;
-  stroke-width: 0.3;
+.rail-tile {
+  pointer-events: none;
 }
 
 .target {
-  stroke: white;
-  stroke-width: 1;
+  pointer-events: none;
 }
 
 .agent {
@@ -46,6 +43,7 @@
   color: var(--sbb-color-granite, #686868);
   font-size: 16px;
   line-height: 1.6;
+  padding: 64px;
 
   strong {
     color: var(--sbb-color-red, #eb0000);

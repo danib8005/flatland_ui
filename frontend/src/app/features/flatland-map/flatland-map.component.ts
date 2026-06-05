@@ -1,6 +1,6 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, computed, inject } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
-import { AgentDTO } from '../../core/models';
+import { AgentDTO, RailTile } from '../../core/models';
 
 const AGENT_COLORS = [
   '#eb0000', '#0079c7', '#00973b', '#ffaa00', '#9c4ddc',
@@ -17,7 +17,7 @@ const AGENT_COLORS = [
 export class FlatlandMapComponent {
   store = inject(SessionStore);
 
-  cellSize = 24;
+  cellSize = 32;
 
   readonly viewBox = computed(() => {
     const w = this.store.width() * this.cellSize;
@@ -25,24 +25,26 @@ export class FlatlandMapComponent {
     return `0 0 ${w} ${h}`;
   });
 
-  readonly cells = computed(() => {
-    const grid = this.store.railGrid();
-    const cells: { x: number; y: number; trans: number }[] = [];
-    for (let r = 0; r < grid.length; r++) {
-      for (let c = 0; c < grid[r].length; c++) {
-        if (grid[r][c] !== 0) {
-          cells.push({
-            x: c * this.cellSize,
-            y: r * this.cellSize,
-            trans: grid[r][c],
-          });
-        }
-      }
-    }
-    return cells;
-  });
-
+  readonly tiles = computed(() => this.store.railTiles());
   readonly agents = computed(() => this.store.agents());
+
+  tileX(t: RailTile): number {
+    return t.c * this.cellSize;
+  }
+
+  tileY(t: RailTile): number {
+    return t.r * this.cellSize;
+  }
+
+  tileTransform(t: RailTile): string {
+    const cx = t.c * this.cellSize + this.cellSize / 2;
+    const cy = t.r * this.cellSize + this.cellSize / 2;
+    return `rotate(${t.rot} ${cx} ${cy})`;
+  }
+
+  tileHref(t: RailTile): string {
+    return `/flatland-svg/${t.svg}`;
+  }
 
   agentColor(handle: number): string {
     return AGENT_COLORS[handle % AGENT_COLORS.length];
@@ -76,6 +78,6 @@ export class FlatlandMapComponent {
     this.store.toggleAgentSelection(handle);
   }
 
-  trackByCell = (_: number, c: { x: number; y: number }) => `${c.x}_${c.y}`;
+  trackByTile = (_: number, t: RailTile) => `${t.r}_${t.c}`;
   trackByAgent = (_: number, a: AgentDTO) => a.handle;
 }

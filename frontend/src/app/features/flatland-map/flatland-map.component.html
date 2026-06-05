@@ -10,13 +10,15 @@
       [attr.height]="store.height() * cellSize"
       class="bg" />
 
-    @for (cell of cells(); track trackByCell($index, cell)) {
-      <rect
-        [attr.x]="cell.x"
-        [attr.y]="cell.y"
+    @for (t of tiles(); track trackByTile($index, t)) {
+      <image
+        [attr.href]="tileHref(t)"
+        [attr.x]="tileX(t)"
+        [attr.y]="tileY(t)"
         [attr.width]="cellSize"
         [attr.height]="cellSize"
-        class="rail-cell" />
+        [attr.transform]="tileTransform(t)"
+        class="rail-tile" />
     }
 
     @for (a of agents(); track trackByAgent($index, a)) {
@@ -26,7 +28,9 @@
         width="16"
         height="16"
         [attr.fill]="agentColor(a.handle)"
-        opacity="0.4"
+        opacity="0.5"
+        stroke="white"
+        stroke-width="1.5"
         class="target" />
     }
 
@@ -38,15 +42,15 @@
         <circle
           [attr.cx]="agentX(a)"
           [attr.cy]="agentY(a)"
-          r="10"
+          r="11"
           [attr.fill]="agentColor(a.handle)"
           stroke="white"
-          stroke-width="2" />
+          stroke-width="2.5" />
         <text
           [attr.x]="agentX(a)"
           [attr.y]="agentY(a) + 4"
           text-anchor="middle"
-          font-size="10"
+          font-size="11"
           font-weight="bold"
           fill="white">
           {{ a.handle }}

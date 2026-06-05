@@ -1,6 +1,8 @@
 from typing import Any, Dict, List
 from flatland.envs.rail_env import RailEnv
 
+from app.core.tile_resolver import build_rail_tiles
+
 
 def _safe_int(v):
     if v is None:
@@ -54,6 +56,7 @@ def serialize_rail_grid(env: RailEnv) -> List[List[int]]:
 
 
 def serialize_env(env: RailEnv) -> Dict[str, Any]:
+    rail_grid = serialize_rail_grid(env)
     return {
         "width": int(env.width),
         "height": int(env.height),
@@ -61,5 +64,6 @@ def serialize_env(env: RailEnv) -> Dict[str, Any]:
         "elapsed_steps": int(env._elapsed_steps),
         "max_episode_steps": int(env._max_episode_steps),
         "agents": [serialize_agent(a) for a in env.agents],
-        "rail_grid": serialize_rail_grid(env),
+        "rail_grid": rail_grid,
+        "rail_tiles": build_rail_tiles(rail_grid),
     }

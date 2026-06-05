@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { ApiService } from './api.service';
-import { AgentDTO, SessionInfo, SessionState } from './models';
+import { AgentDTO, RailTile, SessionInfo, SessionState } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class SessionStore {
@@ -19,6 +19,7 @@ export class SessionStore {
   readonly width = computed(() => this.state()?.width ?? 0);
   readonly height = computed(() => this.state()?.height ?? 0);
   readonly railGrid = computed<number[][]>(() => this.state()?.rail_grid ?? []);
+  readonly railTiles = computed<RailTile[]>(() => this.state()?.rail_tiles ?? []);
   readonly episodeDone = computed(() => this.state()?.episode_done ?? false);
 
   newSession() {
