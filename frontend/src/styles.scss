@@ -1,0 +1,19 @@
+@use "@sbb-esta/lyne-elements/standard-theme.css";
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Helvetica Now Text", "Helvetica Neue", Arial, sans-serif;
+  background: var(--sbb-color-milk, #f6f6f6);
+  color: var(--sbb-color-charcoal, #212121);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}

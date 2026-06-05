@@ -1,0 +1,33 @@
+<header class="header">
+  <div class="header-brand">
+    <span class="header-logo">SBB CFF FFS</span>
+    <span class="header-title">Flatland Dispatcher</span>
+  </div>
+  <div class="header-meta">
+    @if (store.session(); as s) {
+      <span class="session-id">Session: {{ s.id }}</span>
+    }
+    @if (store.error(); as e) {
+      <span class="error">{{ e }}</span>
+    }
+  </div>
+</header>
+
+<app-toolbar></app-toolbar>
+
+<main class="main">
+  <section class="map-area">
+    <app-flatland-map></app-flatland-map>
+  </section>
+  <aside class="sidebar">
+    <app-agent-inspector></app-agent-inspector>
+  </aside>
+</main>
+
+<footer class="footer">
+  <span>Step: {{ store.elapsedSteps() }} / {{ store.maxSteps() }}</span>
+  <span>Agents: {{ store.agents().length }}</span>
+  @if (store.loading()) {
+    <span class="loading">Loading...</span>
+  }
+</footer>

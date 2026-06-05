@@ -1,0 +1,65 @@
+<div class="inspector">
+  <div class="section">
+    <div class="section-header">
+      <h3>Agents ({{ allAgents().length }})</h3>
+      @if (selectedAgents().length > 0) {
+        <button class="btn-clear" (click)="clearSelection()">Clear</button>
+      }
+    </div>
+
+    @if (allAgents().length === 0) {
+      <p class="empty">Noch keine Session aktiv.</p>
+    }
+
+    <div class="agent-list">
+      @for (a of allAgents(); track trackByAgent($index, a)) {
+        <div
+          class="agent-item"
+          [class.selected]="isSelected(a.handle)"
+          (click)="toggle(a.handle)">
+          <span class="dot" [style.background]="agentColor(a.handle)"></span>
+          <span class="handle">Train {{ a.handle }}</span>
+          <span class="state state-{{ a.state }}">{{ a.state }}</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (selectedAgents().length > 0) {
+    <div class="section">
+      <div class="section-header">
+        <h3>Details</h3>
+      </div>
+      @for (a of selectedAgents(); track trackByAgent($index, a)) {
+        <div class="detail-card">
+          <div class="card-header">
+            <span class="dot" [style.background]="agentColor(a.handle)"></span>
+            <span class="title">Train {{ a.handle }}</span>
+          </div>
+          <dl class="props">
+            <dt>State</dt>
+            <dd>{{ a.state }}</dd>
+            <dt>Position</dt>
+            <dd>
+              @if (a.position) {
+                ({{ a.position[0] }}, {{ a.position[1] }})
+              } @else {
+                –
+              }
+            </dd>
+            <dt>Direction</dt>
+            <dd>{{ a.direction ?? '–' }}</dd>
+            <dt>Target</dt>
+            <dd>({{ a.target[0] }}, {{ a.target[1] }})</dd>
+            <dt>Speed</dt>
+            <dd>{{ a.speed }}</dd>
+            <dt>Earliest dep.</dt>
+            <dd>{{ a.earliest_departure ?? '–' }}</dd>
+            <dt>Latest arr.</dt>
+            <dd>{{ a.latest_arrival ?? '–' }}</dd>
+          </dl>
+        </div>
+      }
+    </div>
+  }
+</div>

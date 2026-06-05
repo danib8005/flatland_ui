@@ -1,0 +1,62 @@
+@if (store.session()) {
+  <svg
+    class="flatland-svg"
+    [attr.viewBox]="viewBox()"
+    preserveAspectRatio="xMidYMid meet">
+
+    <rect
+      x="0" y="0"
+      [attr.width]="store.width() * cellSize"
+      [attr.height]="store.height() * cellSize"
+      class="bg" />
+
+    @for (cell of cells(); track trackByCell($index, cell)) {
+      <rect
+        [attr.x]="cell.x"
+        [attr.y]="cell.y"
+        [attr.width]="cellSize"
+        [attr.height]="cellSize"
+        class="rail-cell" />
+    }
+
+    @for (a of agents(); track trackByAgent($index, a)) {
+      <rect
+        [attr.x]="targetX(a) - 8"
+        [attr.y]="targetY(a) - 8"
+        width="16"
+        height="16"
+        [attr.fill]="agentColor(a.handle)"
+        opacity="0.4"
+        class="target" />
+    }
+
+    @for (a of agents(); track trackByAgent($index, a)) {
+      <g
+        class="agent"
+        [class.selected]="isSelected(a.handle)"
+        (click)="toggleSelect(a.handle)">
+        <circle
+          [attr.cx]="agentX(a)"
+          [attr.cy]="agentY(a)"
+          r="10"
+          [attr.fill]="agentColor(a.handle)"
+          stroke="white"
+          stroke-width="2" />
+        <text
+          [attr.x]="agentX(a)"
+          [attr.y]="agentY(a) + 4"
+          text-anchor="middle"
+          font-size="10"
+          font-weight="bold"
+          fill="white">
+          {{ a.handle }}
+        </text>
+      </g>
+    }
+  </svg>
+} @else {
+  <div class="empty-state">
+    <p>Keine aktive Session.</p>
+    <p>Klicke <strong>+ New Session</strong> in der Toolbar.</p>
+  </div>
+}

@@ -1,0 +1,31 @@
+<div class="toolbar">
+  <button class="btn btn-primary" (click)="newSession()">+ New Session</button>
+
+  <div class="separator"></div>
+
+  <button class="btn" (click)="step(1)" [disabled]="!store.session() || store.loading()">
+    Step 1
+  </button>
+  <button class="btn" (click)="step(10)" [disabled]="!store.session() || store.loading()">
+    Step 10
+  </button>
+  <button class="btn" (click)="step(50)" [disabled]="!store.session() || store.loading()">
+    Step 50
+  </button>
+
+  <div class="separator"></div>
+
+  <span class="label">Policy:</span>
+  <button
+    class="btn-toggle"
+    [class.active]="policy() === 'random'"
+    (click)="setPolicy('random')">
+    Random
+  </button>
+  <button
+    class="btn-toggle"
+    [class.active]="policy() === 'shortest_path'"
+    (click)="setPolicy('shortest_path')">
+    Shortest Path
+  </button>
+</div>
