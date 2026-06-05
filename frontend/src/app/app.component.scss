@@ -191,3 +191,70 @@
   color: var(--sbb-color-orange, #ffaa00);
   font-weight: 600;
 }
+
+
+/* Welcome-Inputs Layout */
+.welcome-card .welcome-inputs {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  margin-top: 24px;
+  justify-content: center;
+}
+
+.welcome-card sbb-form-field {
+  width: 110px;
+}
+
+
+/* === Welcome Inputs - Inline Layout === */
+.welcome-card .welcome-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  margin-top: 24px;
+  justify-content: center;
+}
+
+.welcome-card .welcome-grid-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sbb-color-granite, #686868);
+  margin-bottom: 8px;
+}
+
+.welcome-card .welcome-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.welcome-card .welcome-input span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--sbb-color-granite, #686868);
+  font-weight: 600;
+}
+.welcome-card .welcome-input input {
+  width: 70px;
+  padding: 5px 8px;
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  border-radius: 3px;
+  font-size: 14px;
+  font-family: inherit;
+  background: white;
+  color: var(--sbb-color-charcoal, #212121);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  font-weight: 600;
+}
+.welcome-card .welcome-input input:focus {
+  outline: none;
+  border-color: var(--sbb-color-charcoal, #212121);
+  box-shadow: 0 0 0 2px rgba(33, 33, 33, 0.1);
+}
+.welcome-card .welcome-input input::-webkit-outer-spin-button,
+.welcome-card .welcome-input input::-webkit-inner-spin-button {
+  opacity: 1;
+  height: 18px;
+}

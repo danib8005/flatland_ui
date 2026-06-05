@@ -105,13 +105,17 @@ export class SessionStore {
     if (!this.showMap() && !this.showMarey()) this.showMap.set(true);
   }
 
-  newSession() {
+  newSession(opts: { width?: number; height?: number; agents?: number } = {}) {
     this.loading.set(true);
     this.error.set(null);
     this.message.set(null);
     this.playing.set(false);
     this._resetTrajectories();
-    this.api.createSession({}).subscribe({
+    const payload: any = {};
+    if (opts.width != null) payload.width = opts.width;
+    if (opts.height != null) payload.height = opts.height;
+    if (opts.agents != null) payload.number_of_agents = opts.agents;
+    this.api.createSession(payload).subscribe({
       next: (s) => {
         this.session.set(s);
         this.ws.connect(s.id);

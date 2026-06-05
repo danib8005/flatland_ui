@@ -42,6 +42,18 @@ interface BoundingBox {
 export class FlatlandMapComponent {
   store = inject(SessionStore);
 
+  newWidth = signal(50);
+  newHeight = signal(20);
+  newAgents = signal(3);
+
+  onNewSession() {
+    this.store.newSession({
+      width: this.newWidth(),
+      height: this.newHeight(),
+      agents: this.newAgents(),
+    });
+  }
+
   cellSize = 32;
   padCells = 1;
 

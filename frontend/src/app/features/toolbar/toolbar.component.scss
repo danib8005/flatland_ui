@@ -148,3 +148,85 @@ sbb-transparent-button:hover {
   border-color: var(--sbb-color-charcoal, #212121);
   background: var(--sbb-color-milk, #f6f6f6);
 }
+
+.welcome-inputs {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.welcome-input {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+.welcome-input span {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: var(--sbb-color-granite, #686868);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.welcome-input input {
+  width: 60px;
+  padding: 4px 6px;
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  border-radius: 3px;
+  font-size: 13px;
+  font-family: inherit;
+  background: white;
+  color: var(--sbb-color-charcoal, #212121);
+  font-variant-numeric: tabular-nums;
+}
+.welcome-input input:focus {
+  outline: none;
+  border-color: var(--sbb-color-charcoal, #212121);
+}
+.welcome-input input::-webkit-outer-spin-button,
+.welcome-input input::-webkit-inner-spin-button {
+  opacity: 1;
+}
+
+.welcome-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+/* Inputs nebeneinander unterhalb des + New Session Button */
+.welcome-inputs {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.welcome-input {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+.welcome-input span {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: var(--sbb-color-granite, #686868);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.welcome-input input {
+  width: 60px;
+  padding: 4px 6px;
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  border-radius: 3px;
+  font-size: 13px;
+  font-family: inherit;
+  background: white;
+  color: var(--sbb-color-charcoal, #212121);
+  font-variant-numeric: tabular-nums;
+}
+.welcome-input input:focus {
+  outline: none;
+  border-color: var(--sbb-color-charcoal, #212121);
+}

@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, inject, signal } from '@angular/core';
 import { ToolbarComponent } from './features/toolbar/toolbar.component';
 import { FlatlandMapComponent } from './features/flatland-map/flatland-map.component';
 import { AgentInspectorComponent } from './features/agent-inspector/agent-inspector.component';
@@ -24,4 +24,16 @@ import { SessionStore } from './core/session.store';
 })
 export class AppComponent {
   store = inject(SessionStore);
+
+  newWidth = signal(50);
+  newHeight = signal(20);
+  newAgents = signal(3);
+
+  onNewSession() {
+    this.store.newSession({
+      width: this.newWidth(),
+      height: this.newHeight(),
+      agents: this.newAgents(),
+    });
+  }
 }

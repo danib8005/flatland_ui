@@ -18,5 +18,7 @@ import '@sbb-esta/lyne-elements/checkbox/checkbox-group.js';
 import '@sbb-esta/lyne-elements/radio-button.js';
 import '@sbb-esta/lyne-elements/radio-button/radio-button-group.js';
 
+import '@sbb-esta/lyne-elements/form-field.js';
+
 bootstrapApplication(AppComponent, appConfig)
   .catch((err) => console.error(err));

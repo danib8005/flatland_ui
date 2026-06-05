@@ -11,11 +11,19 @@ import { PolicyName } from '../../core/models';
 })
 export class ToolbarComponent {
   store = inject(SessionStore);
+  newWidth = signal(50);
+  newHeight = signal(20);
+  newAgents = signal(3);
+
   policy = signal<PolicyName>('shortest_path');
   speed = signal(5);
 
   newSession() {
-    this.store.newSession();
+    this.store.newSession({
+      width: this.newWidth(),
+      height: this.newHeight(),
+      agents: this.newAgents(),
+    });
   }
 
   reset() {
