@@ -1,25 +1,28 @@
 <div class="toolbar">
-  <button class="btn btn-primary" (click)="newSession()">+ New Session</button>
+  <sbb-button variant="primary" size="m" (click)="newSession()">
+    + New Session
+  </sbb-button>
 
   @if (store.session()) {
-    <button class="btn btn-secondary" (click)="reset()" [disabled]="store.loading()">
+    <sbb-button variant="secondary" size="m" (click)="reset()" [disabled]="store.loading()">
       ↻ Reset
-    </button>
+    </sbb-button>
   }
 
-  <div class="separator"></div>
+  <sbb-divider orientation="vertical"></sbb-divider>
 
   @if (store.session()) {
-    <button class="btn btn-play"
-            [class.active]="store.playing()"
-            (click)="togglePlay()"
-            [disabled]="store.episodeDone()">
+    <sbb-button
+      [variant]="store.playing() ? 'primary' : 'secondary'"
+      size="m"
+      (click)="togglePlay()"
+      [disabled]="store.episodeDone()">
       @if (store.playing()) {
-        <span>⏸ Pause</span>
+        ⏸ Pause
       } @else {
-        <span>▶ Play</span>
+        ▶ Play
       }
-    </button>
+    </sbb-button>
 
     <div class="speed-control">
       <label>Speed</label>
@@ -35,32 +38,43 @@
     </div>
   }
 
-  <div class="separator"></div>
+  <sbb-divider orientation="vertical"></sbb-divider>
 
-  <button class="btn" (click)="step(1)"
-          [disabled]="!store.session() || store.loading() || store.episodeDone() || store.playing()">
+  <sbb-button
+    variant="tertiary"
+    size="s"
+    (click)="step(1)"
+    [disabled]="!store.session() || store.loading() || store.episodeDone() || store.playing()">
     Step 1
-  </button>
-  <button class="btn" (click)="step(10)"
-          [disabled]="!store.session() || store.loading() || store.episodeDone() || store.playing()">
+  </sbb-button>
+  <sbb-button
+    variant="tertiary"
+    size="s"
+    (click)="step(10)"
+    [disabled]="!store.session() || store.loading() || store.episodeDone() || store.playing()">
     Step 10
-  </button>
-  <button class="btn" (click)="step(50)"
-          [disabled]="!store.session() || store.loading() || store.episodeDone() || store.playing()">
+  </sbb-button>
+  <sbb-button
+    variant="tertiary"
+    size="s"
+    (click)="step(50)"
+    [disabled]="!store.session() || store.loading() || store.episodeDone() || store.playing()">
     Step 50
-  </button>
+  </sbb-button>
 
-  <div class="separator"></div>
+  <sbb-divider orientation="vertical"></sbb-divider>
 
-  <span class="label">Policy:</span>
-  <button class="btn-toggle" [class.active]="policy() === 'random'"
-          (click)="setPolicy('random')">
+  <span class="label">Policy</span>
+  <sbb-tag
+    [class.active-tag]="policy() === 'random'"
+    (click)="setPolicy('random')">
     Random
-  </button>
-  <button class="btn-toggle" [class.active]="policy() === 'shortest_path'"
-          (click)="setPolicy('shortest_path')">
+  </sbb-tag>
+  <sbb-tag
+    [class.active-tag]="policy() === 'shortest_path'"
+    (click)="setPolicy('shortest_path')">
     Shortest Path
-  </button>
+  </sbb-tag>
 
   <div class="spacer"></div>
 
@@ -71,8 +85,13 @@
   }
 
   @if (store.episodeDone()) {
-    <span class="badge badge-done">Episode finished</span>
+    <sbb-tag class="done-tag">Episode finished</sbb-tag>
   }
+
+  @if (store.loading()) {
+    <sbb-loading-indicator-circle size="s"></sbb-loading-indicator-circle>
+  }
+
   @if (store.message(); as msg) {
     <span class="info-msg">{{ msg }}</span>
   }

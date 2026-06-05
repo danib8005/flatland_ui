@@ -48,9 +48,15 @@
 </div>
 
 <footer class="footer">
-  <span>Step: {{ store.elapsedSteps() }} / {{ store.maxSteps() }}</span>
-  <span>Agents: {{ store.agents().length }}</span>
+  <span>Step: <strong>{{ store.elapsedSteps() }}</strong> / {{ store.maxSteps() }}</span>
+  <span>Agents: <strong>{{ store.agents().length }}</strong></span>
+  @if (store.playing()) {
+    <span class="playing-indicator">
+      <sbb-loading-indicator-circle size="s"></sbb-loading-indicator-circle>
+      Playing
+    </span>
+  }
   @if (store.loading()) {
-    <span class="loading">Loading...</span>
+    <span class="loading">Loading…</span>
   }
 </footer>
