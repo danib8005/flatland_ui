@@ -1,7 +1,15 @@
-import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ApiService } from './api.service';
 import { WebSocketService } from './websocket.service';
 import { AgentDTO, RailTile, SessionInfo, SessionState, PolicyName } from './models';
+
+export interface TrajectoryPoint {
+  step: number;
+  position: [number, number] | null;
+  state: string;
+}
+
+const MAX_TRAJECTORY_POINTS = 500;
 
 @Injectable({ providedIn: 'root' })
 export class SessionStore {
@@ -19,6 +27,11 @@ export class SessionStore {
   readonly playSpeed = signal(5);
   readonly wsConnected = computed(() => this.ws.connected());
 
+  readonly showMap = signal(true);
+  readonly showMarey = signal(true);
+
+  readonly trajectories = signal<Map<number, TrajectoryPoint[]>>(new Map());
+
   readonly agents = computed<AgentDTO[]>(() => this.state()?.agents ?? []);
   readonly elapsedSteps = computed(() => this.state()?.elapsed_steps ?? 0);
   readonly maxSteps = computed(() => this.state()?.max_episode_steps ?? 0);
@@ -33,18 +46,62 @@ export class SessionStore {
       const msg = this.ws.lastMessage();
       if (!msg) return;
 
-      if (msg.type === 'state' && msg.state) {
-        this.state.set(msg.state);
-        this.loading.set(false);
-      } else if (msg.type === 'episode_done') {
-        this.playing.set(false);
-        this.message.set('Episode finished. Use Reset to start again.');
-        this.refreshState();
-      } else if (msg.type === 'error') {
-        this.error.set(msg.message ?? 'Unknown WebSocket error');
-        this.playing.set(false);
-      }
+      // untracked() verhindert dass Set-Calls hier eine Loop triggern
+      untracked(() => {
+        if (msg.type === 'state' && msg.state) {
+          this.state.set(msg.state);
+          this._recordTrajectory(msg.state);
+          this.loading.set(false);
+        } else if (msg.type === 'episode_done') {
+          this.playing.set(false);
+          this.message.set('Episode finished. Use Reset to start again.');
+        } else if (msg.type === 'error') {
+          this.error.set(msg.message ?? 'Unknown WebSocket error');
+          this.playing.set(false);
+        }
+      });
     });
+  }
+
+  private _recordTrajectory(state: SessionState) {
+    const map = this.trajectories();
+    const newMap = new Map(map);
+    let changed = false;
+
+    for (const a of state.agents) {
+      const list = newMap.get(a.handle) ?? [];
+      const lastPt = list.length > 0 ? list[list.length - 1] : null;
+      if (lastPt && lastPt.step === state.elapsed_steps) continue;
+      const updated = [...list, {
+        step: state.elapsed_steps,
+        position: a.position,
+        state: a.state,
+      }];
+      // Cap to prevent memory blowup
+      if (updated.length > MAX_TRAJECTORY_POINTS) {
+        updated.splice(0, updated.length - MAX_TRAJECTORY_POINTS);
+      }
+      newMap.set(a.handle, updated);
+      changed = true;
+    }
+
+    if (changed) {
+      this.trajectories.set(newMap);
+    }
+  }
+
+  private _resetTrajectories() {
+    this.trajectories.set(new Map());
+  }
+
+  toggleMap() {
+    this.showMap.update((v) => !v);
+    if (!this.showMap() && !this.showMarey()) this.showMarey.set(true);
+  }
+
+  toggleMarey() {
+    this.showMarey.update((v) => !v);
+    if (!this.showMap() && !this.showMarey()) this.showMap.set(true);
   }
 
   newSession() {
@@ -52,6 +109,7 @@ export class SessionStore {
     this.error.set(null);
     this.message.set(null);
     this.playing.set(false);
+    this._resetTrajectories();
     this.api.createSession({}).subscribe({
       next: (s) => {
         this.session.set(s);
@@ -71,6 +129,7 @@ export class SessionStore {
     this.api.getState(s.id).subscribe({
       next: (st) => {
         this.state.set(st);
+        this._recordTrajectory(st);
         this.loading.set(false);
       },
       error: (e) => {
@@ -108,6 +167,7 @@ export class SessionStore {
     this.error.set(null);
     this.message.set(null);
     this.playing.set(false);
+    this._resetTrajectories();
     this.api.reset(s.id).subscribe({
       next: () => this.refreshState(),
       error: (e) => {
@@ -140,21 +200,14 @@ export class SessionStore {
     const s = this.session();
     if (!s) return;
     this.api.pause(s.id).subscribe({
-      next: () => {
-        this.playing.set(false);
-      },
-      error: (e) => {
-        this.error.set(`Pause failed: ${e.message}`);
-      },
+      next: () => this.playing.set(false),
+      error: (e) => this.error.set(`Pause failed: ${e.message}`),
     });
   }
 
   togglePlay(policy: PolicyName, speed: number = 5) {
-    if (this.playing()) {
-      this.pause();
-    } else {
-      this.play(policy, speed);
-    }
+    if (this.playing()) this.pause();
+    else this.play(policy, speed);
   }
 
   toggleAgentSelection(handle: number) {

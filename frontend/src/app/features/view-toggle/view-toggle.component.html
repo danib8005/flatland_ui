@@ -1,0 +1,17 @@
+<div class="view-toggle">
+  <span class="label">View</span>
+  <button class="toggle-btn"
+          [class.active]="store.showMap()"
+          (click)="toggleMap()"
+          title="Topology Map">
+    <span class="icon">▦</span>
+    <span>Map</span>
+  </button>
+  <button class="toggle-btn"
+          [class.active]="store.showMarey()"
+          (click)="toggleMarey()"
+          title="Time-Distance Marey Chart">
+    <span class="icon">⊞</span>
+    <span>Marey</span>
+  </button>
+</div>

@@ -1,0 +1,124 @@
+<div class="marey-wrapper">
+  <div class="marey-header">
+    <h3 class="title">Time-Distance Diagram (Marey)</h3>
+    <span class="subtitle">Distance to target over time</span>
+  </div>
+
+  @if (store.session()) {
+    <svg
+      class="marey-svg"
+      [attr.viewBox]="viewBox()"
+      preserveAspectRatio="xMidYMid meet">
+
+      <!-- Grid lines -->
+      @for (t of yTicks(); track trackByTick($index, t)) {
+        <line
+          [attr.x1]="margin.left"
+          [attr.x2]="chartWidth - margin.right"
+          [attr.y1]="t.pos"
+          [attr.y2]="t.pos"
+          class="grid-line" />
+      }
+
+      @for (t of xTicks(); track trackByTick($index, t)) {
+        <line
+          [attr.x1]="t.pos"
+          [attr.x2]="t.pos"
+          [attr.y1]="margin.top"
+          [attr.y2]="chartHeight - margin.bottom"
+          class="grid-line vertical" />
+      }
+
+      <!-- Axes -->
+      <line
+        [attr.x1]="margin.left"
+        [attr.y1]="margin.top"
+        [attr.x2]="margin.left"
+        [attr.y2]="chartHeight - margin.bottom"
+        class="axis" />
+      <line
+        [attr.x1]="margin.left"
+        [attr.y1]="chartHeight - margin.bottom"
+        [attr.x2]="chartWidth - margin.right"
+        [attr.y2]="chartHeight - margin.bottom"
+        class="axis" />
+
+      <!-- X-axis labels -->
+      @for (t of xTicks(); track trackByTick($index, t)) {
+        <text
+          [attr.x]="t.pos"
+          [attr.y]="chartHeight - margin.bottom + 18"
+          text-anchor="middle"
+          class="tick-label">
+          {{ t.label }}
+        </text>
+      }
+
+      <!-- Y-axis labels -->
+      @for (t of yTicks(); track trackByTick($index, t)) {
+        <text
+          [attr.x]="margin.left - 8"
+          [attr.y]="t.pos + 4"
+          text-anchor="end"
+          class="tick-label">
+          {{ t.label }}
+        </text>
+      }
+
+      <!-- Axis titles -->
+      <text
+        [attr.x]="chartWidth / 2"
+        [attr.y]="chartHeight - 6"
+        text-anchor="middle"
+        class="axis-title">
+        Step
+      </text>
+      <text
+        [attr.x]="14"
+        [attr.y]="chartHeight / 2"
+        text-anchor="middle"
+        class="axis-title"
+        [attr.transform]="'rotate(-90, 14, ' + (chartHeight / 2) + ')'">
+        Progress
+      </text>
+
+      <!-- Current step indicator -->
+      <line
+        [attr.x1]="margin.left + (store.elapsedSteps() / (store.maxSteps() || 1)) * innerWidth()"
+        [attr.x2]="margin.left + (store.elapsedSteps() / (store.maxSteps() || 1)) * innerWidth()"
+        [attr.y1]="margin.top"
+        [attr.y2]="chartHeight - margin.bottom"
+        class="now-line" />
+
+      <!-- Agent trajectories -->
+      @for (line of lines(); track trackByLine($index, line)) {
+        <path
+          [attr.d]="line.pathD"
+          [attr.stroke]="line.color"
+          [attr.stroke-width]="line.selected ? 3 : 1.8"
+          [attr.opacity]="line.selected ? 1 : 0.85"
+          fill="none"
+          class="agent-line"
+          (click)="toggleSelect(line.handle)" />
+      }
+    </svg>
+
+    <!-- Legend -->
+    <div class="legend">
+      @for (line of lines(); track trackByLine($index, line)) {
+        <button
+          class="legend-item"
+          [class.selected]="line.selected"
+          (click)="toggleSelect(line.handle)">
+          <span class="swatch" [style.background]="line.color"></span>
+          <span>Agent {{ line.handle }}</span>
+        </button>
+      }
+    </div>
+  } @else {
+    <div class="empty">
+      <p>Marey-Diagramm zeigt Trajektorien der Agents ueber die Zeit.</p>
+      <p>Erstelle eine Session mit <strong>+ New Session</strong>.</p>
+    </div>
+  }
+</div>

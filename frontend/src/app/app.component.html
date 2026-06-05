@@ -15,14 +15,37 @@
 
 <app-toolbar></app-toolbar>
 
-<main class="main">
-  <section class="map-area">
-    <app-flatland-map></app-flatland-map>
+<div class="three-col">
+  <aside class="left-pane">
+    <app-left-sidebar></app-left-sidebar>
+  </aside>
+
+  <section class="center-pane">
+    <app-view-toggle></app-view-toggle>
+
+    <div class="views"
+         [class.split]="store.showMap() && store.showMarey()"
+         [class.only-map]="store.showMap() && !store.showMarey()"
+         [class.only-marey]="!store.showMap() && store.showMarey()">
+
+      @if (store.showMap()) {
+        <section class="map-section">
+          <app-flatland-map></app-flatland-map>
+        </section>
+      }
+
+      @if (store.showMarey()) {
+        <section class="marey-section">
+          <app-marey-chart></app-marey-chart>
+        </section>
+      }
+    </div>
   </section>
-  <aside class="sidebar">
+
+  <aside class="right-pane">
     <app-agent-inspector></app-agent-inspector>
   </aside>
-</main>
+</div>
 
 <footer class="footer">
   <span>Step: {{ store.elapsedSteps() }} / {{ store.maxSteps() }}</span>

@@ -1,0 +1,60 @@
+<div class="sidebar-content">
+  <h3 class="section-title">Session</h3>
+  @if (store.session(); as s) {
+    <div class="info-row">
+      <span class="label">ID</span>
+      <span class="value mono">{{ s.id }}</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Grid</span>
+      <span class="value">{{ s.width }} × {{ s.height }}</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Agents</span>
+      <span class="value">{{ s.num_agents }}</span>
+    </div>
+  } @else {
+    <p class="empty">Keine aktive Session.</p>
+  }
+
+  @if (store.state()) {
+    <h3 class="section-title">Progress</h3>
+    <div class="progress-row">
+      <span class="step-counter">{{ store.elapsedSteps() }} / {{ store.maxSteps() }}</span>
+      <span class="step-pct">{{ progress() }}%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" [style.width.%]="progress()"></div>
+    </div>
+
+    <h3 class="section-title">Agent States</h3>
+    @for (entry of stats() | keyvalue; track entry.key) {
+      <div class="info-row">
+        <span class="label">{{ entry.key }}</span>
+        <span class="value">{{ entry.value }}</span>
+      </div>
+    }
+
+    <h3 class="section-title">Connection</h3>
+    <div class="info-row">
+      <span class="label">WebSocket</span>
+      <span class="value">
+        @if (store.wsConnected()) {
+          <span class="dot connected"></span> Connected
+        } @else {
+          <span class="dot disconnected"></span> Offline
+        }
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="label">Play</span>
+      <span class="value">
+        @if (store.playing()) {
+          <span class="badge running">{{ store.playSpeed() }} st/s</span>
+        } @else {
+          Idle
+        }
+      </span>
+    </div>
+  }
+</div>
