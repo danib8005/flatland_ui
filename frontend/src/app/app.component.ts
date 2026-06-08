@@ -1,13 +1,12 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, inject, signal } from '@angular/core';
 import { ToolbarComponent } from './features/toolbar/toolbar.component';
-import { FlatlandMapComponent } from './features/flatland-map/flatland-map.component';
 import { AgentInspectorComponent } from './features/agent-inspector/agent-inspector.component';
 import { LeftSidebarComponent } from './features/left-sidebar/left-sidebar.component';
 import { ViewToggleComponent } from './features/view-toggle/view-toggle.component';
-import { MareyChartComponent } from './features/marey-chart/marey-chart.component';
 import { TrackLayoutComponent } from './features/track-layout/track-layout.component';
 import { GraphicTimetableComponent } from './features/graphic-timetable/graphic-timetable.component';
 import { LayerVisibilityComponent } from './features/layer-visibility/layer-visibility.component';
+import { NotificationsPanelComponent } from './features/notifications-panel/notifications-panel.component';
 import { SessionStore } from './core/session.store';
 
 @Component({
@@ -15,14 +14,13 @@ import { SessionStore } from './core/session.store';
   standalone: true,
   imports: [
     ToolbarComponent,
-    FlatlandMapComponent,
     TrackLayoutComponent,
     GraphicTimetableComponent,
     LayerVisibilityComponent,
+    NotificationsPanelComponent,
     AgentInspectorComponent,
     LeftSidebarComponent,
     ViewToggleComponent,
-    MareyChartComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',

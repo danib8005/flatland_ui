@@ -9,6 +9,13 @@ import {
   SessionState,
   StepResponse,
 } from './models';
+import { AppNotification, Recommendation, ScenarioOption } from './events/event-types';
+
+export interface HmiBundle {
+  notifications: AppNotification[];
+  scenarios: ScenarioOption[];
+  recommendations: Recommendation[];
+}
 
 const API_BASE = 'http://localhost:8000';
 
@@ -58,5 +65,23 @@ export class ApiService {
 
   clearOverride(id: string, handle: number): Observable<any> {
     return this.http.delete(`${API_BASE}/session/${id}/agent/${handle}/override`);
+  }
+
+  // === HMI Mock-API ===
+
+  getNotifications(id: string) {
+    return this.http.get<AppNotification[]>(`${API_BASE}/session/${id}/hmi/notifications`);
+  }
+
+  getScenarios(id: string) {
+    return this.http.get<ScenarioOption[]>(`${API_BASE}/session/${id}/hmi/scenarios`);
+  }
+
+  getRecommendations(id: string) {
+    return this.http.get<Recommendation[]>(`${API_BASE}/session/${id}/hmi/recommendations`);
+  }
+
+  getHmiBundle(id: string) {
+    return this.http.get<HmiBundle>(`${API_BASE}/session/${id}/hmi`);
   }
 }

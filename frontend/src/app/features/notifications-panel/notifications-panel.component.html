@@ -1,0 +1,27 @@
+<div class="notifications-panel">
+  <h3 class="panel-title">Notifications</h3>
+
+  @if (store.notifications().length === 0) {
+    <p class="empty">No notifications</p>
+  } @else {
+    <ul class="notif-list">
+      @for (n of store.notifications(); track n.id) {
+        <li class="notif" [class]="'kind-' + n.kind" (click)="focus(n)">
+          <span class="icon">{{ iconFor(n.kind) }}</span>
+          <div class="content">
+            <span class="title">{{ n.title }}</span>
+            <span class="msg">{{ n.message }}</span>
+            @if (n.relatedElement) {
+              <span class="related">
+                {{ n.relatedElement.kind }} #{{ n.relatedElement.id }}
+              </span>
+            }
+          </div>
+          <button class="dismiss"
+                  (click)="dismiss(n, $event)"
+                  title="Dismiss">×</button>
+        </li>
+      }
+    </ul>
+  }
+</div>
