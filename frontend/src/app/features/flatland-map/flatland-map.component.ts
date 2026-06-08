@@ -1,6 +1,6 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
-import { AgentDTO, RailTile, DecisionOption, NextDecision } from '../../core/models';
+import { AgentDTO, DecisionCell, RailTile, DecisionOption, NextDecision } from '../../core/models';
 
 const AGENT_COLORS = [
   '#eb0000', '#0079c7', '#00973b', '#ffaa00', '#9c4ddc',
@@ -135,6 +135,12 @@ export class FlatlandMapComponent {
 
   readonly tiles = computed(() => this.store.railTiles());
   readonly agents = computed(() => this.store.agents());
+
+  readonly mergeCells = computed<DecisionCell[]>(() => {
+    const state = this.store.state();
+    const all = (state?.decision_cells ?? []) as DecisionCell[];
+    return all.filter((c) => c.kind === 'merge');
+  });
 
   readonly decisionLayers = computed<DecisionLayer[]>(() => {
     const result: DecisionLayer[] = [];

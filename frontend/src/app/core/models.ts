@@ -55,6 +55,7 @@ export interface SessionState {
   rail_grid: number[][];
   rail_tiles: RailTile[];
   episode_done: boolean;
+  decision_cells?: DecisionCell[];
 }
 
 export interface SessionInfo {
@@ -77,4 +78,10 @@ export interface StepResponse {
 export interface PlayRequest {
   speed?: number;
   policy?: PolicyName;
+}
+
+export interface DecisionCell {
+  r: number;
+  c: number;
+  kind: 'switch' | 'merge';
 }

@@ -236,3 +236,27 @@ def _build_merging_options(env, position, direction) -> List[Dict]:
     })
 
     return options
+
+def find_decision_cells(env) -> List[Dict]:
+    """Liste aller Cells im Grid die SWITCH oder MERGING sind.
+
+    Pruefe jede Cell fuer alle 4 Richtungen. Wenn fuer mind. eine
+    Richtung SWITCH/MERGING erkannt wird, ist die Cell ein
+    Decision-Point. SWITCH dominiert ueber MERGING in der Anzeige.
+    """
+    out: List[Dict] = []
+    for r in range(env.height):
+        for c in range(env.width):
+            kinds = set()
+            for direction in range(4):
+                try:
+                    ct = classify_cell_at(env, (r, c), direction)
+                except Exception:
+                    continue
+                if ct in ("SWITCH", "MERGING"):
+                    kinds.add(ct)
+            if kinds:
+                kind = "switch" if "SWITCH" in kinds else "merge"
+                out.append({"r": int(r), "c": int(c), "kind": kind})
+    return out
+

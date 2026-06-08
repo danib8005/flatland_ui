@@ -1,0 +1,52 @@
+import { Component, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
+import { SessionStore } from '../../core/session.store';
+import { EventBusService } from '../../core/events/event-bus.service';
+import { KpiPriorities } from '../../core/events/event-types';
+
+interface KpiDef {
+  key: keyof KpiPriorities;
+  icon: string;
+  label: string;
+}
+
+@Component({
+  selector: 'app-kpi-filter',
+  standalone: true,
+  templateUrl: './kpi-filter.component.html',
+  styleUrl: './kpi-filter.component.scss',
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+})
+export class KpiFilterComponent {
+  store = inject(SessionStore);
+  bus = inject(EventBusService);
+
+  kpis: KpiDef[] = [
+    { key: 'time',            icon: '⏱',  label: 'Time' },
+    { key: 'energy',          icon: '⚡', label: 'Energy' },
+    { key: 'platformRouting', icon: '🚉', label: 'Platform Routing' },
+    { key: 'trainRouting',    icon: '🚂', label: 'Train Routing' },
+  ];
+
+  // Slider hat 11 Schritte: 0, 0.1, 0.2, ..., 1.0
+  setValue(key: keyof KpiPriorities, value: number) {
+    const cur = this.store.kpiPriorities();
+    const next: KpiPriorities = { ...cur, [key]: Math.max(0, Math.min(1, value)) };
+    this.store.kpiPriorities.set(next);
+    this.bus.emit({ type: 'KPI_FILTER_CHANGED', priorities: next });
+  }
+
+  onSlider(key: keyof KpiPriorities, event: Event) {
+    const v = +(event.target as HTMLInputElement).value / 100;
+    this.setValue(key, v);
+  }
+
+  // 10 Dots fuer Visualisierung
+  dotStates(value: number): boolean[] {
+    const filled = Math.round(value * 10);
+    return Array.from({ length: 10 }, (_, i) => i < filled);
+  }
+
+  pct(value: number): string {
+    return `${Math.round(value * 100)}%`;
+  }
+}

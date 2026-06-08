@@ -16,7 +16,27 @@
       [attr.height]="store.height() * cellSize"
       class="bg" />
 
-    <!-- Rail Tiles -->
+          <!-- Merge-Cell Markers (Signal-Symbol im Hintergrund) -->
+      @for (mc of mergeCells(); track $index) {
+        <g class="merge-marker">
+          <circle
+            [attr.cx]="mc.c * cellSize + cellSize / 2"
+            [attr.cy]="mc.r * cellSize + cellSize / 2"
+            r="6"
+            fill="rgba(235, 170, 0, 0.18)"
+            stroke="rgba(235, 170, 0, 0.55)"
+            stroke-width="1.2" />
+          <line
+            [attr.x1]="mc.c * cellSize + cellSize / 2 - 4"
+            [attr.y1]="mc.r * cellSize + cellSize / 2"
+            [attr.x2]="mc.c * cellSize + cellSize / 2 + 4"
+            [attr.y2]="mc.r * cellSize + cellSize / 2"
+            stroke="rgba(235, 170, 0, 0.7)"
+            stroke-width="1.5" />
+        </g>
+      }
+
+      <!-- Rail Tiles -->
     @for (t of tiles(); track trackByTile($index, t)) {
       <image
         [attr.href]="tileHref(t)"

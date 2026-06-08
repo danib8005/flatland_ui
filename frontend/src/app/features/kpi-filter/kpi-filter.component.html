@@ -1,0 +1,24 @@
+<div class="kpi-filter">
+  <h3 class="panel-title">KPI Filter</h3>
+  <p class="hint">Adjust optimization weights</p>
+
+  <div class="kpi-list">
+    @for (kpi of kpis; track kpi.key) {
+      <div class="kpi-row">
+        <div class="kpi-head">
+          <span class="kpi-icon">{{ kpi.icon }}</span>
+          <span class="kpi-label">{{ kpi.label }}</span>
+          <span class="kpi-value">{{ pct(store.kpiPriorities()[kpi.key]) }}</span>
+        </div>
+        <div class="dots">
+          @for (filled of dotStates(store.kpiPriorities()[kpi.key]); track $index; let i = $index) {
+            <span class="dot"
+                  [class.filled]="filled"
+                  (click)="setValue(kpi.key, (i + 1) / 10)">
+            </span>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

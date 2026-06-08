@@ -8,6 +8,7 @@ import { GraphicTimetableComponent } from './features/graphic-timetable/graphic-
 import { LayerVisibilityComponent } from './features/layer-visibility/layer-visibility.component';
 import { NotificationsPanelComponent } from './features/notifications-panel/notifications-panel.component';
 import { ScenarioPanelComponent } from './features/scenario-panel/scenario-panel.component';
+import { KpiFilterComponent } from './features/kpi-filter/kpi-filter.component';
 import { SessionStore } from './core/session.store';
 
 @Component({
@@ -20,6 +21,7 @@ import { SessionStore } from './core/session.store';
     LayerVisibilityComponent,
     NotificationsPanelComponent,
     ScenarioPanelComponent,
+    KpiFilterComponent,
     AgentInspectorComponent,
     LeftSidebarComponent,
     ViewToggleComponent,

@@ -2,7 +2,7 @@ from typing import Any, Dict, List
 from flatland.envs.rail_env import RailEnv
 
 from app.core.tile_resolver import build_rail_tiles
-from app.core.cell_classifier import classify_cell_type, lookahead_to_decision
+from app.core.cell_classifier import classify_cell_type, lookahead_to_decision, find_decision_cells
 
 
 def _safe_int(v):
@@ -87,4 +87,5 @@ def serialize_env(env: RailEnv, overrides: Dict[int, int] = None) -> Dict[str, A
         ],
         "rail_grid": rail_grid,
         "rail_tiles": build_rail_tiles(rail_grid),
+        "decision_cells": find_decision_cells(env),
     }

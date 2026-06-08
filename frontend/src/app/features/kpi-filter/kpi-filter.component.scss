@@ -1,0 +1,89 @@
+:host {
+  display: block;
+  border-bottom: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  padding: 12px 16px;
+  background: var(--sbb-color-milk, #f6f6f6);
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--sbb-color-granite, #686868);
+  margin: 0 0 2px 0;
+}
+
+.hint {
+  font-size: 10px;
+  color: var(--sbb-color-granite, #686868);
+  margin: 0 0 10px 0;
+  font-style: italic;
+}
+
+.kpi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kpi-row {
+  background: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
+}
+
+.kpi-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.kpi-icon {
+  font-size: 13px;
+  width: 14px;
+  text-align: center;
+}
+
+.kpi-label {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sbb-color-charcoal, #212121);
+}
+
+.kpi-value {
+  font-size: 11px;
+  color: var(--sbb-color-granite, #686868);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+  text-align: right;
+}
+
+.dots {
+  display: flex;
+  gap: 3px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--sbb-color-cloud, #d2d2d2);
+  cursor: pointer;
+  transition: all 0.1s;
+  display: inline-block;
+}
+.dot:hover {
+  transform: scale(1.2);
+  background: var(--sbb-color-granite, #686868);
+}
+.dot.filled {
+  background: var(--sbb-color-charcoal, #212121);
+}
+.dot.filled:hover {
+  background: #000;
+}
