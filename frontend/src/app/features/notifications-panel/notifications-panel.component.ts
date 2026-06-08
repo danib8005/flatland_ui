@@ -1,9 +1,8 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit, inject } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, effect, inject } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
 import { ApiService } from '../../core/api.service';
 import { EventBusService } from '../../core/events/event-bus.service';
 import { AppNotification } from '../../core/events/event-types';
-import { effect } from '@angular/core';
 
 @Component({
   selector: 'app-notifications-panel',
@@ -12,12 +11,12 @@ import { effect } from '@angular/core';
   styleUrl: './notifications-panel.component.scss',
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
-export class NotificationsPanelComponent implements OnInit {
+export class NotificationsPanelComponent {
   store = inject(SessionStore);
   api = inject(ApiService);
   bus = inject(EventBusService);
 
-  ngOnInit() {
+  constructor() {
     // Re-fetch on every state update (cheap, mock anyway)
     effect(() => {
       const state = this.store.state();
@@ -47,14 +46,17 @@ export class NotificationsPanelComponent implements OnInit {
     event.stopPropagation();
     this.bus.emit({ type: 'NOTIFICATION_DISMISSED', notificationId: n.id });
     const cur = this.store.notifications();
-    this.store.notifications.set(cur.filter(x => x.id !== n.id));
+    this.store.notifications.set(cur.filter((x) => x.id !== n.id));
   }
 
   iconFor(kind: string): string {
     switch (kind) {
-      case 'error':   return '⛔';
-      case 'warning': return '⚠';
-      default:        return 'ⓘ';
+      case 'error':
+        return '⛔';
+      case 'warning':
+        return '⚠';
+      default:
+        return 'ⓘ';
     }
   }
 }
