@@ -1,5 +1,5 @@
 export type LayerVisibility = {
-  trains: boolean;
+  nextDecisions: boolean;
   switches: boolean;
   signals: boolean;
 };

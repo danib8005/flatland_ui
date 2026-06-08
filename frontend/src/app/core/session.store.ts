@@ -53,7 +53,7 @@ export class SessionStore {
   // === HMI-Architektur (Phase A) ===
   readonly simulationTime = signal<number>(0);
   readonly layerVisibility = signal<LayerVisibility>({
-    trains: true,
+    nextDecisions: true,
     switches: true,
     signals: true,
   });

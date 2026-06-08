@@ -84,4 +84,5 @@ export interface DecisionCell {
   r: number;
   c: number;
   kind: 'switch' | 'merge';
+  directions?: number[]; // 0=N, 1=E, 2=S, 3=W (incoming)
 }

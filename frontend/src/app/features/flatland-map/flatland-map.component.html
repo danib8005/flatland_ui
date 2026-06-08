@@ -16,27 +16,7 @@
       [attr.height]="store.height() * cellSize"
       class="bg" />
 
-          <!-- Merge-Cell Markers (Signal-Symbol im Hintergrund) -->
-      @for (mc of mergeCells(); track $index) {
-        <g class="merge-marker">
-          <circle
-            [attr.cx]="mc.c * cellSize + cellSize / 2"
-            [attr.cy]="mc.r * cellSize + cellSize / 2"
-            r="6"
-            fill="rgba(235, 170, 0, 0.18)"
-            stroke="rgba(235, 170, 0, 0.55)"
-            stroke-width="1.2" />
-          <line
-            [attr.x1]="mc.c * cellSize + cellSize / 2 - 4"
-            [attr.y1]="mc.r * cellSize + cellSize / 2"
-            [attr.x2]="mc.c * cellSize + cellSize / 2 + 4"
-            [attr.y2]="mc.r * cellSize + cellSize / 2"
-            stroke="rgba(235, 170, 0, 0.7)"
-            stroke-width="1.5" />
-        </g>
-      }
-
-      <!-- Rail Tiles -->
+    <!-- Rail Tiles (always visible) -->
     @for (t of tiles(); track trackByTile($index, t)) {
       <image
         [attr.href]="tileHref(t)"
@@ -49,7 +29,7 @@
         class="rail-tile" />
     }
 
-    <!-- Targets -->
+    <!-- Targets (always visible) -->
     @for (a of agents(); track trackByAgent($index, a)) {
       <rect
         [attr.x]="targetX(a) - 8"
@@ -63,33 +43,70 @@
         class="target" />
     }
 
-    <!-- Decision Layer: Path + Decision-Cell-Marker -->
-    @for (layer of decisionLayers(); track trackByLayer($index, layer)) {
-      <g class="decision-layer">
-        <path
-          [attr.d]="layer.pathD"
-          [attr.stroke]="layer.color"
-          stroke-width="2"
-          fill="none"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-dasharray="6 6"
-          opacity="0.85"
-          class="decision-path" />
+    <!-- Trains layer: decision flow line + decision-cell marker + action pills.
+         Only this overlay set is toggled by the Trains layer; the agents
+         themselves remain visible. -->
+    @if (store.layerVisibility().nextDecisions) {
+      @for (layer of decisionLayers(); track trackByLayer($index, layer)) {
+        <g class="decision-layer">
+          <path
+            [attr.d]="layer.pathD"
+            [attr.stroke]="layer.color"
+            stroke-width="2"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-dasharray="6 6"
+            opacity="0.85"
+            class="decision-path" />
 
-        <circle
-          [attr.cx]="layer.decisionCx"
-          [attr.cy]="layer.decisionCy"
-          r="9"
-          fill="none"
-          [attr.stroke]="layer.color"
-          stroke-width="2.5"
-          opacity="0.9"
-          class="decision-marker" />
-      </g>
+          <circle
+            [attr.cx]="layer.decisionCx"
+            [attr.cy]="layer.decisionCy"
+            r="9"
+            fill="none"
+            [attr.stroke]="layer.color"
+            stroke-width="2.5"
+            opacity="0.9"
+            class="decision-marker" />
+        </g>
+      }
+
+      @for (layer of decisionLayers(); track trackByLayer($index, layer)) {
+        <g class="decision-pills" opacity="0.9">
+          @for (pill of layer.options; track trackByPill($index, pill); let i = $index) {
+            <g
+              class="pill"
+              [class.override]="pill.isOverride"
+              (click)="onPillClick(layer.handle, pill.action, pill.isOverride)">
+              <rect
+                [attr.x]="layer.pillsX"
+                [attr.y]="layer.pillsY + i * 16"
+                width="56"
+                height="14"
+                rx="8"
+                ry="8"
+                [attr.fill]="pill.isOverride ? '#eb0000' : 'white'"
+                [attr.stroke]="layer.color"
+                stroke-width="1.5"
+                class="pill-bg" />
+              <text
+                [attr.x]="layer.pillsX + 28"
+                [attr.y]="layer.pillsY + i * 16 + 10"
+                text-anchor="middle"
+                font-size="9"
+                font-weight="600"
+                [attr.fill]="pill.isOverride ? 'white' : '#212121'"
+                class="pill-text">
+                {{ pill.label }}
+              </text>
+            </g>
+          }
+        </g>
+      }
     }
 
-    <!-- Agents -->
+    <!-- Agents (ALWAYS visible - never gated by any layer toggle) -->
     @for (a of agents(); track trackByAgent($index, a)) {
       <g
         class="agent"
@@ -113,41 +130,6 @@
         </text>
       </g>
     }
-
-    <!-- Decision Pills (rechts unter Agent) -->
-    @for (layer of decisionLayers(); track trackByLayer($index, layer)) {
-      <g class="decision-pills" opacity="0.9">
-        @for (pill of layer.options; track trackByPill($index, pill); let i = $index) {
-          <g
-            class="pill"
-            [class.override]="pill.isOverride"
-            (click)="onPillClick(layer.handle, pill.action, pill.isOverride)">
-            <rect
-              [attr.x]="layer.pillsX"
-              [attr.y]="layer.pillsY + i * 16"
-              width="56"
-              height="14"
-              rx="8"
-              ry="8"
-              [attr.fill]="pill.isOverride ? '#eb0000' : 'white'"
-              [attr.stroke]="layer.color"
-              stroke-width="1.5"
-              class="pill-bg" />
-            <text
-              [attr.x]="layer.pillsX + 28"
-              [attr.y]="layer.pillsY + i * 16 + 10"
-              text-anchor="middle"
-              font-size="9"
-              font-weight="600"
-              [attr.fill]="pill.isOverride ? 'white' : '#212121'"
-              class="pill-text">
-              {{ pill.label }}
-            </text>
-          </g>
-        }
-      </g>
-    }
-
   </svg>
 
   <!-- Map Navigation Overlay (unten links) -->

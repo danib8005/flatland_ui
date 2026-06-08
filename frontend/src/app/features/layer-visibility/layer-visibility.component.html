@@ -3,10 +3,10 @@
   <div class="layers">
     <label class="layer-item">
       <input type="checkbox"
-             [checked]="store.layerVisibility().trains"
-             (change)="toggle('trains')">
-      <span class="dot trains"></span>
-      <span>Trains</span>
+             [checked]="store.layerVisibility().nextDecisions"
+             (change)="toggle('nextDecisions')">
+      <span class="dot next-decisions"></span>
+      <span>Next Decisions</span>
     </label>
     <label class="layer-item">
       <input type="checkbox"
