@@ -1,0 +1,39 @@
+<div class="recommendations-panel">
+  <h3 class="panel-title">AI Recommendations</h3>
+
+  @if (store.recommendations().length === 0) {
+    <p class="empty">No active recommendations</p>
+  } @else {
+    <div class="recs">
+      @for (r of store.recommendations(); track r.id) {
+        <div class="rec-card" [class.urgent]="remaining(r) < 10">
+          <div class="rec-head">
+            <span class="ai-badge">AI</span>
+            <span class="confidence">{{ confidencePct(r) }}%</span>
+            <span class="countdown">{{ remaining(r) }}s</span>
+          </div>
+
+          <h4 class="title">{{ r.title }}</h4>
+          <p class="desc">{{ r.description }}</p>
+
+          <!-- Confidence Bar -->
+          <div class="conf-bar">
+            <div class="conf-fill" [style.width]="confidencePct(r) + '%'"></div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-feedback" (click)="thumbsDown(r)" title="Reject">
+              👎
+            </button>
+            <button class="btn btn-accept" (click)="accept(r)">
+              Accept
+            </button>
+            <button class="btn btn-feedback" (click)="thumbsUp(r)" title="Approve">
+              👍
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

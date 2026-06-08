@@ -9,6 +9,7 @@ import { LayerVisibilityComponent } from './features/layer-visibility/layer-visi
 import { NotificationsPanelComponent } from './features/notifications-panel/notifications-panel.component';
 import { ScenarioPanelComponent } from './features/scenario-panel/scenario-panel.component';
 import { KpiFilterComponent } from './features/kpi-filter/kpi-filter.component';
+import { RecommendationsPanelComponent } from './features/recommendations-panel/recommendations-panel.component';
 import { SessionStore } from './core/session.store';
 
 @Component({
@@ -22,6 +23,7 @@ import { SessionStore } from './core/session.store';
     NotificationsPanelComponent,
     ScenarioPanelComponent,
     KpiFilterComponent,
+    RecommendationsPanelComponent,
     AgentInspectorComponent,
     LeftSidebarComponent,
     ViewToggleComponent,

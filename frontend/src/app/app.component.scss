@@ -67,10 +67,25 @@
 .left-pane,
 .right-pane {
   background: var(--sbb-color-milk, #f6f6f6);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+.left-pane::-webkit-scrollbar,
+.right-pane::-webkit-scrollbar {
+  width: 6px;
+}
+.left-pane::-webkit-scrollbar-thumb,
+.right-pane::-webkit-scrollbar-thumb {
+  background: var(--sbb-color-cloud, #d2d2d2);
+  border-radius: 3px;
+}
+.left-pane::-webkit-scrollbar-thumb:hover,
+.right-pane::-webkit-scrollbar-thumb:hover {
+  background: var(--sbb-color-granite, #686868);
 }
 
 .right-pane {
