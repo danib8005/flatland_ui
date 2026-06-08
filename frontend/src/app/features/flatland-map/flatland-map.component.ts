@@ -4,6 +4,15 @@ import { AgentColorService } from '../../core/agent-color.service';
 import { AgentDTO, DecisionCell, RailTile, DecisionOption, NextDecision } from '../../core/models';
 
 
+interface DirectionalMarker {
+  id: string;
+  kind: 'signal' | 'switch';
+  x: number;
+  y: number;
+  rotation: number;
+  d: number;
+}
+
 interface DecisionLayer {
   handle: number;
   color: string;
@@ -151,6 +160,62 @@ export class FlatlandMapComponent {
     const all = (state?.decision_cells ?? []) as DecisionCell[];
     return all.filter((c) => c.kind === 'merge');
   });
+  /**
+   * Markers for old "merge" cells - rendered as the Signals layer.
+   * Each cell yields one marker per incoming rail direction, placed
+   * at the OUTGOING edge of the cell along the rail axis (where a
+   * physical signal would stand), rotated to face the direction of
+   * travel.
+   *
+   * Direction encoding (matches Flatland): 0=N, 1=E, 2=S, 3=W
+   * That is also the angle in 90deg steps for a glyph that natively
+   * points NORTH (i.e. up) - we therefore rotate by direction*90.
+   */
+  readonly signalMarkers = computed<DirectionalMarker[]>(() => {
+    const cells = (this.store.state()?.decision_cells ?? []) as DecisionCell[];
+    return cells
+      .filter((c) => c.kind === 'merge')
+      .flatMap((c) => this._buildDirectionalMarkers(c, 'signal'));
+  });
+
+  /**
+   * Markers for "switch" cells - rendered as the Switches layer.
+   * Same geometry as signals, distinguished by class + colour.
+   */
+  readonly switchMarkers = computed<DirectionalMarker[]>(() => {
+    const cells = (this.store.state()?.decision_cells ?? []) as DecisionCell[];
+    return cells
+      .filter((c) => c.kind === 'switch')
+      .flatMap((c) => this._buildDirectionalMarkers(c, 'switch'));
+  });
+
+  private _buildDirectionalMarkers(
+    cell: DecisionCell,
+    kind: 'signal' | 'switch',
+  ): DirectionalMarker[] {
+    const dirs = cell.directions ?? [];
+    if (dirs.length === 0) return [];
+    const cs = this.cellSize;
+    const cx = cell.c * cs + cs / 2;
+    const cy = cell.r * cs + cs / 2;
+    // Glyph sits exactly on the outgoing cell edge (50% of cellSize
+    // from centre). At a curve the rail is locally parallel to the
+    // cell axis on the edge, so direction*90deg is the correct tangent.
+    const off = cs * 0.5;
+    return dirs.map((d, i) => {
+      // Move (dx, dy) one direction step from centre toward edge
+      const dx = d === 1 ? off : d === 3 ? -off : 0;
+      const dy = d === 0 ? -off : d === 2 ? off : 0;
+      return {
+        id: `${kind}_${cell.r}_${cell.c}_${d}_${i}`,
+        kind,
+        x: cx + dx,
+        y: cy + dy,
+        rotation: d * 90,
+        d,
+      };
+    });
+  }
 
   readonly decisionLayers = computed<DecisionLayer[]>(() => {
     const result: DecisionLayer[] = [];

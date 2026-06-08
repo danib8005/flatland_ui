@@ -16,7 +16,23 @@
       [attr.height]="store.height() * cellSize"
       class="bg" />
 
-    <!-- Rail Tiles (always visible) -->
+    <!-- Grid layer: thin cell borders for orientation -->
+    @if (store.layerVisibility().grid) {
+      @for (t of tiles(); track trackByTile($index, t)) {
+        <rect
+          [attr.x]="tileX(t)"
+          [attr.y]="tileY(t)"
+          [attr.width]="cellSize"
+          [attr.height]="cellSize"
+          fill="none"
+          stroke="rgba(120,120,120,0.35)"
+          stroke-width="0.4"
+          class="grid-cell"
+          pointer-events="none" />
+      }
+    }
+
+        <!-- Rail Tiles (always visible) -->
     @for (t of tiles(); track trackByTile($index, t)) {
       <image
         [attr.href]="tileHref(t)"
@@ -43,7 +59,40 @@
         class="target" />
     }
 
-    <!-- Trains layer: decision flow line + decision-cell marker + action pills.
+    <!-- Switches layer: small directional glyph at every switch-cell -->
+    @if (store.layerVisibility().switches) {
+      @for (m of switchMarkers(); track m.id) {
+        <g class="switch-marker"
+           [attr.transform]="'translate(' + m.x + ',' + m.y + ') rotate(' + m.rotation + ')'">
+          <!-- Diamond pointing in direction of travel -->
+          <path d="M 0 -5 L 4 0 L 0 5 L -4 0 Z"
+                fill="var(--layer-color-switches)"
+                stroke="white"
+                stroke-width="0.8" />
+        </g>
+      }
+    }
+
+    <!-- Signals layer: small ">" glyph at the outgoing edge of each merge-cell -->
+    @if (store.layerVisibility().signals) {
+      @for (m of signalMarkers(); track m.id) {
+        <g class="signal-marker"
+           [attr.transform]="'translate(' + m.x + ',' + m.y + ') rotate(' + m.rotation + ')'">
+          <!-- Arrow native shape points NORTH (up). Rotation = direction*90:
+               0=N -> 0deg (up), 1=E -> 90deg (right), 2=S -> 180deg (down), 3=W -> 270deg (left). -->
+          <path d="M 0 -6 L 5 2 L -5 2 Z"
+                fill="var(--layer-color-signals)"
+                stroke="white"
+                stroke-width="0.8"
+                stroke-linejoin="round" />
+          <text x="0" y="10" text-anchor="middle"
+                font-size="6" fill="black" stroke="white" stroke-width="0.4"
+                paint-order="stroke">{{ m.d }}</text>
+        </g>
+      }
+    }
+
+        <!-- Trains layer: decision flow line + decision-cell marker + action pills.
          Only this overlay set is toggled by the Trains layer; the agents
          themselves remain visible. -->
     @if (store.layerVisibility().nextDecisions) {

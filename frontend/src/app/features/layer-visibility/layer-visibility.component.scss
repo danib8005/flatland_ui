@@ -44,6 +44,14 @@
   border-radius: 50%;
   display: inline-block;
 }
-.dot.next-decisions   { background: #eb0000; }
-.dot.switches { background: #ffaa00; }
-.dot.signals  { background: #0079c7; }
+.dot.next-decisions { background: var(--layer-color-next-decisions); }
+.dot.switches      { background: var(--layer-color-switches); }
+.dot.signals       { background: var(--layer-color-signals); }
+
+/* Grid layer indicator dot */
+.dot.grid {
+  background: linear-gradient(45deg,
+    transparent 49%, var(--sbb-color-cloud, #d2d2d2) 49% 51%, transparent 51%),
+    linear-gradient(135deg,
+    transparent 49%, var(--sbb-color-cloud, #d2d2d2) 49% 51%, transparent 51%);
+}

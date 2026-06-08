@@ -45,3 +45,14 @@ body {
   --color-related:    rgba(122, 122, 122, 0.52);
   --color-warning:    rgba(242, 201, 76, 0.52);
 }
+
+
+/* Layer colours - single source of truth.
+   Used by layer-visibility-panel dots AND map markers, so the legend
+   colour always matches what is drawn on the map. */
+:root {
+  --layer-color-next-decisions: #eb0000;  /* SBB red */
+  --layer-color-switches:       #762C8F;  /* Intercity violet - clearly distinct */
+  --layer-color-signals:        #DC8C00;  /* Signal orange */
+  --layer-color-grid:           #787878;  /* Neutral grey */
+}
