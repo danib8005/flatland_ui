@@ -1,11 +1,7 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, computed, inject } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
 import { AgentDTO } from '../../core/models';
-
-const AGENT_COLORS = [
-  '#eb0000', '#0079c7', '#00973b', '#ffaa00', '#9c4ddc',
-  '#b3489e', '#0aafa5', '#5a4f3f', '#a3641c', '#3f4d8c',
-];
+import { AgentColorService } from '../../core/agent-color.service';
 
 @Component({
   selector: 'app-agent-inspector',
@@ -16,6 +12,7 @@ const AGENT_COLORS = [
 })
 export class AgentInspectorComponent {
   store = inject(SessionStore);
+  private agentColors = inject(AgentColorService);
 
   readonly selectedAgents = computed<AgentDTO[]>(() => {
     const sel = this.store.selectedHandles();
@@ -24,8 +21,19 @@ export class AgentInspectorComponent {
 
   readonly allAgents = computed<AgentDTO[]>(() => this.store.agents());
 
+  /**
+   * Agent dot / badge colour. Selected agents show the 'focus' state,
+   * unselected ones the regular 'default'. Train type comes from
+   * AgentColorService (round-robin over TRAIN_TYPES).
+   */
   agentColor(handle: number): string {
-    return AGENT_COLORS[handle % AGENT_COLORS.length];
+    const state = this.isSelected(handle) ? 'focus' : 'default';
+    return this.agentColors.getColor(handle, state);
+  }
+
+  /** Train type label for tooltips/inspector panels. */
+  trainTypeLabel(handle: number): string {
+    return this.agentColors.getLabel(handle);
   }
 
   toggle(handle: number) {

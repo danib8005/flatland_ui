@@ -30,3 +30,18 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+/* ====================================================================
+   Global UI semantic colours (P2 / concept-alignment)
+   --------------------------------------------------------------------
+   NOT for agents - agents are coloured via AgentColorService.
+   Mirrored in core/agent-color.types.ts (GLOBAL_COLORS); keep in sync.
+   ==================================================================== */
+:root {
+  --color-default:    rgba(122, 122, 122, 0.52);
+  --color-focus:      rgba(0, 0, 0, 1);
+  --color-muted:      rgba(189, 189, 189, 0.10);
+  --color-focus-edit: rgba(57, 184, 179, 0.52);
+  --color-related:    rgba(122, 122, 122, 0.52);
+  --color-warning:    rgba(242, 201, 76, 0.52);
+}

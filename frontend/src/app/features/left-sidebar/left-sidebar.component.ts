@@ -1,11 +1,7 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SessionStore } from '../../core/session.store';
-
-const AGENT_COLORS = [
-  '#eb0000', '#0079c7', '#00973b', '#ffaa00', '#9c4ddc',
-  '#b3489e', '#0aafa5', '#5a4f3f', '#a3641c', '#3f4d8c',
-];
+import { AgentColorService } from '../../core/agent-color.service';
 
 @Component({
   selector: 'app-left-sidebar',
@@ -17,6 +13,7 @@ const AGENT_COLORS = [
 })
 export class LeftSidebarComponent {
   store = inject(SessionStore);
+  private agentColors = inject(AgentColorService);
 
   readonly stats = computed(() => {
     const ags = this.store.agents();
@@ -33,8 +30,14 @@ export class LeftSidebarComponent {
     return Math.min(100, Math.round((this.store.elapsedSteps() / max) * 100));
   });
 
+  /**
+   * Agent dot colour. Delegates to AgentColorService (round-robin
+   * over TRAIN_TYPES). Selected agents get the 'focus' state so they
+   * pop visually in the sidebar list.
+   */
   agentColor(handle: number): string {
-    return AGENT_COLORS[handle % AGENT_COLORS.length];
+    const state = this.isSelected(handle) ? 'focus' : 'default';
+    return this.agentColors.getColor(handle, state);
   }
 
   isSelected(handle: number): boolean {

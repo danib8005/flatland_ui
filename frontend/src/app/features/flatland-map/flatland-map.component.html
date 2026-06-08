@@ -7,8 +7,8 @@
     (mousedown)="onMouseDown($event)"
     (mousemove)="onMouseMove($event)"
     (mouseup)="onMouseUp()"
-    (mouseleave)="onMouseLeave()">
-
+    (mouseleave)="onMouseLeave()"
+    (wheel)="onWheel($event)">
     <!-- Background -->
     <rect
       x="0" y="0"
@@ -45,6 +45,7 @@
         [attr.width]="cellSize"
         [attr.height]="cellSize"
         [attr.transform]="tileTransform(t)"
+        [attr.opacity]="railOpacity()"
         class="rail-tile" />
     }
 
@@ -68,12 +69,12 @@
         <path
           [attr.d]="layer.pathD"
           [attr.stroke]="layer.color"
-          stroke-width="3"
+          stroke-width="2"
           fill="none"
           stroke-linecap="round"
           stroke-linejoin="round"
-          stroke-dasharray="4 3"
-          opacity="0.55"
+          stroke-dasharray="6 6"
+          opacity="0.85"
           class="decision-path" />
 
         <circle
@@ -85,13 +86,6 @@
           stroke-width="2.5"
           opacity="0.9"
           class="decision-marker" />
-
-        <circle
-          [attr.cx]="layer.decisionCx"
-          [attr.cy]="layer.decisionCy"
-          r="4"
-          [attr.fill]="layer.color"
-          opacity="0.9" />
       </g>
     }
 
@@ -160,9 +154,30 @@
   <div class="map-nav-overlay">
     <button class="nav-btn nav-up" (click)="panStep(0, 1)" title="Pan up">↑</button>
     <button class="nav-btn nav-left" (click)="panStep(1, 0)" title="Pan left">←</button>
-    <button class="nav-btn nav-center" (click)="resetPan()" title="Center">⌂</button>
+    <button class="nav-btn nav-center" (click)="resetPan()" title="Center / Reset zoom">⌂</button>
     <button class="nav-btn nav-right" (click)="panStep(-1, 0)" title="Pan right">→</button>
     <button class="nav-btn nav-down" (click)="panStep(0, -1)" title="Pan down">↓</button>
+  </div>
+
+  <!-- Zoom controls -->
+  <div class="map-zoom-overlay">
+    <button class="nav-btn" (click)="zoomIn()" title="Zoom in">+</button>
+    <span class="zoom-value">{{ zoomPercent() }}%</span>
+    <button class="nav-btn" (click)="zoomOut()" title="Zoom out">−</button>
+  </div>
+
+  <!-- Rail opacity control -->
+  <div class="map-opacity-overlay">
+    <label class="opacity-label" title="Rail tiles opacity">
+      <span class="opacity-icon">🛤</span>
+      <input
+        type="range"
+        min="0" max="1" step="0.05"
+        [value]="railOpacity()"
+        (input)="railOpacity.set(+$any($event.target).value)"
+        class="opacity-slider" />
+      <span class="opacity-value">{{ opacityPercent() }}%</span>
+    </label>
   </div>
 } @else {
   <div class="welcome-card">

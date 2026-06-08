@@ -264,3 +264,95 @@
   outline: none;
   border-color: var(--sbb-color-charcoal, #212121);
 }
+
+/* Map overlay controls. Layout, anchored bottom-right:
+
+       [opacity] [ nav-pad ]
+                 [  zoom   ]
+*/
+.map-nav-overlay {
+  bottom: 56px;
+  right: 50px;
+}
+
+.map-zoom-overlay {
+  position: absolute;
+  right: 50px;
+  bottom: 16px;
+  width: 100px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 0 6px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--sbb-color-charcoal, #212121);
+  user-select: none;
+  z-index: 10;
+}
+
+.zoom-value {
+  flex: 1;
+  text-align: center;
+  color: var(--sbb-color-granite, #686868);
+  font-variant-numeric: tabular-nums;
+}
+
+.map-opacity-overlay {
+  position: absolute;
+  right: 16px;
+  bottom: 56px;
+  width: 28px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 0;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  border-radius: 4px;
+  z-index: 10;
+}
+
+.opacity-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  cursor: pointer;
+}
+
+.opacity-icon { display: none; }
+
+.opacity-slider {
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 18px;
+  height: 78px;
+  accent-color: var(--sbb-color-charcoal, #212121);
+  margin: 0;
+}
+
+.opacity-value {
+  font-size: 9px;
+  color: var(--sbb-color-granite, #686868);
+  font-variant-numeric: tabular-nums;
+}
+
+
+
+/* Decision path: dashes flow towards the decision cell, marker-end stays put. */
+.decision-path {
+  animation: decision-flow 0.8s linear infinite;
+}
+@keyframes decision-flow {
+  from { stroke-dashoffset: 12; }
+  to   { stroke-dashoffset: 0; }
+}

@@ -1,11 +1,8 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
+import { AgentColorService } from '../../core/agent-color.service';
 import { AgentDTO, DecisionCell, RailTile, DecisionOption, NextDecision } from '../../core/models';
 
-const AGENT_COLORS = [
-  '#eb0000', '#0079c7', '#00973b', '#ffaa00', '#9c4ddc',
-  '#b3489e', '#0aafa5', '#5a4f3f', '#a3641c', '#3f4d8c',
-];
 
 interface DecisionLayer {
   handle: number;
@@ -41,10 +38,23 @@ interface BoundingBox {
 })
 export class FlatlandMapComponent {
   store = inject(SessionStore);
+  private agentColors = inject(AgentColorService);
 
   newWidth = signal(50);
   newHeight = signal(20);
   newAgents = signal(3);
+
+  // Rail tiles transparency (0..1). User-controllable so the operator
+  // can dim or strengthen the track layout against agent overlays.
+  railOpacity = signal(0.25);
+
+  // Zoom factor. 1 = neutral; <1 zooms in, >1 zooms out (because we
+  // scale the viewBox dimensions, not the SVG element).
+  zoom = signal(1);
+
+  // Display helpers (avoid the | number pipe so we do not need CommonModule).
+  zoomPercent = computed(() => Math.round((1 / this.zoom()) * 100));
+  opacityPercent = computed(() => Math.round(this.railOpacity() * 100));
 
   onNewSession() {
     this.store.newSession({
@@ -128,8 +138,8 @@ export class FlatlandMapComponent {
     const b = this.bbox();
     const x = b.minC * this.cellSize + this.panX();
     const y = b.minR * this.cellSize + this.panY();
-    const w = (b.maxC - b.minC + 1) * this.cellSize;
-    const h = (b.maxR - b.minR + 1) * this.cellSize;
+    const w = (b.maxC - b.minC + 1) * this.cellSize * this.zoom();
+    const h = (b.maxR - b.minR + 1) * this.cellSize * this.zoom();
     return `${x} ${y} ${w} ${h}`;
   });
 
@@ -271,6 +281,26 @@ export class FlatlandMapComponent {
   resetPan() {
     this.panX.set(0);
     this.panY.set(0);
+    this.zoom.set(1);
+  }
+
+  // Zoom: smaller value = zoomed in (smaller viewBox)
+  zoomIn() {
+    this._zoomBy(1 / 1.2, 0.5, 0.5);
+  }
+
+  zoomOut() {
+    this._zoomBy(1.2, 0.5, 0.5);
+  }
+
+  onWheel(event: WheelEvent) {
+    event.preventDefault();
+    if (!this.svgEl) return;
+    const rect = this.svgEl.getBoundingClientRect();
+    const cxRel = (event.clientX - rect.left) / rect.width;
+    const cyRel = (event.clientY - rect.top) / rect.height;
+    const factor = event.deltaY < 0 ? 1 / 1.1 : 1.1;
+    this._zoomBy(factor, cxRel, cyRel);
   }
 
   // ========== Standard Helpers ==========
@@ -287,7 +317,10 @@ export class FlatlandMapComponent {
   tileHref(t: RailTile): string { return `/flatland-svg/${t.svg}`; }
 
   agentColor(handle: number): string {
-    return AGENT_COLORS[handle % AGENT_COLORS.length];
+    // Map paths and agent symbols need full opacity to read clearly,
+    // so use the solid palette. Selected agents pop in focus state.
+    const state = this.isSelected(handle) ? 'focus' : 'default';
+    return this.agentColors.getColorSolid(handle, state);
   }
 
   agentX(a: AgentDTO): number {
@@ -330,4 +363,37 @@ export class FlatlandMapComponent {
   trackByAgent = (_: number, a: AgentDTO) => a.handle;
   trackByLayer = (_: number, l: DecisionLayer) => l.handle;
   trackByPill = (_: number, p: PillData) => p.action;
+
+  /**
+   * Apply a zoom factor while keeping a chosen anchor point fixed.
+   * cxRel/cyRel are 0..1 relative coordinates inside the SVG element
+   * (0.5/0.5 = window centre, cursor-relative for wheel zoom).
+   */
+  private _zoomBy(factor: number, cxRel: number, cyRel: number) {
+    if (!this.svgEl) {
+      this.zoom.update((v) => Math.min(5, Math.max(0.2, v * factor)));
+      return;
+    }
+    const b = this.bbox();
+    const oldZoom = this.zoom();
+    const newZoom = Math.min(5, Math.max(0.2, oldZoom * factor));
+    if (newZoom === oldZoom) return;
+
+    const colSpan = (b.maxC - b.minC + 1) * this.cellSize;
+    const rowSpan = (b.maxR - b.minR + 1) * this.cellSize;
+    const vbX = b.minC * this.cellSize + this.panX();
+    const vbY = b.minR * this.cellSize + this.panY();
+
+    // World point under the anchor BEFORE zoom
+    const anchorVbX = vbX + cxRel * (colSpan * oldZoom);
+    const anchorVbY = vbY + cyRel * (rowSpan * oldZoom);
+
+    this.zoom.set(newZoom);
+
+    // Solve new pan so that the anchor world point stays under (cxRel, cyRel)
+    const newPanX = anchorVbX - cxRel * (colSpan * newZoom) - b.minC * this.cellSize;
+    const newPanY = anchorVbY - cyRel * (rowSpan * newZoom) - b.minR * this.cellSize;
+    this.panX.set(newPanX);
+    this.panY.set(newPanY);
+  }
 }
