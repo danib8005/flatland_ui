@@ -1,0 +1,129 @@
+:host {
+  display: block;
+  border-bottom: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  padding: 12px 16px;
+  background: var(--sbb-color-milk, #f6f6f6);
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--sbb-color-granite, #686868);
+  margin: 0 0 8px 0;
+}
+
+.empty {
+  font-size: 12px;
+  color: var(--sbb-color-granite, #686868);
+  margin: 0;
+  font-style: italic;
+}
+
+.scenarios {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scenario-card {
+  background: white;
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  border-radius: 4px;
+  padding: 10px;
+  position: relative;
+  transition: border-color 0.15s;
+}
+.scenario-card:hover {
+  border-color: var(--sbb-color-granite, #686868);
+}
+.scenario-card.recommended {
+  border-color: #00973b;
+  border-width: 2px;
+  padding: 9px;
+}
+
+.rec-badge {
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  background: #00973b;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sbb-color-charcoal, #212121);
+  margin: 0 0 4px 0;
+}
+
+.desc {
+  font-size: 11px;
+  color: var(--sbb-color-iron, #444);
+  line-height: 1.4;
+  margin: 0 0 8px 0;
+}
+
+.kpis {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: #eee;
+  color: #444;
+  white-space: nowrap;
+}
+.pill.good {
+  background: rgba(0, 151, 59, 0.12);
+  color: #00973b;
+}
+.pill.bad {
+  background: rgba(235, 0, 0, 0.10);
+  color: #eb0000;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  background: white;
+  color: var(--sbb-color-charcoal, #212121);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.12s;
+}
+.btn:hover {
+  background: var(--sbb-color-cloud, #d2d2d2);
+}
+.btn.btn-primary {
+  background: var(--sbb-color-charcoal, #212121);
+  color: white;
+  border-color: var(--sbb-color-charcoal, #212121);
+}
+.btn.btn-primary:hover {
+  background: #000;
+  border-color: #000;
+}

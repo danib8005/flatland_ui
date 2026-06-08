@@ -7,6 +7,7 @@ import { TrackLayoutComponent } from './features/track-layout/track-layout.compo
 import { GraphicTimetableComponent } from './features/graphic-timetable/graphic-timetable.component';
 import { LayerVisibilityComponent } from './features/layer-visibility/layer-visibility.component';
 import { NotificationsPanelComponent } from './features/notifications-panel/notifications-panel.component';
+import { ScenarioPanelComponent } from './features/scenario-panel/scenario-panel.component';
 import { SessionStore } from './core/session.store';
 
 @Component({
@@ -18,6 +19,7 @@ import { SessionStore } from './core/session.store';
     GraphicTimetableComponent,
     LayerVisibilityComponent,
     NotificationsPanelComponent,
+    ScenarioPanelComponent,
     AgentInspectorComponent,
     LeftSidebarComponent,
     ViewToggleComponent,
