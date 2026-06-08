@@ -5,6 +5,9 @@ import { AgentInspectorComponent } from './features/agent-inspector/agent-inspec
 import { LeftSidebarComponent } from './features/left-sidebar/left-sidebar.component';
 import { ViewToggleComponent } from './features/view-toggle/view-toggle.component';
 import { MareyChartComponent } from './features/marey-chart/marey-chart.component';
+import { TrackLayoutComponent } from './features/track-layout/track-layout.component';
+import { GraphicTimetableComponent } from './features/graphic-timetable/graphic-timetable.component';
+import { LayerVisibilityComponent } from './features/layer-visibility/layer-visibility.component';
 import { SessionStore } from './core/session.store';
 
 @Component({
@@ -13,6 +16,9 @@ import { SessionStore } from './core/session.store';
   imports: [
     ToolbarComponent,
     FlatlandMapComponent,
+    TrackLayoutComponent,
+    GraphicTimetableComponent,
+    LayerVisibilityComponent,
     AgentInspectorComponent,
     LeftSidebarComponent,
     ViewToggleComponent,

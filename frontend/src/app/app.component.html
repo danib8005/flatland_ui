@@ -19,6 +19,7 @@
   <div class="three-col">
     <aside class="left-pane">
       <app-left-sidebar></app-left-sidebar>
+      <app-layer-visibility></app-layer-visibility>
     </aside>
 
     <section class="center-pane">
@@ -31,13 +32,13 @@
 
         @if (store.showMap()) {
           <section class="map-section">
-            <app-flatland-map></app-flatland-map>
+            <app-track-layout></app-track-layout>
           </section>
         }
 
         @if (store.showMarey()) {
           <section class="marey-section">
-            <app-marey-chart></app-marey-chart>
+            <app-graphic-timetable></app-graphic-timetable>
           </section>
         }
       </div>

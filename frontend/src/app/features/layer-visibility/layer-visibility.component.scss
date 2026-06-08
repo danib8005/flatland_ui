@@ -1,0 +1,49 @@
+:host {
+  display: block;
+  border-top: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  padding: 12px 16px;
+  background: var(--sbb-color-milk, #f6f6f6);
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--sbb-color-granite, #686868);
+  margin: 0 0 8px 0;
+}
+
+.layers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--sbb-color-charcoal, #212121);
+  cursor: pointer;
+  user-select: none;
+}
+
+.layer-item input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--sbb-color-charcoal, #212121);
+  cursor: pointer;
+  margin: 0;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot.trains   { background: #eb0000; }
+.dot.switches { background: #ffaa00; }
+.dot.signals  { background: #0079c7; }
