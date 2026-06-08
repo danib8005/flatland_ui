@@ -19,13 +19,15 @@ interface DirectionalMarker {
 interface DecisionLayer {
   handle: number;
   color: string;
+  // 'switch' or 'merge' from agent.next_decision.cell_type,
+  // used to render the right destination symbol on the map.
+  cellKind: 'switch' | 'merge';
   pathD: string;
   decisionCx: number;
   decisionCy: number;
   pillsX: number;
   pillsY: number;
   options: PillData[];
-  cellType: 'SWITCH' | 'MERGING';
 }
 
 interface PillData {
@@ -181,6 +183,81 @@ export class FlatlandMapComponent {
       .flatMap((c) => this._buildDirectionalMarkers(c, 'signal'));
   });
 
+
+  /** Switches/signals symbols at the destination of every visible
+   * Next-Decisions layer. Rendered ALWAYS when decisionLayers shows
+   * the line, even if the All-Switches / All-Signals layer toggles
+   * are off - so the operator can still see "what kind of decision
+   * point is the train heading to". */
+  readonly decisionDestSwitchInflows = computed(() => {
+    return this._destSwitchCells().flatMap((c) => this._buildSwitchInflows(c));
+  });
+
+  readonly decisionDestSwitchExits = computed(() => {
+    return this._destSwitchCells().flatMap((c) => {
+      const exits = c.switch_exits ?? [];
+      if (exits.length === 0) return [];
+      return this._buildDirectionalMarkers({ ...c, directions: exits }, 'switch');
+    });
+  });
+
+  readonly decisionDestSignals = computed(() => {
+    return this._destSignalCells().flatMap((c) => this._buildDirectionalMarkers(c, 'signal'));
+  });
+
+  private _destSwitchCells(): DecisionCell[] {
+    const cells = (this.store.state()?.decision_cells ?? []) as DecisionCell[];
+    const byPos = new Map(cells.map((c) => [`${c.r}_${c.c}`, c]));
+    const out: DecisionCell[] = [];
+    for (const layer of this.decisionLayers()) {
+      if (layer.cellKind !== 'switch') continue;
+      const cell = byPos.get(this._destKeyForLayer(layer));
+      if (cell) out.push(cell);
+    }
+    return out;
+  }
+
+  private _destSignalCells(): DecisionCell[] {
+    const cells = (this.store.state()?.decision_cells ?? []) as DecisionCell[];
+    const byPos = new Map(cells.map((c) => [`${c.r}_${c.c}`, c]));
+    const out: DecisionCell[] = [];
+    for (const layer of this.decisionLayers()) {
+      if (layer.cellKind !== 'merge') continue;
+      const cell = byPos.get(this._destKeyForLayer(layer));
+      if (cell) out.push(cell);
+    }
+    return out;
+  }
+
+  private _destKeyForLayer(layer: DecisionLayer): string {
+    // decisionCx/Cy are pixel centres; reverse to grid r,c.
+    const cs = this.cellSize;
+    const r = Math.floor(layer.decisionCy / cs);
+    const c = Math.floor(layer.decisionCx / cs);
+    return `${r}_${c}`;
+  }
+
+  /** Inflow lines for a single switch cell, factored out so we can
+   * reuse it both in switchInflows() and decisionDestSwitchInflows(). */
+  private _buildSwitchInflows(cell: DecisionCell): {
+    id: string; x1: number; y1: number; x2: number; y2: number;
+  }[] {
+    const cs = this.cellSize;
+    const cx = cell.c * cs + cs / 2;
+    const cy = cell.r * cs + cs / 2;
+    const reach = cs * 0.33;
+    const out: { id: string; x1: number; y1: number; x2: number; y2: number }[] = [];
+    for (const d of cell.directions ?? []) {
+      const sx = d === 1 ? cx - reach : d === 3 ? cx + reach : cx;
+      const sy = d === 0 ? cy + reach : d === 2 ? cy - reach : cy;
+      out.push({
+        id: `inflow_${cell.r}_${cell.c}_${d}`,
+        x1: sx, y1: sy, x2: cx, y2: cy,
+      });
+    }
+    return out;
+  }
+
   /** Animated inflow line per switch entry direction.
    * Each switch may classify under one or more headings (directions[]).
    * For each heading we draw an animated ">>>>>" line that comes from
@@ -190,31 +267,9 @@ export class FlatlandMapComponent {
     id: string; x1: number; y1: number; x2: number; y2: number;
   }[]>(() => {
     const cells = (this.store.state()?.decision_cells ?? []) as DecisionCell[];
-    const cs = this.cellSize;
-    const out: { id: string; x1: number; y1: number; x2: number; y2: number }[] = [];
-    for (const c of cells) {
-      if (c.kind !== 'switch') continue;
-      const cx = c.c * cs + cs / 2;
-      const cy = c.r * cs + cs / 2;
-      // 25% beyond the cell edge in the direction the train comes FROM.
-      // directions[] is the heading of the incoming train (0=N means heading
-      // north, i.e. coming from the south). The line therefore starts at
-      // cy + 0.75*cs (south of the cell) and ends at the centre.
-      // 85% rule: glyph stays inside the cell.
-      // Half cell = 0.5*cs; 85% of that = 0.425*cs.
-      const reach = cs * 0.33;
-      for (const d of c.directions ?? []) {
-        // Start point = "behind" the entry edge, i.e. opposite to the heading
-        const sx = d === 1 ? cx - reach : d === 3 ? cx + reach : cx;
-        const sy = d === 0 ? cy + reach : d === 2 ? cy - reach : cy;
-        out.push({
-          id: `inflow_${c.r}_${c.c}_${d}`,
-          x1: sx, y1: sy,
-          x2: cx, y2: cy,
-        });
-      }
-    }
-    return out;
+    return cells
+      .filter((c) => c.kind === 'switch')
+      .flatMap((c) => this._buildSwitchInflows(c));
   });
 
   /** Centre marker per switch-cell (one diamond in the middle).
@@ -315,16 +370,18 @@ export class FlatlandMapComponent {
       isOverride: a.override_action === opt.action,
     }));
 
+    const cellKind: 'switch' | 'merge' =
+      nd.cell_type === 'SWITCH' ? 'switch' : 'merge';
     return {
       handle: a.handle,
       color: this.agentColor(a.handle),
+      cellKind,
       pathD,
       decisionCx,
       decisionCy,
       pillsX,
       pillsY,
       options,
-      cellType: nd.cell_type,
     };
   }
 

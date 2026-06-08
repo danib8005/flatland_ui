@@ -5,29 +5,25 @@
       <input type="checkbox"
              [checked]="store.layerVisibility().grid"
              (change)="toggle('grid')">
-      <span class="dot grid"></span>
       <span>Grid</span>
     </label>
     <label class="layer-item">
       <input type="checkbox"
              [checked]="store.layerVisibility().nextDecisions"
              (change)="toggle('nextDecisions')">
-      <span class="dot next-decisions"></span>
       <span>Next Decisions</span>
     </label>
     <label class="layer-item">
       <input type="checkbox"
              [checked]="store.layerVisibility().switches"
              (change)="toggle('switches')">
-      <span class="dot switches"></span>
-      <span>Switches</span>
+      <span>All Switches</span>
     </label>
     <label class="layer-item">
       <input type="checkbox"
              [checked]="store.layerVisibility().signals"
              (change)="toggle('signals')">
-      <span class="dot signals"></span>
-      <span>Signals</span>
+      <span>All Signals</span>
     </label>
   </div>
 </div>

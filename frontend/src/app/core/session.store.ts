@@ -55,8 +55,8 @@ export class SessionStore {
   readonly layerVisibility = signal<LayerVisibility>({
     grid: true,
     nextDecisions: true,
-    switches: true,
-    signals: true,
+    switches: false,
+    signals: false,
   });
   readonly kpiPriorities = signal<KpiPriorities>({
     time: 1,
