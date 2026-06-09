@@ -10,6 +10,7 @@ class SessionCreateRequest(BaseModel):
     max_num_cities: int = Field(default=4, ge=2, le=10)
     max_rails_between_cities: int = 2
     max_rail_pairs_in_city: int = 2
+    max_episode_steps: int | None = None
 
 
 class SessionInfo(BaseModel):

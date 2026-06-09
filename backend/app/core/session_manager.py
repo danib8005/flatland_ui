@@ -21,9 +21,14 @@ class SessionManager:
 
     def create(self, **env_kwargs) -> Session:
         sid = str(uuid.uuid4())[:8]
+        # Pull out max_episode_steps BEFORE create_env (Flatland's reset()
+        # would overwrite it otherwise). We re-apply it after reset().
+        max_ep_override = env_kwargs.pop("max_episode_steps", None)
         env = create_env(**env_kwargs)
         session = Session(sid, env)
         obs, info = env.reset()
+        if max_ep_override is not None and int(max_ep_override) > 0:
+            env._max_episode_steps = int(max_ep_override)
         session.last_observations = obs
         session.last_info = info
         self._sessions[sid] = session

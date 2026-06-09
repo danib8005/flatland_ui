@@ -31,6 +31,8 @@ def _kpis_from(res: BranchResult) -> ScenarioKpis:
         deadlocks=int(res.kpis.get("num_deadlock_cycles", 0)),
         done=n_done,
         meanDelay=mean_delay,
+        episodeSteps=int(getattr(res, "elapsed_steps", 0)),
+        episodeFinished=bool(getattr(res, "finished", False)),
     )
 
 

@@ -109,6 +109,7 @@ def create_session(req: SessionCreateRequest):
         max_num_cities=req.max_num_cities,
         max_rails_between_cities=req.max_rails_between_cities,
         max_rail_pairs_in_city=req.max_rail_pairs_in_city,
+        max_episode_steps=req.max_episode_steps,
     )
     return SessionInfo(
         id=session.id,

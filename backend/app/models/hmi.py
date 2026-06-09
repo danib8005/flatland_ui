@@ -31,6 +31,12 @@ class ScenarioKpis(BaseModel):
     deadlocks: int = 0
     done: int = 0
     meanDelay: float = 0.0
+    episodeSteps: int = 0
+    episodeFinished: bool = False
+    episodeSteps: int = 0
+    episodeFinished: bool = False
+    episodeSteps: int = 0
+    episodeFinished: bool = False
 
 
 class ScenarioOption(BaseModel):

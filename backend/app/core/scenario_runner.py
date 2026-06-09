@@ -61,6 +61,7 @@ class BranchResult:
     total_agents: int = 0
     success_count: int = 0          # agents in DONE state
     elapsed_steps: int = 0
+    finished: bool = False  # True if all_done; False if horizon hit
     terminated_early: bool = False  # True if all agents done before max_steps
 
     @property
@@ -77,6 +78,7 @@ class BranchResult:
             "total_agents": int(self.total_agents),
             "success_count": int(self.success_count),
             "elapsed_steps": int(self.elapsed_steps),
+            "finished": bool(self.finished),
             "terminated_early": bool(self.terminated_early),
             "success_rate": float(self.success_rate),
         }
@@ -182,6 +184,7 @@ class TrajectoryBranchRunner:
                 total_agents=len(env.agents),
                 success_count=self._count_done(env),
                 elapsed_steps=int(getattr(env, "_elapsed_steps", steps_run)),
+                finished=terminated_early,
                 terminated_early=terminated_early,
             )
             return result

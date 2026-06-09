@@ -147,7 +147,7 @@ export class SessionStore {
     if (!this.showMap() && !this.showMarey()) this.showMap.set(true);
   }
 
-  newSession(opts: { width?: number; height?: number; agents?: number } = {}) {
+  newSession(opts: { width?: number; height?: number; agents?: number; maxSteps?: number } = {}) {
     this.loading.set(true);
     this.error.set(null);
     this.message.set(null);

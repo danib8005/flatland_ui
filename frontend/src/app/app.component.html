@@ -92,6 +92,13 @@
                  [value]="newAgents()"
                  (input)="newAgents.set(+$any($event.target).value)">
         </label>
+        <label class="welcome-input"
+               title="Max simulation length. Higher = more thorough what-if forecasts but slower.">
+          <span>Max Steps</span>
+          <input type="number" min="100" max="3000" step="100"
+                 [value]="newMaxSteps()"
+                 (input)="newMaxSteps.set(+$any($event.target).value)">
+        </label>
       </div>
     </div>
   </main>

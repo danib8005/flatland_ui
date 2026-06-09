@@ -38,12 +38,14 @@ export class AppComponent implements OnInit {
   newWidth = signal(50);
   newHeight = signal(20);
   newAgents = signal(3);
+  newMaxSteps = signal(1000);
 
   onNewSession() {
     this.store.newSession({
       width: this.newWidth(),
       height: this.newHeight(),
       agents: this.newAgents(),
+      maxSteps: this.newMaxSteps(),
     });
   }
 

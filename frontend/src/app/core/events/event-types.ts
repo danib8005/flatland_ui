@@ -24,14 +24,14 @@ export interface AppNotification {
 }
 
 export interface ScenarioKpis {
-  /** Total delay across all agents (steps). */
   totalDelay: number;
-  /** Number of deadlock cycles detected. */
   deadlocks: number;
-  /** Number of agents arrived (DONE). */
   done: number;
-  /** Mean delay per arrived agent (steps). */
   meanDelay: number;
+  /** How many steps the branch ran (until all_done or horizon). */
+  episodeSteps: number;
+  /** True if all agents reached their target; false if horizon hit. */
+  episodeFinished: boolean;
 }
 
 export interface ScenarioOption {

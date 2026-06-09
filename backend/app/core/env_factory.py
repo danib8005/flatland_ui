@@ -53,6 +53,7 @@ def create_env(
     max_num_cities: int = 2,
     max_rails_between_cities: int = 2,
     max_rail_pairs_in_city: int = 2,
+    max_episode_steps: int | None = None,
     max_retries: int = 5,
 ) -> RailEnv:
     """Build a RailEnv. If Flatland fails to generate (seed/size combo
@@ -70,10 +71,13 @@ def create_env(
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                return _build_once(
+                env = _build_once(
                     width, height, number_of_agents, try_seed,
                     max_num_cities, max_rails_between_cities, max_rail_pairs_in_city,
                 )
+                if max_episode_steps is not None and max_episode_steps > 0:
+                    env._max_episode_steps = int(max_episode_steps)
+                return env
         except (IndexError, ValueError, RuntimeError) as e:
             # Typical: timetable_generator IndexError, line_generator truncation.
             last_err = e
