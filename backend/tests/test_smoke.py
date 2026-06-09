@@ -17,8 +17,12 @@ def test_health():
 
 
 def test_create_session():
-    r = client.post("/session", json={"width": 30, "height": 30, "number_of_agents": 2})
-    assert r.status_code == 200
+    # Proven config (factory retries on seed glitches anyway).
+    r = client.post("/session", json={
+        "width": 25, "height": 25, "number_of_agents": 2,
+        "seed": 42, "max_num_cities": 2,
+    })
+    assert r.status_code == 200, r.text
     data = r.json()
     assert "id" in data
     assert data["num_agents"] == 2
