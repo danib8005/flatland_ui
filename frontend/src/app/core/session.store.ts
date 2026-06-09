@@ -25,7 +25,20 @@ export class SessionStore {
 
   readonly session = signal<SessionInfo | null>(null);
   readonly state = signal<SessionState | null>(null);
-  readonly selectedHandles = signal<Set<number>>(new Set());
+  // Single-selection: at most one agent at a time.
+  readonly selectedHandle = signal<number | null>(null);
+  // Backwards-compat: components that still call .has(h) on a Set.
+  readonly selectedHandles = computed<Set<number>>(() => {
+    const h = this.selectedHandle();
+    return h == null ? new Set<number>() : new Set([h]);
+  });
+  // 'Active' = explicitly selected, OR first agent in list (Marey default).
+  readonly activeHandle = computed<number | null>(() => {
+    const sel = this.selectedHandle();
+    if (sel != null) return sel;
+    const ags = this.agents();
+    return ags.length > 0 ? ags[0].handle : null;
+  });
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
@@ -259,14 +272,15 @@ export class SessionStore {
   }
 
   toggleAgentSelection(handle: number) {
-    const cur = new Set(this.selectedHandles());
-    if (cur.has(handle)) cur.delete(handle);
-    else cur.add(handle);
-    this.selectedHandles.set(cur);
+    // Single-select: clicking the same agent again deselects it,
+    // clicking another swaps the selection.
+    this.selectedHandle.set(
+      this.selectedHandle() === handle ? null : handle,
+    );
   }
 
   clearSelection() {
-    this.selectedHandles.set(new Set());
+    this.selectedHandle.set(null);
   }
 
   // ========== Decision Override (T6) ==========
