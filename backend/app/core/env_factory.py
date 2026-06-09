@@ -41,8 +41,8 @@ def _build_once(width, height, number_of_agents, seed,
         ),
         timetable_generator=ttg.timetable_generator,
     )
-    env.reset()
-    return env
+    obs, info = env.reset()
+    return env, obs, info
 
 
 def create_env(
@@ -71,12 +71,15 @@ def create_env(
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                env = _build_once(
+                env, obs, info = _build_once(
                     width, height, number_of_agents, try_seed,
                     max_num_cities, max_rails_between_cities, max_rail_pairs_in_city,
                 )
                 if max_episode_steps is not None and max_episode_steps > 0:
                     env._max_episode_steps = int(max_episode_steps)
+                # Stash obs/info so session_manager doesn't need to reset again.
+                env._initial_obs = obs
+                env._initial_info = info
                 return env
         except (IndexError, ValueError, RuntimeError) as e:
             # Typical: timetable_generator IndexError, line_generator truncation.

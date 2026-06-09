@@ -75,11 +75,13 @@ class ScenarioBuilder:
         baseline_policy_id: str,
         baseline_policy_factory: PolicyFactory,
         scoring_weights: ScoringWeights = ScoringWeights(),
+        session_id: str | None = None,
     ):
         self._env = base_env
         self._baseline_id = baseline_policy_id
         self._baseline_factory = baseline_policy_factory
         self._weights = scoring_weights
+        self._session_id = session_id
 
     def generate_scenarios(
         self,
@@ -87,9 +89,19 @@ class ScenarioBuilder:
         horizon: int = 50,
         blocked_threshold: int = 3,
     ) -> List[Scenario]:
+        # Pull current operator overrides for this session — they apply
+        # equally to baseline and all alternative-policy branches.
+        overrides: dict = {}
+        if self._session_id is not None:
+            try:
+                from app.core.override_manager import override_manager
+                overrides = dict(override_manager.get_all(self._session_id))
+            except Exception:
+                overrides = {}
+
         baseline_runner = TrajectoryBranchRunner(self._env, self._baseline_factory)
         baseline_result = baseline_runner.run_branch(
-            overrides={}, max_steps=horizon, blocked_threshold=blocked_threshold,
+            overrides=overrides, max_steps=horizon, blocked_threshold=blocked_threshold,
         )
         baseline_score = score_branch(baseline_result, self._weights)
         baseline = Scenario(
@@ -107,7 +119,7 @@ class ScenarioBuilder:
             runner = TrajectoryBranchRunner(self._env, cand_factory)
             try:
                 result = runner.run_branch(
-                    overrides={}, max_steps=horizon, blocked_threshold=blocked_threshold,
+                    overrides=overrides, max_steps=horizon, blocked_threshold=blocked_threshold,
                 )
             except Exception:
                 continue

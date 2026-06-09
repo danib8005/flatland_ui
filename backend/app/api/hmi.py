@@ -149,7 +149,7 @@ def get_scenarios(
     ]
 
     try:
-        builder = ScenarioBuilder(env, baseline_id, baseline_factory)
+        builder = ScenarioBuilder(env, baseline_id, baseline_factory, session_id=session_id)
         scenarios = builder.generate_scenarios(
             candidate_policies=candidates,
             horizon=horizon,
@@ -200,7 +200,7 @@ def get_recommendations(session_id: str):
         candidates = [
             (pid, fac) for pid, fac in _ALL_POLICIES.items() if pid != baseline_id
         ]
-        builder = ScenarioBuilder(env, baseline_id, baseline_factory)
+        builder = ScenarioBuilder(env, baseline_id, baseline_factory, session_id=session_id)
         scenarios = builder.generate_scenarios(
             candidate_policies=candidates, horizon=horizon,
         )
