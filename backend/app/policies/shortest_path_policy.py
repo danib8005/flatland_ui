@@ -4,15 +4,17 @@ Refactored to the new Policy base class (R1). Behaviour unchanged.
 """
 from typing import Optional
 
+import numpy as np
+
 from flatland.core.env_observation_builder import (
     DummyObservationBuilder, ObservationBuilder,
 )
 from flatland.core.grid.grid4_utils import get_new_position
-from flatland.envs.fast_methods import fast_argmax
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_action import RailEnvActions
 
 from app.policies.base import Policy
+from app.utils.shortest_distance_walker import _get_transitions
 
 
 class ShortestPathPolicy(Policy):
@@ -43,7 +45,7 @@ class ShortestPathPolicy(Policy):
 
         position = agent.position
         direction = agent.direction
-        possible_transitions = env.rail.get_transitions(*position, direction)
+        possible_transitions = _get_transitions(env.rail, position[0], position[1], direction)
 
         # If only one transition is possible, just go forward.
         num_transitions = sum(possible_transitions)
@@ -63,9 +65,14 @@ class ShortestPathPolicy(Policy):
                 ]
             )
 
-        best_direction = int(fast_argmax(
-            [-d if d != float("inf") else float("-inf") for d in min_distances]
-        ))
+        # Pick the direction with the smallest distance to target.
+        # Using numpy directly avoids fast_argmax's hashable-arg constraint.
+        arr = np.array(min_distances, dtype=float)
+        if not np.all(np.isinf(arr)):
+            best_direction = int(np.argmin(arr))
+        else:
+            # No reachable next cell — fall back to first valid transition.
+            best_direction = int(np.argmax(possible_transitions))
 
         # Map (current_direction → best_direction) to LEFT/FORWARD/RIGHT.
         delta = (best_direction - direction) % 4

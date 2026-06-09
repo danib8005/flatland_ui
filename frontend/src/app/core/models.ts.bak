@@ -30,11 +30,6 @@ export interface AgentDTO {
   speed: number;
   earliest_departure: number | null;
   latest_arrival: number | null;
-  eta_to_depart: number | null;
-  time_to_deadline: number | null;
-  delay: number;
-  is_visible: boolean;
-  delay_color_intensity: number;
   cell_type: CellType;
   next_decision: NextDecision | null;
   override_action: ActionInt | null;

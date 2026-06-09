@@ -107,7 +107,7 @@ export class FlatlandMapComponent {
 
   readonly bbox = computed<BoundingBox>(() => {
     const tiles = this.store.railTiles();
-    const agents = this.store.agents();
+    const agents = this.agents();
 
     let minR = Infinity, maxR = -Infinity;
     let minC = Infinity, maxC = -Infinity;
@@ -158,7 +158,11 @@ export class FlatlandMapComponent {
   });
 
   readonly tiles = computed(() => this.store.railTiles());
-  readonly agents = computed(() => this.store.agents());
+  /** Active agents only: hide WAITING (not yet departed) and DONE
+   *  (already arrived). The sidebar still shows the full roster. */
+  readonly agents = computed(() =>
+    this.store.agents().filter((a) => a.is_visible !== false),
+  );
 
   readonly mergeCells = computed<DecisionCell[]>(() => {
     const state = this.store.state();

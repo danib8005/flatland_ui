@@ -50,6 +50,44 @@ def serialize_agent(env, agent, override_action=None) -> Dict[str, Any]:
     except Exception:
         next_decision = None
 
+    # ── ETA / deadline / visibility ─────────────────────────────────
+    elapsed = int(getattr(env, "_elapsed_steps", 0))
+    earliest = _safe_int(agent.earliest_departure)
+    latest = _safe_int(agent.latest_arrival)
+
+    # Steps until the agent is allowed to enter the map.
+    # 0 means "may depart now" (assuming state == READY_TO_DEPART).
+    eta_to_depart = max(0, earliest - elapsed) if earliest is not None else None
+
+    # Steps to the latest_arrival deadline. Negative means overdue.
+    time_to_deadline = (latest - elapsed) if latest is not None else None
+
+    # Delay only meaningful while the agent is still active and overdue.
+    delay = 0
+    if (
+        latest is not None
+        and elapsed > latest
+        and state_str not in ("DONE",)
+    ):
+        delay = elapsed - latest
+
+    # Sidebar visibility: hide WAITING (too early) and DONE (already arrived).
+    is_visible = state_str not in ("WAITING", "DONE")
+
+    # Color intensity for the sidebar badge (0.0 = grey/relaxed,
+    # 1.0 = warm orange). Smooth ramp:
+    #   time_to_deadline >= 50 → 0.0
+    #   0 <= time_to_deadline < 50 → linear (50-t)/50
+    #   time_to_deadline < 0 → 1.0 (overdue → fully warm)
+    if time_to_deadline is None:
+        delay_color_intensity = 0.0
+    elif time_to_deadline >= 50:
+        delay_color_intensity = 0.0
+    elif time_to_deadline < 0:
+        delay_color_intensity = 1.0
+    else:
+        delay_color_intensity = round((50 - time_to_deadline) / 50.0, 3)
+
     return {
         "handle": int(agent.handle),
         "position": _safe_pos(agent.position),
@@ -59,8 +97,13 @@ def serialize_agent(env, agent, override_action=None) -> Dict[str, Any]:
         "target": _safe_pos(agent.target) or [0, 0],
         "state": state_str,
         "speed": speed,
-        "earliest_departure": _safe_int(agent.earliest_departure),
-        "latest_arrival": _safe_int(agent.latest_arrival),
+        "earliest_departure": earliest,
+        "latest_arrival": latest,
+        "eta_to_depart": eta_to_depart,
+        "time_to_deadline": time_to_deadline,
+        "delay": int(delay),
+        "is_visible": bool(is_visible),
+        "delay_color_intensity": float(delay_color_intensity),
         "cell_type": cell_type,
         "next_decision": next_decision,
         "override_action": override_action,
