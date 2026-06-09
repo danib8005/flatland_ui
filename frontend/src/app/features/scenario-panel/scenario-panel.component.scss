@@ -277,3 +277,15 @@
 
 /* Hide the old kpi-grid block from H3.2 */
 .kpi-grid { display: none; }
+
+/* ── Richer KPI pill states (H4) ───────────────────────────── */
+.kpi-pill.bad {
+  border-color: #c5341e;
+  background: #fdeeea;
+}
+.kpi-pill .kpi-unit {
+  font-size: 9px;
+  color: #686868;
+  font-weight: 400;
+  margin-left: 2px;
+}

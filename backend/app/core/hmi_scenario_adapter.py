@@ -28,7 +28,7 @@ def _kpis_from(res: BranchResult) -> ScenarioKpis:
     mean_delay = round(total_delay / n_done, 1) if n_done > 0 else 0.0
     return ScenarioKpis(
         totalDelay=total_delay,
-        deadlocks=int(res.kpis.get("num_deadlock_cycles", 0)),
+        deadlocks=int(res.kpis.get("deadlocks", res.kpis.get("num_deadlock_cycles", 0))),
         done=n_done,
         meanDelay=mean_delay,
         episodeSteps=int(getattr(res, "elapsed_steps", 0)),
@@ -59,7 +59,7 @@ def _describe(
     # ── Baseline (current policy) ───────────────────────────────
     if is_baseline:
         if n_dl > 0:
-            return f"⚠ Current policy causes {n_dl} deadlock(s)"
+            return f"⚠ {n_dl} train(s) end up stuck in deadlock"
         if n_done == total_agents:
             return f"✓ All {total_agents} trains will arrive"
         if n_done == 0:
@@ -74,7 +74,7 @@ def _describe(
 
     # Worst signal first: deadlocks introduced
     if d_dl > 0:
-        return f"⚠ Would cause {d_dl} new deadlock(s)"
+        return f"⚠ Would leave {d_dl} more train(s) stuck in deadlock"
 
     # Catastrophic loss of arrivals
     if n_done == 0 and d_done < 0:

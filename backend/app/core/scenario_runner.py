@@ -50,6 +50,41 @@ from app.policies.override_policy import OverridePolicy
 # ── Public types ────────────────────────────────────────────────────
 
 
+
+# Direction → (dy, dx) for the next cell in front of an agent.
+# Flatland convention: 0=N, 1=E, 2=S, 3=W
+_DIR_DELTA = {0: (-1, 0), 1: (0, 1), 2: (1, 0), 3: (0, -1)}
+
+
+def count_deadlocked_agents(env) -> int:
+    """Post-mortem deadlock count after a branch finished.
+
+    An agent is deadlocked iff it is on the map (not DONE, not WAITING),
+    facing a cell that's occupied by another on-map agent. Both sides
+    of such a face-to-face (and convoys blocked by a head) get counted,
+    matching the operator's definition: 'agents that can never reach
+    their target anymore'.
+    """
+    agents_at_pos = {}
+    for h, a in enumerate(env.agents):
+        if a.position is not None:
+            agents_at_pos[tuple(a.position)] = h
+
+    deadlocked = set()
+    for h, a in enumerate(env.agents):
+        s = a.state.name if hasattr(a.state, "name") else str(a.state)
+        if s in ("DONE", "WAITING"):
+            continue
+        if a.position is None or a.direction is None:
+            continue
+        dy, dx = _DIR_DELTA.get(int(a.direction), (0, 0))
+        front = (int(a.position[0]) + dy, int(a.position[1]) + dx)
+        if front in agents_at_pos:
+            deadlocked.add(h)
+            deadlocked.add(agents_at_pos[front])
+    return len(deadlocked)
+
+
 @dataclass
 class BranchResult:
     """Result of a single what-if trajectory run."""
@@ -177,9 +212,14 @@ class TrajectoryBranchRunner:
             policy.end_episode()
             detector.on_episode_end(env=env)
 
+            kpis = detector.get_kpis()
+            # Override with post-mortem deadlock count (operator definition:
+            # agents physically blocked face-to-face, can't reach target).
+            kpis = dict(kpis)
+            kpis["deadlocks"] = count_deadlocked_agents(env)
             result = BranchResult(
                 conflicts=detector.get_conflicts(),
-                kpis=detector.get_kpis(),
+                kpis=kpis,
                 snapshots=detector.get_snapshots(),
                 total_agents=len(env.agents),
                 success_count=self._count_done(env),
