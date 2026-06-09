@@ -42,6 +42,11 @@ _POLICIES: list[PolicyInfo] = [
 ]
 
 
+# Policies kept registered (for API backward compat) but hidden from the
+# UI selector — they're didactic baselines, not useful in operation.
+_HIDDEN_FROM_UI = {"forward_only", "do_nothing"}
+
+
 @router.get("/policies", response_model=list[PolicyInfo])
 def list_policies() -> list[PolicyInfo]:
-    return _POLICIES
+    return [p for p in _POLICIES if p.id not in _HIDDEN_FROM_UI]

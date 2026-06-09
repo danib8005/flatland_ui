@@ -41,8 +41,6 @@ def _build_all_policies():
     return {
         "deadlock_avoidance": DeadLockAvoidancePolicy,
         "shortest_path": ShortestPathPolicy,
-        "forward_only": ForwardOnlyPolicy,
-        "do_nothing": DoNothingPolicy,
         "random": RandomPolicy,
     }
 
