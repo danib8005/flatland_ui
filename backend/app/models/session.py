@@ -20,7 +20,7 @@ class SessionInfo(BaseModel):
 
 
 class StepRequest(BaseModel):
-    policy: str = Field(default="random", description="random | shortest_path")
+    policy: str = Field(default="deadlock_avoidance", description="random | shortest_path | do_nothing | forward_only | deadlock_avoidance")
     n_steps: int = Field(default=1, ge=1, le=100)
 
 

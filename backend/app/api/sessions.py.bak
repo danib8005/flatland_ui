@@ -15,9 +15,6 @@ from app.models.session import (
 from app.models.agent import ActionRequest
 from app.policies.random_policy import RandomPolicy
 from app.policies.shortest_path_policy import ShortestPathPolicy
-from app.policies.do_nothing_policy import DoNothingPolicy
-from app.policies.forward_only_policy import ForwardOnlyPolicy
-from app.policies.deadlock_avoidance_policy import DeadLockAvoidancePolicy
 from app.policies.override_policy import OverridePolicy
 
 router = APIRouter()
@@ -72,10 +69,6 @@ async def _broadcast_state(session_id: str, env):
 
 
 def _build_policy(session_id: str, env, policy_name: str):
-    """Build a policy + wrap in OverridePolicy.
-
-    R1: hybrid Policy interface — call policy.reset(env) so stateful
-    heuristics (DLA later) get an env reference."""
     if policy_name == "random":
         try:
             action_size = int(env.action_space[0])
@@ -84,18 +77,9 @@ def _build_policy(session_id: str, env, policy_name: str):
         default = RandomPolicy(action_size=action_size)
     elif policy_name == "shortest_path":
         default = ShortestPathPolicy(env)
-    elif policy_name == "do_nothing":
-        default = DoNothingPolicy()
-    elif policy_name == "forward_only":
-        default = ForwardOnlyPolicy()
-    elif policy_name == "deadlock_avoidance":
-        default = DeadLockAvoidancePolicy()
     else:
         raise HTTPException(400, f"Unknown policy: {policy_name}")
-    default.reset(env)
-    wrapped = OverridePolicy(default, session_id)
-    wrapped.reset(env)
-    return wrapped
+    return OverridePolicy(env, session_id, default)
 
 
 @router.post("", response_model=SessionInfo)
@@ -164,17 +148,14 @@ async def step(session_id: str, req: StepRequest):
             break
         handles = env.get_agent_handles()
         observations = session.last_observations or {}
-        policy.start_step()
         actions = policy.act_many(handles, observations)
         try:
             next_obs, rewards, dones, info = env.step(actions)
         except Exception as e:
             if "Episode is done" in str(e):
-                policy.end_step()
                 all_done = True
                 break
             raise
-        policy.end_step()
         session.last_observations = next_obs
         session.last_info = info
         if dones.get("__all__", False):
