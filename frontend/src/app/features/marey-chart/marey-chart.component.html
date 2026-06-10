@@ -7,12 +7,68 @@
     <svg #svgEl
          class="marey-svg"
          [attr.viewBox]="viewBox()"
-         preserveAspectRatio="none"
+         preserveAspectRatio="xMidYMid meet"
          (wheel)="onWheel($event)"
          (mousedown)="onMouseDown($event)"
          (mousemove)="onMouseMove($event)"
          (mouseup)="onMouseUp()"
          (mouseleave)="onMouseLeave()">
+
+      <!-- Topology strip: rail tiles along the active agent's path (begradigt) -->
+      <g class="marey-topology">
+        @for (pt of pathTiles(); track $index) {
+          @if (pt) {
+            <image
+              [attr.href]="'/flatland-svg/' + pt.svg"
+              [attr.x]="pt.xCoord - tileSize() / 2"
+              [attr.y]="pt.yCoord - tileSize() / 2"
+              [attr.width]="tileSize()"
+              [attr.height]="tileSize()"
+              [attr.transform]="'rotate(' + pt.rot + ' ' + pt.xCoord + ' ' + pt.yCoord + ')'"
+              opacity="0.85" />
+            @if (showGrid()) {
+              <rect
+                [attr.x]="pt.xCoord - tileSize() / 2"
+                [attr.y]="pt.yCoord - tileSize() / 2"
+                [attr.width]="tileSize()"
+                [attr.height]="tileSize()"
+                fill="none" stroke="#888" stroke-width="1"
+                vector-effect="non-scaling-stroke" />
+            }
+          }
+        }
+      </g>
+
+      <!-- Bounding lines at start/end of topology -->
+      <g class="marey-bounds">
+        @if (pathCells().length > 0 && !axesSwapped()) {
+          <line
+            [attr.x1]="pathCoord(0)" [attr.x2]="pathCoord(0)"
+            [attr.y1]="TOPOLOGY_TOP" [attr.y2]="H - PAD.bottom" />
+          <line
+            [attr.x1]="pathCoord(pathCells().length - 1)"
+            [attr.x2]="pathCoord(pathCells().length - 1)"
+            [attr.y1]="TOPOLOGY_TOP" [attr.y2]="H - PAD.bottom" />
+        }
+      </g>
+
+      <!-- Per-cell column lines under the topology, only when grid is on -->
+      <g class="marey-vgrid">
+        @if (showGrid() && !axesSwapped()) {
+          @for (cell of pathCells(); track $index) {
+            <line
+              [attr.x1]="pathCoord($index) - tileSize() / 2"
+              [attr.x2]="pathCoord($index) - tileSize() / 2"
+              [attr.y1]="TOPOLOGY_TOP + TOPOLOGY_HEIGHT"
+              [attr.y2]="H - PAD.bottom" />
+          }
+          <line
+            [attr.x1]="pathCoord(pathCells().length - 1) + tileSize() / 2"
+            [attr.x2]="pathCoord(pathCells().length - 1) + tileSize() / 2"
+            [attr.y1]="TOPOLOGY_TOP + TOPOLOGY_HEIGHT"
+            [attr.y2]="H - PAD.bottom" />
+        }
+      </g>
 
       <g class="marey-grid">
         @for (t of timeTicks(); track t.v) {
@@ -60,14 +116,14 @@
              (click)="onAgentClick(lbl.handle, $event)">
             <circle
               [attr.cx]="lbl.textX"
-              [attr.cy]="lbl.textY"
+              [attr.cy]="TOPOLOGY_TOP + TOPOLOGY_HEIGHT / 2"
               r="11"
               [attr.fill]="lbl.color"
               stroke="white"
               stroke-width="2.5" />
             <text
               [attr.x]="lbl.textX"
-              [attr.y]="lbl.textY + 4"
+              [attr.y]="TOPOLOGY_TOP + TOPOLOGY_HEIGHT / 2 + 4"
               text-anchor="middle"
               font-size="11"
               font-weight="bold"
@@ -81,11 +137,11 @@
 
     <!-- Pan cross (bottom-right, like flatland-map) -->
     <div class="map-nav-overlay">
-      <button title="Pan up"        class="nav-btn nav-up"     (click)="panStep(0, -1)">↑</button>
-      <button title="Pan left"      class="nav-btn nav-left"   (click)="panStep(-1, 0)">←</button>
+      <button title="Pan up"        class="nav-btn nav-up"     (click)="panStep(0, 1)">↑</button>
+      <button title="Pan left"      class="nav-btn nav-left"   (click)="panStep(1, 0)">←</button>
       <button title="Reset zoom + pan" class="nav-btn nav-center" (click)="resetPan()">⌂</button>
-      <button title="Pan right"     class="nav-btn nav-right"  (click)="panStep(1, 0)">→</button>
-      <button title="Pan down"      class="nav-btn nav-down"   (click)="panStep(0, 1)">↓</button>
+      <button title="Pan right"     class="nav-btn nav-right"  (click)="panStep(-1, 0)">→</button>
+      <button title="Pan down"      class="nav-btn nav-down"   (click)="panStep(0, -1)">↓</button>
     </div>
 
     <!-- Zoom overlay (above pan-cross) -->

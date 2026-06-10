@@ -203,3 +203,29 @@
     user-select: none;
   }
 }
+
+
+/* ── Topology strip + grid + bounds ─────────────────────────── */
+.marey-topology {
+  image {
+    pointer-events: none;
+  }
+}
+
+.marey-vgrid {
+  line {
+    stroke: #f0f0f0;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+}
+
+.marey-bounds {
+  line {
+    stroke: #888;
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+  }
+}
+
+

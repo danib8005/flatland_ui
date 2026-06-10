@@ -1,9 +1,10 @@
 import {
-  Component, CUSTOM_ELEMENTS_SCHEMA, computed, inject, signal,
+  Component, CUSTOM_ELEMENTS_SCHEMA, computed, effect, inject, signal,
   ElementRef, viewChild, AfterViewInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SessionStore } from '../../core/session.store';
+import { RailTile } from '../../core/models';
 import { AgentColorService } from '../../core/agent-color.service';
 
 interface AgentLine {
@@ -46,9 +47,30 @@ export class MareyChartComponent implements AfterViewInit {
   private readonly svgRef = viewChild<ElementRef<SVGSVGElement>>('svgEl');
   private svgEl: SVGSVGElement | null = null;
 
+  constructor() {
+    // Re-bind svgEl whenever the @else branch (re)mounts the SVG.
+    effect(() => {
+      const ref = this.svgRef();
+      if (ref) this.svgEl = ref.nativeElement;
+    });
+  }
+
   readonly W = 1200;
   readonly H = 700;
-  readonly PAD = { top: 32, right: 24, bottom: 36, left: 56 };
+  readonly PAD = { top: 56, right: 24, bottom: 36, left: 56 };
+  readonly TOPOLOGY_TOP = 4;
+  readonly TOPOLOGY_HEIGHT = 40;
+
+  /** Grid toggle: bound to the global layer-visibility checkbox in
+   *  the left sidebar so Marey + Map share one source of truth. */
+  readonly showGrid = computed(() => this.store.layerVisibility().grid);
+
+  /** Width of one path-cell column = tile size in the topology strip. */
+  readonly tileSize = computed(() => {
+    const cells = this.pathCells();
+    if (cells.length < 2) return this.TOPOLOGY_HEIGHT;
+    return Math.abs(this.pathCoord(1) - this.pathCoord(0));
+  });
 
   readonly activeHandle = this.store.activeHandle;
   readonly elapsed = computed(() => this.store.state()?.elapsed_steps ?? 0);
@@ -135,6 +157,79 @@ export class MareyChartComponent implements AfterViewInit {
       else m.set(k, [i]);
     });
     return m;
+  });
+
+  /** Marey-Topologie (begradigt): jede Pfad-Cell wird auf das passende
+   *  horizontale Asset gemappt — Gerade / Weiche-Variante / Merging — basierend
+   *  auf dem Original-Tile (Map) und der Action des aktiven Zugs (F/L/R), die
+   *  aus den `dir`-Werten benachbarter Trajectory-Punkte abgeleitet wird. */
+  readonly pathTiles = computed<({ svg: string; rot: number; xCoord: number; yCoord: number } | null)[]>(() => {
+    const sc = this.forecastScenario();
+    const handle = this.activeHandle();
+    const cells = this.pathCells();
+    if (!sc || handle == null || cells.length === 0 || !sc.trajectories) return [];
+
+    const traj = sc.trajectories[String(handle)] ?? [];
+    if (traj.length === 0) return [];
+
+    // Cell-key → first index of that cell in the trajectory.
+    const trajIdxByKey = new Map<string, number>();
+    traj.forEach((t, i) => {
+      const k = `${t.row},${t.col}`;
+      if (!trajIdxByKey.has(k)) trajIdxByKey.set(k, i);
+    });
+
+    // Cell-key → original RailTile from the map.
+    const tilesByKey = new Map<string, RailTile>();
+    for (const t of this.store.railTiles()) tilesByKey.set(`${t.r},${t.c}`, t);
+
+    const out: ({ svg: string; rot: number; xCoord: number; yCoord: number } | null)[] = [];
+
+    for (let i = 0; i < cells.length; i++) {
+      const key = cells[i];
+      const tile = tilesByKey.get(key);
+      const tIdx = trajIdxByKey.get(key);
+
+      let svg = "Gleis_horizontal.svg";
+      const rot = 0; // begradigt: alles horizontal
+
+      if (tile && tIdx !== undefined) {
+        const cur = traj[tIdx];
+        const next = tIdx < traj.length - 1 ? traj[tIdx + 1] : null;
+        const curDir = cur.dir;
+        const nextDir = next ? next.dir : curDir;
+
+        // Action F / L / R based on direction change at this cell.
+        let action: "F" | "L" | "R" = "F";
+        if (nextDir === (curDir + 3) % 4) action = "L";
+        else if (nextDir === (curDir + 1) % 4) action = "R";
+
+        const t = tile.svg;
+        if (t === "Weiche_horizontal_oben_links.svg") {
+          // L/F switch: Forward → keep oben_links (Stummel oben);
+          //             Left   → unten_links (curve up).
+          svg = action === "L" ? "Weiche_horizontal_unten_links.svg" : "Weiche_horizontal_oben_links.svg";
+        } else if (t === "Weiche_horizontal_unten_links.svg") {
+          // R/F switch: Forward → keep unten_links (Stummel unten);
+          //             Right   → oben_links (curve down).
+          svg = action === "R" ? "Weiche_horizontal_oben_links.svg" : "Weiche_horizontal_unten_links.svg";
+        } else if (t === "Weiche_horizontal_oben_rechts.svg") {
+          svg = "Weiche_horizontal_oben_rechts.svg";
+        } else if (t === "Weiche_horizontal_unten_rechts.svg") {
+          svg = "Weiche_horizontal_unten_rechts.svg";
+        } else if (t === "Weiche_Double_Slip.svg" || t === "Weiche_Single_Slip.svg") {
+          svg = t;
+        } else {
+          // Gerade or Kurve → flatten to straight horizontal.
+          svg = "Gleis_horizontal.svg";
+        }
+      }
+
+      const xCoord = this.axesSwapped() ? this.PAD.left + 18 : this.pathCoord(i);
+      const yCoord = this.axesSwapped() ? this.pathCoord(i) : this.TOPOLOGY_TOP + this.TOPOLOGY_HEIGHT / 2;
+      out.push({ svg, rot, xCoord, yCoord });
+    }
+    return out;
   });
 
   readonly agentLines = computed<AgentLine[]>(() => {
@@ -373,7 +468,9 @@ export class MareyChartComponent implements AfterViewInit {
   }
   onAgentClick(handle: number, ev: MouseEvent): void {
     ev.stopPropagation();
-    this.store.toggleAgentSelection(handle);
+    // Always select (no toggle) — clicking another agent's marker
+    // should switch the Marey to that agent's path, never deselect.
+    this.store.selectedHandle.set(handle);
   }
 
   setForecastScenario(id: string | null): void {
