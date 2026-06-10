@@ -460,3 +460,54 @@
 }
 .x-brush-handle-left  { left: -4px; }
 .x-brush-handle-right { right: -4px; }
+
+
+/* Y range brush — vertical analogue of the X brush, in cell-time-axis.
+   Background: timeTicks labels (right-aligned); dim regions outside the
+   visible yRange; window with top/bottom drag handles. Order matters:
+   .cell-time-axis must be position:relative (already declared above)
+   so the absolute children resolve correctly. */
+.y-brush {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+.y-brush-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.y-brush-bg .time-axis-label {
+  /* keep existing right-aligned styling from the time-axis-label rule */
+}
+.y-brush-dim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}
+.y-brush-dim-top    { top: 0; }
+.y-brush-dim-bottom { bottom: 0; }
+.y-brush-window {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: rgba(235, 0, 0, 0.10);
+  border-top: 1.5px solid rgba(235, 0, 0, 0.75);
+  border-bottom: 1.5px solid rgba(235, 0, 0, 0.75);
+  cursor: grab;
+}
+.y-brush-window:active { cursor: grabbing; }
+.y-brush-handle {
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  height: 8px;
+  background: #eb0000;
+  border-radius: 4px;
+  cursor: ns-resize;
+}
+.y-brush-handle-top    { top: -4px; }
+.y-brush-handle-bottom { bottom: -4px; }

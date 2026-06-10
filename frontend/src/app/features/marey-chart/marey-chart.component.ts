@@ -135,6 +135,61 @@ export class MareyChartComponent implements AfterViewInit {
   });
 
 
+  // ── Y-Range Brush (Etappe 5) ─────────────────────────────────
+  /** Brush window top edge as % of total time span. */
+  readonly yBrushTopPct = computed(() => {
+    const m = this.maxSteps();
+    if (m <= 0) return 0;
+    return (this.yRange().start / m) * 100;
+  });
+  /** Brush window height as % of total time span. */
+  readonly yBrushHeightPct = computed(() => {
+    const m = this.maxSteps();
+    if (m <= 0) return 100;
+    const r = this.yRange();
+    return ((r.end - r.start) / m) * 100;
+  });
+
+  /** Pointer-driven vertical brush drag.
+   *  mode: 'top'    = drag top handle, bottom stays fixed
+   *        'bottom' = drag bottom handle, top stays fixed
+   *        'window' = drag whole window (both edges move) */
+  onYBrushDown(ev: MouseEvent, mode: 'top'|'bottom'|'window', track: HTMLElement): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const m = this.maxSteps();
+    if (m <= 0) return;
+    const rect = track.getBoundingClientRect();
+    const startY = ev.clientY;
+    const startRange = { ...this.yRange() };
+    const pxPerStep = rect.height / m;
+
+    const onMove = (e: MouseEvent) => {
+      const dy = e.clientY - startY;
+      const dSteps = Math.round(dy / pxPerStep);
+      let { start, end } = startRange;
+      if (mode === 'top') {
+        start = Math.max(0, Math.min(end - 1, startRange.start + dSteps));
+      } else if (mode === 'bottom') {
+        end = Math.max(start + 1, Math.min(m, startRange.end + dSteps));
+      } else {
+        const width = startRange.end - startRange.start;
+        let ns = startRange.start + dSteps;
+        if (ns < 0) ns = 0;
+        if (ns + width > m) ns = m - width;
+        start = ns;
+        end = ns + width;
+      }
+      this.yRange.set({ start, end });
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
   // ── X-Range Brush (Etappe 4) ─────────────────────────────────
   /** Brush window left edge as % of the full path span. */
   readonly brushWindowLeftPct = computed(() => {

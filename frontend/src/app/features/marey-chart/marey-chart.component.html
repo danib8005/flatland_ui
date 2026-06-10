@@ -44,11 +44,32 @@
 
       <!-- Cell 2×1: Time-axis + Y-slider placeholder -->
       <div class="cell-time-axis">
-        <div class="time-axis-track">
-          @for (t of timeTicks(); track t.v) {
-            <span class="time-axis-label"
-                  [style.top.%]="(t.coord / H) * 100">{{ t.v }}</span>
-          }
+        <!-- Y range brush — drives yRange signal. Background shows
+             ALL time ticks; window highlights the visible range;
+             handles drag to resize, window drags to pan. -->
+        <div class="y-brush" #yBrush
+             (mousedown)="onYBrushDown($event, 'window', yBrush)">
+          <!-- Tick labels behind the brush -->
+          <div class="y-brush-bg">
+            @for (t of timeTicks(); track t.v) {
+              <span class="time-axis-label"
+                    [style.top.%]="(t.coord / H) * 100">{{ t.v }}</span>
+            }
+          </div>
+          <!-- Dim regions outside the visible window -->
+          <div class="y-brush-dim y-brush-dim-top"
+               [style.height.%]="yBrushTopPct()"></div>
+          <div class="y-brush-dim y-brush-dim-bottom"
+               [style.top.%]="yBrushTopPct() + yBrushHeightPct()"></div>
+          <!-- Window with handles -->
+          <div class="y-brush-window"
+               [style.top.%]="yBrushTopPct()"
+               [style.height.%]="yBrushHeightPct()">
+            <div class="y-brush-handle y-brush-handle-top"
+                 (mousedown)="onYBrushDown($event, 'top', yBrush)"></div>
+            <div class="y-brush-handle y-brush-handle-bottom"
+                 (mousedown)="onYBrushDown($event, 'bottom', yBrush)"></div>
+          </div>
         </div>
       </div>
 
