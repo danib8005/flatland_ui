@@ -416,6 +416,7 @@ export class MareyChartComponent implements AfterViewInit {
     const out: AgentLabel[] = [];
     const OFFSET = 16;  // distance from line start to circle centre
 
+    const now = this.elapsed();
     for (const [handleStr, traj] of Object.entries(sc.trajectories)) {
       const handle = Number(handleStr);
       const isActive = handle === active;
@@ -424,6 +425,10 @@ export class MareyChartComponent implements AfterViewInit {
       const pts: { x: number; y: number }[] = [];
       let prevX = isActive ? -1 : 0;
       let firstXIdx = -1;
+      // Track which path-cell index corresponds to the agent's CURRENT
+      // position (largest traj.step <= elapsed). Falls back to firstXIdx
+      // when the agent has not started or the trajectory hasn't begun.
+      let currentXIdx = -1;
       for (const p of traj) {
         const key = `${p.row},${p.col}`;
         const candidates = idx.get(key);
@@ -441,6 +446,7 @@ export class MareyChartComponent implements AfterViewInit {
         }
         prevX = xIdx;
         if (firstXIdx < 0) firstXIdx = xIdx;
+        if (p.step <= now) currentXIdx = xIdx;
         const sx = this.axesSwapped() ? this.timeCoord(p.step) : this.pathCoord(xIdx);
         const sy = this.axesSwapped() ? this.pathCoord(xIdx)   : this.timeCoord(p.step);
         pts.push({ x: sx, y: sy });
@@ -463,10 +469,17 @@ export class MareyChartComponent implements AfterViewInit {
         cy = start.y;
       }
 
+      const finalTileIdx = Math.max(0, currentXIdx >= 0 ? currentXIdx : firstXIdx);
+      // Skip agents whose current tile is outside the visible xRange —
+      // they would otherwise either disappear (no cellIdx match) or in
+      // edge cases attach to a boundary tile. Explicit skip is clearer.
+      const r = this.xRange();
+      if (finalTileIdx < r.start || finalTileIdx > r.end) continue;
+
       out.push({
         handle,
         color: this.colors.getColorSolid(handle),
-        tileIndex: Math.max(0, firstXIdx),
+        tileIndex: finalTileIdx,
         x: start.x, y: start.y,
         textX: cx, textY: cy,
         textAnchor: "middle",
