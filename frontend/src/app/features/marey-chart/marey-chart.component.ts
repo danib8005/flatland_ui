@@ -646,8 +646,15 @@ export class MareyChartComponent implements AfterViewInit {
 
   // ── zoom ─────────────────────────────────────────────────────
   resetPan(): void {
+    // Legacy zoom/pan signals — kept for now while old code paths
+    // (panStep, zoomIn/Out) still reference them, even though the
+    // actual rendering is driven by xRange/yRange.
     this.panX.set(this.clampPanX(0)); this.panY.set(this.clampPanY(0));
     this.zoomX.set(this.clampZ(1)); this.zoomY.set(this.clampZ(1));
+    // Range brushes — full extent.
+    const n = this.pathCells().length;
+    this.xRange.set({ start: 0, end: Math.max(0, n - 1) });
+    this.yRange.set({ start: 0, end: this.maxSteps() });
   }
   zoomIn():  void { this._zoomBy(1.2, 1.2, 0.5, 0.5); }
   zoomOut(): void { this._zoomBy(1/1.2, 1/1.2, 0.5, 0.5); }

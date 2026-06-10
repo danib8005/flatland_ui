@@ -155,24 +155,7 @@
         }
       </g>
     </svg>
-
-    <!-- Pan cross (bottom-right, like flatland-map) -->
-    <div class="map-nav-overlay">
-      <button title="Pan up"        class="nav-btn nav-up"     (click)="panStep(0, 1)">↑</button>
-      <button title="Pan left"      class="nav-btn nav-left"   (click)="panStep(1, 0)">←</button>
-      <button title="Reset zoom + pan" class="nav-btn nav-center" (click)="resetPan()">⌂</button>
-      <button title="Pan right"     class="nav-btn nav-right"  (click)="panStep(-1, 0)">→</button>
-      <button title="Pan down"      class="nav-btn nav-down"   (click)="panStep(0, -1)">↓</button>
-    </div>
-
     <!-- Zoom overlay (above pan-cross) -->
-    <!-- Zoom panel (bottom row, like flatland-map) -->
-    <div class="map-zoom-overlay">
-      <button title="Zoom in" class="nav-btn" (click)="zoomIn()">+</button>
-      <span class="zoom-value">{{ zoomPct() }}%</span>
-      <button title="Zoom out" class="nav-btn" (click)="zoomOut()">−</button>
-    </div>
-
     <!-- Swap-axes overlay: where flatland-map has its opacity slider -->
     <div class="map-swap-overlay">
       <button title="Swap horizontal/vertical axes" class="nav-btn"
