@@ -78,7 +78,7 @@ export class MareyChartComponent implements AfterViewInit {
 
   readonly W = 1200;
   readonly H = 700;
-  readonly PAD = { top: 16, right: 24, bottom: 36, left: 56 };
+  readonly PAD = { top: 16, right: 0, bottom: 36, left: 0 };
 
   /** Grid toggle: bound to the global layer-visibility checkbox in
    *  the left sidebar so Marey + Map share one source of truth. */
@@ -126,9 +126,72 @@ export class MareyChartComponent implements AfterViewInit {
     const r = this.xRange();
     const visible = Math.max(1, r.end - r.start + 1);
     const sx = n / visible;
-    const tx = -(r.start / n) * 100;
-    return `scaleX(${sx}) translateX(${tx}%)`;
+    // translate is in element-local % (of own width). To pan so that
+    // tile r.start sits at the left edge, we shift by -(r.start * sx /
+    // n) * 100% which simplifies to -(r.start / visible) * 100% after
+    // applying scaleX. Order matters: scale first, then translate.
+    const tx = -(r.start / visible) * 100;
+    return `translateX(${tx}%) scaleX(${sx})`;
   });
+
+
+  // ── X-Range Brush (Etappe 4) ─────────────────────────────────
+  /** Brush window left edge as % of the full path span. */
+  readonly brushWindowLeftPct = computed(() => {
+    const n = this.pathCells().length;
+    if (n === 0) return 0;
+    return (this.xRange().start / n) * 100;
+  });
+  /** Brush window width as % of the full path span. */
+  readonly brushWindowWidthPct = computed(() => {
+    const n = this.pathCells().length;
+    if (n === 0) return 100;
+    const r = this.xRange();
+    return ((r.end - r.start + 1) / n) * 100;
+  });
+
+  /** Pointer-driven brush drag. mode = which part is being grabbed.
+   *  'left'   = drag start handle, end stays fixed
+   *  'right'  = drag end handle, start stays fixed
+   *  'window' = drag whole window, both edges move together (pan)
+   *  Pixel→tile mapping uses the brush track's own client width so
+   *  it stays correct under any container size. */
+  onBrushDown(ev: MouseEvent, mode: 'left'|'right'|'window', track: HTMLElement): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const n = this.pathCells().length;
+    if (n === 0) return;
+    const rect = track.getBoundingClientRect();
+    const startX = ev.clientX;
+    const startRange = { ...this.xRange() };
+    const pxPerTile = rect.width / n;
+
+    const onMove = (e: MouseEvent) => {
+      const dx = e.clientX - startX;
+      const dTiles = Math.round(dx / pxPerTile);
+      let { start, end } = startRange;
+      if (mode === 'left') {
+        start = Math.max(0, Math.min(end - 1, startRange.start + dTiles));
+      } else if (mode === 'right') {
+        end = Math.max(start + 1, Math.min(n - 1, startRange.end + dTiles));
+      } else {
+        // window pan — keep width, shift both edges, clamp to [0, n-1]
+        const width = startRange.end - startRange.start;
+        let ns = startRange.start + dTiles;
+        if (ns < 0) ns = 0;
+        if (ns + width > n - 1) ns = n - 1 - width;
+        start = ns;
+        end = ns + width;
+      }
+      this.xRange.set({ start, end });
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
 
   /** Swap axes: false = time vertical (default), true = time horizontal. */
   readonly axesSwapped = signal(false);
@@ -277,6 +340,15 @@ export class MareyChartComponent implements AfterViewInit {
       out.push({ svg, rot, xCoord, yCoord });
     }
     return out;
+  });
+
+  /** Subset of pathTiles inside xRange — used by the main topology
+   *  header [2]. Mini-topology in [6] keeps using full pathTiles(). */
+  readonly pathTilesVisible = computed(() => {
+    const all = this.pathTiles();
+    const r = this.xRange();
+    const end = Math.min(all.length, r.end + 1);
+    return all.slice(r.start, end);
   });
 
   readonly agentLines = computed<AgentLine[]>(() => {

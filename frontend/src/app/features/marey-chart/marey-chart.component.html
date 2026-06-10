@@ -15,8 +15,9 @@
       <div class="cell-topology">
         <div class="marey-topology-html"
              [style.height.px]="TOPOLOGY_PX">
-      <div class="marey-topology-track" [style.transform]="topologyTrackTransform()">
-        @for (pt of pathTiles(); track $index; let cellIdx = $index) {
+      <div class="marey-topology-track">
+        @for (pt of pathTilesVisible(); track $index; let visibleIdx = $index) {
+          @let cellIdx = visibleIdx + xRange().start;
           <div class="topo-cell">
             @if (pt) {
               <img class="topo-tile"
@@ -43,7 +44,12 @@
 
       <!-- Cell 2×1: Time-axis + Y-slider placeholder -->
       <div class="cell-time-axis">
-        <div class="placeholder">⟦Y-Slider⟧</div>
+        <div class="time-axis-track">
+          @for (t of timeTicks(); track t.v) {
+            <span class="time-axis-label"
+                  [style.top.%]="(t.coord / H) * 100">{{ t.v }}</span>
+          }
+        </div>
       </div>
 
       <!-- Cell 2×2: Marey chart -->
@@ -51,7 +57,7 @@
     <svg #svgEl
          class="marey-svg"
          [attr.viewBox]="viewBox()"
-         preserveAspectRatio="xMidYMid meet"
+         preserveAspectRatio="none"
          (wheel)="onWheel($event)"
          (mousedown)="onMouseDown($event)"
          (mousemove)="onMouseMove($event)"
@@ -156,10 +162,44 @@
       <!-- Cell 3×1: empty -->
       <div class="cell-empty"></div>
 
-      <!-- Cell 3×2: Topology slider placeholder -->
-      <div class="cell-topology-slider">
-        <div class="placeholder">⟦Topology Slider — Range Brush⟧</div>
-      </div>
+      <!-- Cell 3×2: X range brush over a mini full-topology preview.
+             Background = ALL tiles at 100% (no xRange transform), so the
+             user sees what they are selecting. Foreground = brush window
+             (drag to zoom/pan), driven by xRange. -->
+        <div class="cell-topology-slider">
+          <div class="x-brush" #xBrush
+               (mousedown)="onBrushDown($event, 'window', xBrush)">
+            <!-- Mini topology preview — same tiles, fixed full transform -->
+            <div class="x-brush-bg">
+              <div class="marey-topology-track">
+                @for (pt of pathTiles(); track $index) {
+                  <div class="topo-cell">
+                    @if (pt) {
+                      <img class="topo-tile"
+                           [src]="'/flatland-svg/' + pt.svg"
+                           [style.transform]="'rotate(' + pt.rot + 'deg)'" />
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+            <!-- Dim overlays for the regions outside the brush window -->
+            <div class="x-brush-dim x-brush-dim-left"
+                 [style.width.%]="brushWindowLeftPct()"></div>
+            <div class="x-brush-dim x-brush-dim-right"
+                 [style.left.%]="brushWindowLeftPct() + brushWindowWidthPct()"
+                 [style.right]="'0'"></div>
+            <!-- Brush window with handles -->
+            <div class="x-brush-window"
+                 [style.left.%]="brushWindowLeftPct()"
+                 [style.width.%]="brushWindowWidthPct()">
+              <div class="x-brush-handle x-brush-handle-left"
+                   (mousedown)="onBrushDown($event, 'left', xBrush)"></div>
+              <div class="x-brush-handle x-brush-handle-right"
+                   (mousedown)="onBrushDown($event, 'right', xBrush)"></div>
+            </div>
+          </div>
+        </div>
 
     </div><!-- /marey-layout -->
   }
