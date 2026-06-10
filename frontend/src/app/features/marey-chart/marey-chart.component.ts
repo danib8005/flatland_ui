@@ -18,6 +18,8 @@ interface AgentLine {
 interface AgentLabel {
   handle: number;
   color: string;
+  /** Index in pathCells where the agent first appears (used by HTML topology). */
+  tileIndex: number;
   /** Anchor position (start of line). */
   x: number;
   y: number;
@@ -57,9 +59,7 @@ export class MareyChartComponent implements AfterViewInit {
 
   readonly W = 1200;
   readonly H = 700;
-  readonly PAD = { top: 56, right: 24, bottom: 36, left: 56 };
-  readonly TOPOLOGY_TOP = 4;
-  readonly TOPOLOGY_HEIGHT = 40;
+  readonly PAD = { top: 16, right: 24, bottom: 36, left: 56 };
 
   /** Grid toggle: bound to the global layer-visibility checkbox in
    *  the left sidebar so Marey + Map share one source of truth. */
@@ -68,7 +68,7 @@ export class MareyChartComponent implements AfterViewInit {
   /** Width of one path-cell column = tile size in the topology strip. */
   readonly tileSize = computed(() => {
     const cells = this.pathCells();
-    if (cells.length < 2) return this.TOPOLOGY_HEIGHT;
+    if (cells.length < 2) return this.TOPOLOGY_PX;
     return Math.abs(this.pathCoord(1) - this.pathCoord(0));
   });
 
@@ -83,6 +83,26 @@ export class MareyChartComponent implements AfterViewInit {
   readonly panY = signal(0);
   readonly zoomX = signal(1);
   readonly zoomY = signal(1);
+
+  /** Topology header height in CSS pixels (matches HTML overlay). */
+  readonly TOPOLOGY_PX = 48;
+
+  /** CSS transform for the HTML topology track:
+   *  scrolls horizontally in lockstep with the SVG's viewBox X-pan,
+   *  scales horizontally with zoomX. Y is ignored (topology stays put). */
+  readonly topologyTrackTransform = computed(() => {
+    // Map SVG viewBox X-coord X to container-X (X-panX)*zoomX*Cpx/W.
+    // Tiles are placed at left:(X/W)*100% inside the track. With CSS
+    //   transform: scaleX(zoomX) translateX(-panX/W * 100%)
+    // the translate is applied first (in the element's own coordinate
+    // system, % resolved against its own width = Cpx), then scaleX.
+    // Result for a tile at left:(X/W)*Cpx :
+    //   after translate: ((X-panX)/W) * Cpx
+    //   after scale:     ((X-panX)/W) * Cpx * zoomX  ✓
+    const tx = -(this.panX() / this.W) * 100;
+    const sx = this.zoomX();
+    return `scaleX(${sx}) translateX(${tx}%)`;
+  });
 
   /** Swap axes: false = time vertical (default), true = time horizontal. */
   readonly axesSwapped = signal(false);
@@ -226,7 +246,7 @@ export class MareyChartComponent implements AfterViewInit {
       }
 
       const xCoord = this.axesSwapped() ? this.PAD.left + 18 : this.pathCoord(i);
-      const yCoord = this.axesSwapped() ? this.pathCoord(i) : this.TOPOLOGY_TOP + this.TOPOLOGY_HEIGHT / 2;
+      const yCoord = this.axesSwapped() ? this.pathCoord(i) : this.TOPOLOGY_PX / 2;
       out.push({ svg, rot, xCoord, yCoord });
     }
     return out;
@@ -304,6 +324,7 @@ export class MareyChartComponent implements AfterViewInit {
       // Collect on-path points using the same closest-index policy.
       const pts: { x: number; y: number }[] = [];
       let prevX = isActive ? -1 : 0;
+      let firstXIdx = -1;
       for (const p of traj) {
         const key = `${p.row},${p.col}`;
         const candidates = idx.get(key);
@@ -320,6 +341,7 @@ export class MareyChartComponent implements AfterViewInit {
           }
         }
         prevX = xIdx;
+        if (firstXIdx < 0) firstXIdx = xIdx;
         const sx = this.axesSwapped() ? this.timeCoord(p.step) : this.pathCoord(xIdx);
         const sy = this.axesSwapped() ? this.pathCoord(xIdx)   : this.timeCoord(p.step);
         pts.push({ x: sx, y: sy });
@@ -345,6 +367,7 @@ export class MareyChartComponent implements AfterViewInit {
       out.push({
         handle,
         color: this.colors.getColorSolid(handle),
+        tileIndex: Math.max(0, firstXIdx),
         x: start.x, y: start.y,
         textX: cx, textY: cy,
         textAnchor: "middle",
@@ -407,8 +430,8 @@ export class MareyChartComponent implements AfterViewInit {
     const dy = ev.clientY - this.dragStartY;
     const sx = (this.W / this.zoomX()) / rect.width;
     const sy = (this.H / this.zoomY()) / rect.height;
-    this.panX.set(this.dragStartPanX - dx * sx);
-    this.panY.set(this.dragStartPanY - dy * sy);
+    this.panX.set(this.clampPanX(this.dragStartPanX - dx * sx));
+    this.panY.set(this.clampPanY(this.dragStartPanY - dy * sy));
   }
   onMouseUp(): void {
     if (this.isDragging) {
@@ -422,14 +445,32 @@ export class MareyChartComponent implements AfterViewInit {
   panStep(dirX: number, dirY: number): void {
     const stepX = (this.W / this.zoomX()) * 0.3;
     const stepY = (this.H / this.zoomY()) * 0.3;
-    this.panX.update(v => v + dirX * stepX);
-    this.panY.update(v => v + dirY * stepY);
+    this.panX.update(v => this.clampPanX(v + dirX * stepX));
+    this.panY.update(v => this.clampPanY(v + dirY * stepY));
+  }
+
+  // ── clamping helpers ─────────────────────────────────────────
+  /** Min zoom = 1 (full content visible). Max = 10 for sanity. */
+  private clampZ(v: number): number {
+    return Math.max(1, Math.min(10, v));
+  }
+  /** Pan-X is clamped so the viewBox X range [pan, pan + W/zoom]
+   *  stays inside [0, W]. With zoom=1 this forces pan=0. */
+  private clampPanX(v: number): number {
+    const span = this.W / this.zoomX();
+    const max = Math.max(0, this.W - span);
+    return Math.max(0, Math.min(max, v));
+  }
+  private clampPanY(v: number): number {
+    const span = this.H / this.zoomY();
+    const max = Math.max(0, this.H - span);
+    return Math.max(0, Math.min(max, v));
   }
 
   // ── zoom ─────────────────────────────────────────────────────
   resetPan(): void {
-    this.panX.set(0); this.panY.set(0);
-    this.zoomX.set(1); this.zoomY.set(1);
+    this.panX.set(this.clampPanX(0)); this.panY.set(this.clampPanY(0));
+    this.zoomX.set(this.clampZ(1)); this.zoomY.set(this.clampZ(1));
   }
   zoomIn():  void { this._zoomBy(1.2, 1.2, 0.5, 0.5); }
   zoomOut(): void { this._zoomBy(1/1.2, 1/1.2, 0.5, 0.5); }
@@ -456,10 +497,10 @@ export class MareyChartComponent implements AfterViewInit {
     if (newZx === oldZx && newZy === oldZy) return;
     const ax = this.panX() + cxRel * (this.W / oldZx);
     const ay = this.panY() + cyRel * (this.H / oldZy);
-    this.zoomX.set(newZx);
-    this.zoomY.set(newZy);
-    this.panX.set(ax - cxRel * (this.W / newZx));
-    this.panY.set(ay - cyRel * (this.H / newZy));
+    this.zoomX.set(this.clampZ(newZx));
+    this.zoomY.set(this.clampZ(newZy));
+    this.panX.set(this.clampPanX(ax - cxRel * (this.W / newZx)));
+    this.panY.set(this.clampPanY(ay - cyRel * (this.H / newZy)));
   }
 
   // ── agent selection (mirrors flatland-map) ───────────────────
