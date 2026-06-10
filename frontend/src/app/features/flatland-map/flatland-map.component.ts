@@ -212,10 +212,18 @@ export class FlatlandMapComponent {
   private _destSwitchCells(): DecisionCell[] {
     const cells = (this.store.state()?.decision_cells ?? []) as DecisionCell[];
     const byPos = new Map(cells.map((c) => [`${c.r}_${c.c}`, c]));
+    // Dedup: when N agents target the SAME decision cell, we still only
+    // render its switch markings once. Without this guard, _buildSwitchInflows
+    // would emit identical IDs N times → NG0955 'duplicated keys' warnings
+    // in @for tracking. Functionally identical: same cell, same arrows.
     const out: DecisionCell[] = [];
+    const seen = new Set<string>();
     for (const layer of this.decisionLayers()) {
       if (layer.cellKind !== 'switch') continue;
-      const cell = byPos.get(this._destKeyForLayer(layer));
+      const key = this._destKeyForLayer(layer);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const cell = byPos.get(key);
       if (cell) out.push(cell);
     }
     return out;
@@ -224,10 +232,16 @@ export class FlatlandMapComponent {
   private _destSignalCells(): DecisionCell[] {
     const cells = (this.store.state()?.decision_cells ?? []) as DecisionCell[];
     const byPos = new Map(cells.map((c) => [`${c.r}_${c.c}`, c]));
+    // Same dedup rationale as _destSwitchCells: multiple agents may share
+    // a destination merge cell. We render its signal markings only once.
     const out: DecisionCell[] = [];
+    const seen = new Set<string>();
     for (const layer of this.decisionLayers()) {
       if (layer.cellKind !== 'merge') continue;
-      const cell = byPos.get(this._destKeyForLayer(layer));
+      const key = this._destKeyForLayer(layer);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const cell = byPos.get(key);
       if (cell) out.push(cell);
     }
     return out;
