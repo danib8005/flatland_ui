@@ -133,11 +133,12 @@ export class MareyChartComponent implements AfterViewInit {
   /** Swap axes: false = time vertical (default), true = time horizontal. */
   readonly axesSwapped = signal(false);
 
-  readonly viewBox = computed(() => {
-    const w = this.W / this.zoomX();
-    const h = this.H / this.zoomY();
-    return `${this.panX()} ${this.panY()} ${w} ${h}`;
-  });
+  /** viewBox is fixed at the full chart canvas. All zoom/pan is now
+   *  expressed via xRange/yRange in the coord helpers, so we don't
+   *  double-transform here. The old panX/panY/zoomX/zoomY signals
+   *  remain for backwards-compat with pan/zoom buttons; a thin layer
+   *  in Etappe 4/5 will translate them into xRange/yRange writes. */
+  readonly viewBox = computed(() => `0 0 ${this.W} ${this.H}`);
 
   /** Display-friendly zoom percentage (geometric mean of X+Y zoom). */
   readonly zoomPct = computed(() => {
