@@ -21,21 +21,42 @@ export class RecommendationsPanelComponent implements OnDestroy {
   private tickHandle: any;
   private elapsedSinceFetch = signal(0);
 
+  private _recPollHandle: any = null;
+  private _recLastSession: string | null = null;
+
   constructor() {
+    // Same rationale as notifications-panel: don't refetch on every WS
+    // state update — that blocks /pause during Play. Throttle to 2s,
+    // plus immediate refetch when session changes or Play stops.
+    let lastPlaying = false;
     effect(() => {
-      const state = this.store.state();
       const sess = this.store.session();
-      if (sess && state) {
-        this.api.getRecommendations(sess.id).subscribe({
-          next: (recs) => {
-            this.store.recommendations.set(recs);
-            this.elapsedSinceFetch.set(0);
-          },
-          error: () => {},
-        });
-      } else {
+      const playing = this.store.playing();
+
+      if (!sess) {
         this.store.recommendations.set([]);
+        this._stopRecPolling();
+        this._recLastSession = null;
+        lastPlaying = false;
+        return;
       }
+
+      const sessionChanged = sess.id !== this._recLastSession;
+      const stoppedPlaying = lastPlaying && !playing;
+
+      if (sessionChanged || stoppedPlaying) {
+        this._fetchRecommendations(sess.id);
+      }
+
+      if (sessionChanged) {
+        this._stopRecPolling();
+        this._recPollHandle = setInterval(() => {
+          this._fetchRecommendations(sess.id);
+        }, 2000);
+      }
+
+      this._recLastSession = sess.id;
+      lastPlaying = playing;
     });
 
     // Tick countdown every second
@@ -44,8 +65,26 @@ export class RecommendationsPanelComponent implements OnDestroy {
     }, 1000);
   }
 
+  private _fetchRecommendations(sessionId: string): void {
+    this.api.getRecommendations(sessionId).subscribe({
+      next: (recs) => {
+        this.store.recommendations.set(recs);
+        this.elapsedSinceFetch.set(0);
+      },
+      error: () => {},
+    });
+  }
+
+  private _stopRecPolling(): void {
+    if (this._recPollHandle !== null) {
+      clearInterval(this._recPollHandle);
+      this._recPollHandle = null;
+    }
+  }
+
   ngOnDestroy() {
     if (this.tickHandle) clearInterval(this.tickHandle);
+    this._stopRecPolling();
   }
 
   remaining(r: Recommendation): number {

@@ -21,17 +21,61 @@ export class ScenarioPanelComponent {
   confirming = signal<string | null>(null);
 
   constructor() {
+    // Scenarios are EXPENSIVE: /hmi/scenarios runs the current policy
+    // as baseline + every alternative policy from the same env state,
+    // computing per-agent trajectories for each. Pulling on every WS
+    // state update (5×/sec during Play) makes the simulation unusably
+    // slow.
+    //
+    // Strategy: only refresh scenarios when something STRUCTURAL
+    // changes — the session itself, or 'playing' transitions
+    // false→true / true→false (start of play, pause/stop). State
+    // ticks during Play do NOT trigger a refresh.
+    //
+    // Trade-off: while Play is running, scenarios shown reflect the
+    // baseline at the moment Play started. They re-snap to current
+    // state when the user pauses. This matches the typical workflow:
+    // 'plan → play → inspect → adjust'.
+    let lastSessionId: string | null = null;
+    let lastPlaying = false;
     effect(() => {
-      const state = this.store.state();
       const sess = this.store.session();
-      if (sess && state) {
+      const playing = this.store.playing();
+      const sid = sess?.id ?? null;
+
+      // Clear when session goes away.
+      if (!sess) {
+        this.store.scenarios.set([]);
+        lastSessionId = null;
+        lastPlaying = false;
+        return;
+      }
+
+      const sessionChanged = sid !== lastSessionId;
+      const stoppedPlaying = lastPlaying && !playing;
+
+      // Pull scenarios on: new session, or when Play just stopped
+      // (= user paused → wants fresh forecast for current state).
+      if (sessionChanged || stoppedPlaying) {
         this.api.getScenarios(sess.id).subscribe({
           next: (scenarios) => this.store.scenarios.set(scenarios),
           error: () => {},
         });
-      } else {
-        this.store.scenarios.set([]);
       }
+
+      lastSessionId = sid;
+      lastPlaying = playing;
+    });
+  }
+
+  /** Manually refresh scenarios for the current state. Called by
+   *  external triggers (multi-step done, reset, override, …). */
+  refreshScenarios(): void {
+    const sess = this.store.session();
+    if (!sess) return;
+    this.api.getScenarios(sess.id).subscribe({
+      next: (scenarios) => this.store.scenarios.set(scenarios),
+      error: () => {},
     });
   }
 
