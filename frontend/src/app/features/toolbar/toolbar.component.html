@@ -77,7 +77,14 @@
   }
 
   @if (store.loading()) {
-    <sbb-loading-indicator-circle size="s"></sbb-loading-indicator-circle>
+    @let target = store.targetStep();
+    @let elapsed = store.state()?.elapsed_steps ?? 0;
+    @let stepsLeft = target !== null ? target - elapsed : 0;
+    @if (stepsLeft > 1) {
+      <span class="step-countdown" title="Steps remaining">{{ stepsLeft }}</span>
+    } @else {
+      <sbb-loading-indicator-circle size="s"></sbb-loading-indicator-circle>
+    }
   }
 
   @if (store.message(); as msg) {

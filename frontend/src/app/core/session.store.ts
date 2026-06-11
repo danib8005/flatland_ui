@@ -44,6 +44,11 @@ export class SessionStore {
     return ags.length > 0 ? ags[0].handle : null;
   });
   readonly loading = signal(false);
+  /** When a multi-step request is in flight, this holds the elapsed_steps
+   *  value the backend should reach. UI can derive 'steps left' as
+   *  (targetStep() - state().elapsed_steps). Reset to null on response. */
+  readonly targetStep = signal<number | null>(null);
+  private _pollHandle: ReturnType<typeof setInterval> | null = null;
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
 
@@ -212,16 +217,44 @@ export class SessionStore {
     }
     this.loading.set(true);
     this.error.set(null);
+    // Multi-step: remember the target so the toolbar can show 'N left'.
+    const currentElapsed = this.state()?.elapsed_steps ?? 0;
+    this.targetStep.set(currentElapsed + n_steps);
+    // While the backend is computing, poll getState every 500ms so the
+    // counter actually counts down. The /step request only resolves at
+    // the end of all n_steps, but elapsed_steps in getState is updated
+    // incrementally by the backend.
+    this._stopPolling();
+    if (n_steps > 1) {
+      this._pollHandle = setInterval(() => {
+        if (!this.loading()) { this._stopPolling(); return; }
+        this.api.getState(s.id).subscribe({
+          next: (st) => this.state.set(st),
+          error: () => { /* swallow — main step request will report */ },
+        });
+      }, 500);
+    }
     this.api.step(s.id, policy, n_steps).subscribe({
       next: (res) => {
         if (res.message) this.message.set(res.message);
+        this._stopPolling();
+        this.targetStep.set(null);
         this.refreshState();
       },
       error: (e) => {
         this.error.set(`Step failed: ${e.message}`);
+        this._stopPolling();
+        this.targetStep.set(null);
         this.loading.set(false);
       },
     });
+  }
+
+  private _stopPolling(): void {
+    if (this._pollHandle !== null) {
+      clearInterval(this._pollHandle);
+      this._pollHandle = null;
+    }
   }
 
   reset() {
