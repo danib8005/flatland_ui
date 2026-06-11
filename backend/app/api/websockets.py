@@ -9,6 +9,8 @@ Play / Pause:
    POST /session/{session_id}/pause
 """
 import asyncio
+import logging
+import time
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from typing import Optional
@@ -53,6 +55,14 @@ def _build_state_payload(session_id: str, env) -> dict:
     state = serialize_env(env, overrides=overrides)
     state["episode_done"] = _is_done(env)
     return {"type": "state", "session_id": session_id, "state": state}
+
+
+_perf_log = logging.getLogger("flatland.perf")
+_perf_log.setLevel(logging.INFO)
+if not _perf_log.handlers:
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(message)s"))
+    _perf_log.addHandler(_h)
 
 
 async def _play_loop(session_id: str):
@@ -101,9 +111,23 @@ async def _play_loop(session_id: str):
         try:
             handles = env.get_agent_handles()
             observations = session.last_observations or {}
+            # Split timing: policy.act_many vs env.step. With heavy policies
+            # (DeadLockAvoidance walker) act_many is the dominant cost.
+            t_pol0 = time.perf_counter()
             policy.start_step()
             actions = policy.act_many(handles, observations)
+            t_pol_ms = (time.perf_counter() - t_pol0) * 1000
+
+            # Pause-responsiveness: re-check state.running between heavy
+            # policy compute and env.step. If user pressed Pause while
+            # act_many was running, abort BEFORE we apply actions.
+            if not state.running:
+                policy.end_step()
+                break
+
+            t_env0 = time.perf_counter()
             next_obs, rewards, dones, info = env.step(actions)
+            t_env_ms = (time.perf_counter() - t_env0) * 1000
             policy.end_step()
             session.last_observations = next_obs
             session.last_info = info
@@ -116,7 +140,26 @@ async def _play_loop(session_id: str):
             })
             break
 
-        await ws_manager.broadcast(session_id, _build_state_payload(session_id, env))
+        # Skip serialize+broadcast if pause came in during env.step.
+        if not state.running:
+            break
+
+        t_ser0 = time.perf_counter()
+        payload = _build_state_payload(session_id, env)
+        t_ser_ms = (time.perf_counter() - t_ser0) * 1000
+
+        t_bcast0 = time.perf_counter()
+        await ws_manager.broadcast(session_id, payload)
+        t_bcast_ms = (time.perf_counter() - t_bcast0) * 1000
+
+        n_agents = len(handles)
+        elapsed = int(env._elapsed_steps)
+        policy_id = state.policy
+        _perf_log.info(
+            f"[PLAY] elapsed={elapsed} agents={n_agents} policy={policy_id} "
+            f"act_many={t_pol_ms:.1f}ms env_step={t_env_ms:.1f}ms "
+            f"serialize={t_ser_ms:.1f}ms broadcast={t_bcast_ms:.1f}ms"
+        )
 
         # Wait based on configured speed (steps per second)
         delay = 1.0 / max(state.speed, 0.1)
