@@ -35,9 +35,14 @@ export class SessionStore {
     const h = this.selectedHandle();
     return h == null ? new Set<number>() : new Set([h]);
   });
-  // 'Active' = explicitly selected agent only (no default).
+  // 'Active' = explicit selection; when Marey is visible, fall back to
+  // the first agent so the inspector can show a default context.
   readonly activeHandle = computed<number | null>(() => {
-    return this.selectedHandle();
+    const selected = this.selectedHandle();
+    if (selected != null) return selected;
+    if (!this.showMarey()) return null;
+    const ags = this.agents();
+    return ags.length > 0 ? ags[0].handle : null;
   });
   readonly loading = signal(false);
   /** When a multi-step request is in flight, this holds the elapsed_steps

@@ -21,15 +21,6 @@
 }
 .section-title:first-child { margin-top: 0; }
 
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
-}
-.info-row .label { color: var(--sbb-color-granite, #686868); font-size: 12px; }
-.info-row .value { color: var(--sbb-color-charcoal, #212121); font-size: 12px; font-weight: 600; }
-
 .progress-row {
   display: flex;
   justify-content: space-between;
@@ -192,16 +183,6 @@
 .action-btn.override:hover {
   background: #c00;
 }
-
-.dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 4px;
-}
-.dot.connected { background: #00973b; }
-.dot.disconnected { background: #686868; }
 
 .empty-state {
   display: flex;
