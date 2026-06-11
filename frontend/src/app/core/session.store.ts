@@ -167,6 +167,55 @@ export class SessionStore {
     if (!this.showMap() && !this.showMarey()) this.showMap.set(true);
   }
 
+  private _isAnyAgentMoving(st: SessionState | null): boolean {
+    if (!st || st.agents.length === 0) return false;
+    return st.agents.some((a) => a.state === 'MOVING');
+  }
+
+  private _autoAdvanceUntilFirstAgentReady(maxSteps: number = 300): void {
+    const s = this.session();
+    if (!s) return;
+    const policy = this.activePolicy() || this.defaultPolicy();
+    let stepped = 0;
+
+    const run = () => {
+      const st = this.state();
+      if (!st) {
+        this.loading.set(false);
+        return;
+      }
+      if (this._isAnyAgentMoving(st) || st.episode_done || stepped >= maxSteps) {
+        this.loading.set(false);
+        this.refreshForecasts();
+        return;
+      }
+
+      this.loading.set(true);
+      this.api.step(s.id, policy, 1).subscribe({
+        next: () => {
+          stepped += 1;
+          this.api.getState(s.id).subscribe({
+            next: (nextState) => {
+              this.state.set(nextState);
+              this._recordTrajectory(nextState);
+              run();
+            },
+            error: (e) => {
+              this.error.set(`State failed: ${e.message}`);
+              this.loading.set(false);
+            },
+          });
+        },
+        error: (e) => {
+          this.error.set(`Auto-step failed: ${e.message}`);
+          this.loading.set(false);
+        },
+      });
+    };
+
+    run();
+  }
+
   newSession(opts: { width?: number; height?: number; agents?: number; maxSteps?: number } = {}) {
     this.loading.set(true);
     this.error.set(null);
@@ -181,7 +230,7 @@ export class SessionStore {
       next: (s) => {
         this.session.set(s);
         this.ws.connect(s.id);
-        this.refreshState();
+        this.refreshState(true);
       },
       error: (e) => {
         this.error.set(`Create failed: ${e.message}`);
@@ -190,14 +239,18 @@ export class SessionStore {
     });
   }
 
-  refreshState() {
+  refreshState(autoAdvanceFirstAgent: boolean = false) {
     const s = this.session();
     if (!s) return;
     this.api.getState(s.id).subscribe({
       next: (st) => {
         this.state.set(st);
         this._recordTrajectory(st);
-        this.loading.set(false);
+        if (autoAdvanceFirstAgent) {
+          this._autoAdvanceUntilFirstAgentReady();
+        } else {
+          this.loading.set(false);
+        }
       },
       error: (e) => {
         this.error.set(`State failed: ${e.message}`);
@@ -269,7 +322,7 @@ export class SessionStore {
     this.playing.set(false);
     this._resetTrajectories();
     this.api.reset(s.id).subscribe({
-      next: () => this.refreshState(),
+      next: () => this.refreshState(true),
       error: (e) => {
         this.error.set(`Reset failed: ${e.message}`);
         this.loading.set(false);
