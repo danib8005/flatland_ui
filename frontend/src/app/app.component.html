@@ -65,8 +65,9 @@
       <h2 class="welcome-title">Flatland Dispatcher</h2>
       <p class="welcome-subtitle">A Human-AI Teaming Playground</p>
       <p class="welcome-desc">
-        Explore how a human dispatcher and agentic AI can co-operate<br>on the Flatland railway simulation.<br>
-        Erstelle eine neue Session um zu starten.
+        Explore how a human dispatcher<br>
+        and agentic AI can co-operate<br>
+        on the Flatland railway simulation.
       </p>
       <sbb-button size="l" (click)="onNewSession()">
         + New Session
@@ -99,6 +100,22 @@
                  [value]="newMaxSteps()"
                  (input)="newMaxSteps.set(+$any($event.target).value)">
         </label>
+      </div>
+
+      <div class="welcome-policies">
+        <span class="welcome-grid-label">Scenario Policies:</span>
+        <div class="welcome-policy-list">
+          @for (p of store.availablePolicies(); track p.id) {
+            <label class="welcome-policy-row" [title]="p.description">
+              <input
+                type="checkbox"
+                [checked]="isWelcomeScenarioPolicyEnabled(p.id)"
+                [disabled]="isWelcomeScenarioPolicyEnabled(p.id) && welcomeScenarioPolicyIds().length === 1"
+                (change)="toggleWelcomeScenarioPolicy(p.id, $any($event.target).checked)" />
+              <span>{{ p.label }}</span>
+            </label>
+          }
+        </div>
       </div>
     </div>
   </main>
