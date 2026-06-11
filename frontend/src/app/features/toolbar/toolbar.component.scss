@@ -250,3 +250,23 @@ sbb-transparent-button:hover {
   outline: 2px solid var(--sbb-color-blue, #2a73d9);
   outline-offset: 1px;
 }
+
+
+/* Multi-step countdown badge — shown in place of the loading spinner
+   while a /step request with n_steps>1 is in flight. Counts down via
+   the targetStep signal in the store, which is kept fresh by polling
+   getState every 500ms during loading. */
+.step-countdown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: #f0f0f0;
+  color: #333;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
