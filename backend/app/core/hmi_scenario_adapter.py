@@ -74,7 +74,7 @@ def _describe(
 
     # Worst signal first: deadlocks introduced
     if d_dl > 0:
-        return f"⚠ Would leave {d_dl} more train(s) in deadlock"
+        return f"⚠ {d_dl} more train(s) in deadlock"
 
     # Catastrophic loss of arrivals
     if n_done == 0 and d_done < 0:

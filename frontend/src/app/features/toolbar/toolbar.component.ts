@@ -1,6 +1,7 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, effect, inject, signal } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
 import { PolicyName } from '../../core/models';
+import { ApiService } from '../../core/api.service';
 
 @Component({
   selector: 'app-toolbar',
@@ -11,6 +12,7 @@ import { PolicyName } from '../../core/models';
 })
 export class ToolbarComponent {
   store = inject(SessionStore);
+  private api = inject(ApiService);
   newWidth = signal(50);
   newHeight = signal(20);
   newAgents = signal(3);
@@ -53,7 +55,19 @@ export class ToolbarComponent {
   onPolicyChange(event: Event) {
     const target = event.target as HTMLInputElement;
     if (target?.value) {
-      this.setPolicy(target.value as PolicyName);
+      const p = target.value as PolicyName;
+      this.setPolicy(p);
+
+      const sess = this.store.session();
+      if (!sess) return;
+      this.api.setPolicy(sess.id, p).subscribe({
+        next: () => {
+          this.store.setActivePolicy(p);
+          this.store.previewScenarioId.set(null);
+          this.store.refreshForecasts();
+        },
+        error: (e) => this.store.error.set(`Set policy failed: ${e.message}`),
+      });
     }
   }
 

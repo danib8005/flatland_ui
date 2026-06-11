@@ -7,13 +7,6 @@
     <div class="header-meta">
       <span class="grid_info-id">Grid: {{ store.state()?.width }} × {{ store.state()?.height }}</span>
       <span class="anzahl_Agents-id">Agents: {{ store.agents().length }}</span>
-      <span class="session-id">
-        Session: {{ store.session()?.id }}
-        <button class="btn-close" (click)="reset()" title="Close session">×</button>
-      </span>
-      <span class="connection-status" [class.connected]="store.wsConnected()">
-        <span class="dot"></span>
-      </span>
     </div>
   }
 
@@ -131,6 +124,11 @@
   </div>
   
   <div class="footer-right">
+    @if (store.session()) {
+      <span class="footer-session-id">
+        Session: {{ store.session()?.id }}
+      </span>
+    }
     <span class="ws-status" [class.connected]="store.wsConnected()" title="WebSocket connection">
       <span class="ws-dot"></span>
     </span>

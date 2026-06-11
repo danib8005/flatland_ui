@@ -8,13 +8,13 @@
       @for (s of store.scenarios(); track s.id) {
         <div class="scenario-card"
              [class.baseline]="s.isBaseline"
-             [class.recommended]="s.isRecommended"
+             [class.recommended]="s.isRecommended && !s.isBaseline"
              [class.avoid]="s.tag === 'avoid'" (mouseenter)="store.previewScenarioId.set(s.id)" (mouseleave)="store.previewScenarioId.set(null)">
 
           <!-- Header row -->
           <div class="card-header">
             <h4 class="title">{{ s.title }}</h4>
-            @if (s.isRecommended) {
+            @if (s.isRecommended && !s.isBaseline) {
               <span class="badge recommended">Recommended</span>
             } @else if (s.tag === 'avoid') {
               <span class="badge avoid">Avoid</span>
@@ -23,6 +23,7 @@
 
           <!-- Headline: the prominent plain-language summary -->
           <p class="headline"
+             [title]="s.description || ''"
              [class.good]="(s.description || '').startsWith('✓')"
              [class.warn]="(s.description || '').startsWith('⚠')"
              [class.bad]="(s.description || '').startsWith('✗')">

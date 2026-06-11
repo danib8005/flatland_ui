@@ -53,49 +53,6 @@
   color: var(--sbb-color-granite, #686868);
 }
 
-.session-id {
-  font-family: monospace;
-  background: var(--sbb-color-milk, #f6f6f6);
-  padding: 4px 8px;
-  border-radius: 2px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn-close {
-  background: none;
-  border: none;
-  font-size: 18px;
-  color: var(--sbb-color-granite, #686868);
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-  transition: color 0.15s;
-}
-
-.btn-close:hover {
-  color: var(--sbb-color-charcoal, #212121);
-}
-
-.connection-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.connection-status .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--sbb-color-granite, #686868);
-  transition: background 0.2s;
-}
-
-.connection-status.connected .dot {
-  background: #00973b;
-}
-
 .error {
   color: var(--sbb-color-red, #eb0000);
   font-weight: 600;
@@ -227,6 +184,7 @@
   margin-left: auto;
   display: inline-flex;
   align-items: center;
+  gap: 10px;
 }
 
 .ws-status {
@@ -243,6 +201,14 @@
 
 .ws-status.connected .ws-dot {
   background: #00973b;
+}
+
+.footer-session-id {
+  font-family: inherit;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  display: inline;
 }
 
 .loading {
