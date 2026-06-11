@@ -5,8 +5,17 @@ We answer by running each candidate policy from the current env state
 forward over a short horizon and reporting outcome KPIs.
 """
 from __future__ import annotations
+
+from dataclasses import dataclass
 import logging
 import time
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+from flatland.envs.rail_env import RailEnv
+
+from app.core.scenario_runner import BranchResult, TrajectoryBranchRunner
+from app.policies.base import Policy
+
 _perf_log = logging.getLogger("flatland.perf")
 _perf_log.setLevel(logging.INFO)
 if not _perf_log.handlers:
@@ -14,14 +23,6 @@ if not _perf_log.handlers:
     _h.setFormatter(logging.Formatter("%(message)s"))
     _perf_log.addHandler(_h)
 
-
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
-
-from flatland.envs.rail_env import RailEnv
-
-from app.core.scenario_runner import BranchResult, TrajectoryBranchRunner
-from app.policies.base import Policy
 
 
 PolicyFactory = Callable[[], Policy]
@@ -113,6 +114,10 @@ class ScenarioBuilder:
         except Exception:
             n_agents = 0
 
+        # Capture the base env state for history snapshot
+        base_elapsed = int(getattr(self._env, "_elapsed_steps", 0) or 0)
+        base_snapshot = self._capture_env_state(self._env, base_elapsed)
+
         baseline_runner = TrajectoryBranchRunner(self._env, self._baseline_factory)
         t0 = time.perf_counter()
         baseline_result = baseline_runner.run_branch(
@@ -123,6 +128,10 @@ class ScenarioBuilder:
             f"[SCN] policy={self._baseline_id} role=baseline "
             f"agents={n_agents} horizon={horizon} compute={t_ms:.1f}ms"
         )
+        
+        # Prepend history snapshot to forecast snapshots
+        baseline_result.snapshots = [base_snapshot] + (baseline_result.snapshots or [])
+        
         baseline_score = score_branch(baseline_result, self._weights)
         baseline = Scenario(
             name="baseline",
@@ -152,6 +161,10 @@ class ScenarioBuilder:
                     f"[SCN] policy={cand_id} role=candidate FAILED: {e!r}"
                 )
                 continue
+            
+            # Prepend history snapshot
+            result.snapshots = [base_snapshot] + (result.snapshots or [])
+            
             sc = score_branch(result, self._weights)
             candidates.append(Scenario(
                 name=cand_id,
@@ -163,3 +176,19 @@ class ScenarioBuilder:
 
         candidates.sort(key=lambda s: s.score, reverse=True)
         return [baseline] + candidates
+
+    @staticmethod
+    def _capture_env_state(env: RailEnv, step: int) -> dict:
+        """Capture current env state as a snapshot for history."""
+        agents_dict = {}
+        for h, agent in enumerate(env.agents):
+            if agent.position is None:
+                continue
+            agents_dict[str(h)] = {
+                "pos": (int(agent.position[0]), int(agent.position[1])),
+                "dir": int(agent.direction) if agent.direction is not None else 0,
+            }
+        return {
+            "step": int(step),
+            "agents": agents_dict,
+        }

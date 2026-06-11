@@ -13,10 +13,9 @@ import { AgentDTO, PolicyInfo, PolicyName, RailTile, SessionInfo, SessionState }
 export interface TrajectoryPoint {
   step: number;
   position: [number, number] | null;
+  direction: number | null;
   state: string;
 }
-
-const MAX_TRAJECTORY_POINTS = 500;
 
 @Injectable({ providedIn: 'root' })
 export class SessionStore {
@@ -140,12 +139,9 @@ export class SessionStore {
       const updated = [...list, {
         step: state.elapsed_steps,
         position: a.position,
+        direction: a.direction,
         state: a.state,
       }];
-      // Cap to prevent memory blowup
-      if (updated.length > MAX_TRAJECTORY_POINTS) {
-        updated.splice(0, updated.length - MAX_TRAJECTORY_POINTS);
-      }
       newMap.set(a.handle, updated);
       changed = true;
     }
@@ -229,7 +225,10 @@ export class SessionStore {
       this._pollHandle = setInterval(() => {
         if (!this.loading()) { this._stopPolling(); return; }
         this.api.getState(s.id).subscribe({
-          next: (st) => this.state.set(st),
+          next: (st) => {
+            this.state.set(st);
+            this._recordTrajectory(st);
+          },
           error: () => { /* swallow — main step request will report */ },
         });
       }, 500);
@@ -240,6 +239,7 @@ export class SessionStore {
         this._stopPolling();
         this.targetStep.set(null);
         this.refreshState();
+        this.refreshForecasts();
       },
       error: (e) => {
         this.error.set(`Step failed: ${e.message}`);
@@ -347,7 +347,10 @@ export class SessionStore {
     const s = this.session();
     if (!s) return;
     this.api.setOverride(s.id, handle, action as any).subscribe({
-      next: () => this.refreshState(),
+      next: () => {
+        this.refreshState();
+        this.refreshForecasts();
+      },
       error: (e: any) => this.error.set('Override failed: ' + e.message),
     });
   }
@@ -356,8 +359,24 @@ export class SessionStore {
     const s = this.session();
     if (!s) return;
     this.api.clearOverride(s.id, handle).subscribe({
-      next: () => this.refreshState(),
+      next: () => {
+        this.refreshState();
+        this.refreshForecasts();
+      },
       error: (e: any) => this.error.set('Clear override failed: ' + e.message),
+    });
+  }
+
+  refreshForecasts(): void {
+    const s = this.session();
+    if (!s) return;
+    this.api.getScenarios(s.id).subscribe({
+      next: (scenarios) => this.scenarios.set(scenarios),
+      error: () => {},
+    });
+    this.api.getRecommendations(s.id).subscribe({
+      next: (recs) => this.recommendations.set(recs),
+      error: () => {},
     });
   }
 

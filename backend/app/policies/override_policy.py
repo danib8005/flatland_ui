@@ -1,11 +1,18 @@
 """OverridePolicy: wraps any inner Policy and applies user overrides
-at SWITCH/MERGING cells.
+at decision points with sticky semantics per position.
 
-Adapted to the R1 hybrid Policy interface: forwards lifecycle hooks
-(reset/start_step/end_step) to the wrapped default policy, so
-stateful heuristics (e.g. DeadLockAvoidance) keep working.
+Semantics:
+- When agent reaches a SWITCH/MERGING cell AND has an override set:
+  Apply the override and remember the position
+- While agent stays at that position: keep applying override (sticky)
+- When agent moves away: auto-clear override and return to default policy
+
+This allows:
+- STOP override to hold agent at a switch indefinitely (sticky)
+- Once user clicks override again or agent is pushed away, resets
+- Multi-switch junctions work intuitively (override per decision point)
 """
-from typing import Optional
+from typing import Dict, Optional, Tuple
 
 from flatland.core.env_observation_builder import ObservationBuilder
 from flatland.envs.rail_env import RailEnv
@@ -17,17 +24,21 @@ from app.policies.base import Policy
 
 
 class OverridePolicy(Policy):
-    """Wraps any policy; user overrides win at SWITCH/MERGING cells."""
+    """Wraps any policy; user overrides apply at ONE decision point (sticky while there)."""
 
     def __init__(self, default: Policy, session_id: str):
         self._default = default
         self._session_id = session_id
         self._env: Optional[RailEnv] = None
+        # Track which agents have override active at which position
+        # handle -> (row, col) of the decision point where override is active
+        self._override_active_at: Dict[int, Tuple[int, int]] = {}
 
     # ── lifecycle: forward to wrapped policy ─────────────────────────
     def reset(self, env: RailEnv) -> None:
         self._env = env
         self._default.reset(env)
+        self._override_active_at.clear()
 
     def start_episode(self, train: bool = False) -> None:
         self._default.start_episode(train)
@@ -52,57 +63,83 @@ class OverridePolicy(Policy):
     def act_many(self, handles, observations, **kwargs):
         # 1) Ask default policy for baseline actions.
         actions = self._default.act_many(handles, observations, **kwargs)
-        # 2) Overlay user overrides where applicable. Overrides are
-        #    STICKY: once set, they apply at every decision point the
-        #    agent passes — including STOP, which holds the agent at
-        #    each switch indefinitely — until the user explicitly
-        #    clears them via DELETE /override (toggled by clicking
-        #    the same action pill again in the UI).
-        #
-        #    Rationale: a user instruction is a user instruction.
-        #    'Go left' means 'go left at every switch you reach' until
-        #    revoked, the same way 'STOP' means 'hold at every switch'
-        #    until revoked. Earlier this code consumed the override on
-        #    the first SWITCH/MERGING cell, which made STOP impossible
-        #    (agent paused for one tick then continued) and routing
-        #    overrides surprising at multi-switch junctions.
+        
+        # 2) Apply/maintain overrides at decision points
         env = self._env
         if env is None:
             return actions
+        
         for h in handles:
+            agent = env.agents[h]
+            if agent.position is None:
+                # Agent is off-map (WAITING / DONE).
+                continue
+            
+            current_pos = (int(agent.position[0]), int(agent.position[1]))
+            
+            # Case 1: Override was active at a position, check if agent left
+            if h in self._override_active_at:
+                active_pos = self._override_active_at[h]
+                if current_pos != active_pos:
+                    # Agent has moved away from the decision point → auto-clear
+                    override_manager.clear(self._session_id, h)
+                    del self._override_active_at[h]
+                    continue  # Use default policy action
+                # Still at same position → stay sticky, apply override
+                override = override_manager.get(self._session_id, h)
+                if override is not None:
+                    actions[h] = RailEnvActions(int(override))
+                continue
+            
+            # Case 2: Agent not currently at override position, check if reaching decision
             override = override_manager.get(self._session_id, h)
             if override is None:
                 continue
-            agent = env.agents[h]
-            if agent.position is None:
-                # Agent is off-map (WAITING / DONE). The override stays
-                # parked and will apply once the agent enters the map
-                # and reaches its first decision cell.
-                continue
+            
             cell_kind = classify_cell(env, agent.position, agent.direction)
             if cell_kind in ("SWITCH", "MERGING"):
-                # Apply the override; do NOT clear — sticky semantics.
+                # Found a decision cell with override set → activate it
                 actions[h] = RailEnvActions(int(override))
+                self._override_active_at[h] = current_pos  # Mark as active here
+        
         return actions
 
     def act_for_handle(self, handle, observation=None, eps=0.0):
-        # Single-agent path — used rarely, mainly for tests/tools.
-        # Mirrors act_many: apply override at decision cells, then
-        # auto-clear so it's a one-shot directive.
+        # Single-agent path — mirrors act_many logic
         action = self._default.act_for_handle(handle, observation, eps)
         env = self._env
         if env is None:
             return action
-        override = override_manager.get(self._session_id, handle)
-        if override is None:
-            return action
+        
         agent = env.agents[handle]
         if agent.position is None:
             return action
+        
+        current_pos = (int(agent.position[0]), int(agent.position[1]))
+        
+        # Check if override is active at current position (sticky)
+        if handle in self._override_active_at:
+            active_pos = self._override_active_at[handle]
+            if current_pos != active_pos:
+                override_manager.clear(self._session_id, handle)
+                del self._override_active_at[handle]
+                return action
+            # Still at same position → apply override
+            override = override_manager.get(self._session_id, handle)
+            if override is not None:
+                return RailEnvActions(int(override))
+            return action
+        
+        # Check for override at new decision point
+        override = override_manager.get(self._session_id, handle)
+        if override is None:
+            return action
+        
         cell_kind = classify_cell(env, agent.position, agent.direction)
         if cell_kind in ("SWITCH", "MERGING"):
-            # Sticky override: do NOT clear — see act_many for rationale.
+            self._override_active_at[handle] = current_pos
             return RailEnvActions(int(override))
+        
         return action
 
     def get_name(self) -> str:

@@ -1,6 +1,6 @@
 """Tiny per-session cache for scenario computation.
 
-Two shapes per (session, step) key:
+Two shapes per (session, cache_key) pair:
   * 'scenarios'   — List[Scenario] objects (used by /hmi/recommendations,
                     which needs the full Scenario incl. result + score).
   * 'options'     — List[ScenarioOption] (serialized DTOs, returned by
@@ -8,43 +8,46 @@ Two shapes per (session, step) key:
 
 Both are computed from the same ScenarioBuilder run, so storing both
 lets us serve recommendations and scenarios from one compute.
+
+Cache key format: "{step}:{override_hash}"
+  - step: elapsed_steps * 1000 + horizon
+  - override_hash: MD5 of sorted override items (first 8 chars)
+This ensures cache is invalidated when overrides change.
 """
 from typing import Any, Dict, List, Optional, Tuple
 
 
 class ScenarioCache:
     def __init__(self):
-        # (session_id, elapsed_step) -> {"scenarios": [...], "options": [...]}
-        self._cache: Dict[Tuple[str, int], Dict[str, List[Any]]] = {}
+        # (session_id, cache_key_str) -> {"scenarios": [...], "options": [...]}
+        self._cache: Dict[Tuple[str, str], Dict[str, List[Any]]] = {}
 
     # --- options (serialized DTOs for /hmi/scenarios) ---
 
-    def get(self, session_id: str, step: int) -> Optional[List[Any]]:
-        """Backwards-compatible getter: returns the 'options' list."""
-        entry = self._cache.get((session_id, step))
+    def get(self, session_id: str, cache_key: str) -> Optional[List[Any]]:
+        """Get cached options by session and cache key (step:override_hash)."""
+        entry = self._cache.get((session_id, cache_key))
         return entry["options"] if entry else None
 
-    def put(self, session_id: str, step: int, options: List[Any]) -> None:
-        """Backwards-compatible setter: stores only options.
+    def put(self, session_id: str, cache_key: str, options: List[Any]) -> None:
+        """Store options under session and cache key.
 
-        Existing callers that don't know about scenarios still work,
-        but recommendations won't benefit from the cache for those
-        entries. New paths should prefer put_full().
+        Backwards-compatible: drops old entries for this session first.
         """
         self._drop_session(session_id)
-        self._cache[(session_id, step)] = {"options": options, "scenarios": None}
+        self._cache[(session_id, cache_key)] = {"options": options, "scenarios": None}
 
     # --- full (Scenario objects + options) ---
 
-    def get_scenarios(self, session_id: str, step: int) -> Optional[List[Any]]:
-        entry = self._cache.get((session_id, step))
+    def get_scenarios(self, session_id: str, cache_key: str) -> Optional[List[Any]]:
+        entry = self._cache.get((session_id, cache_key))
         return entry["scenarios"] if entry else None
 
-    def put_full(self, session_id: str, step: int,
+    def put_full(self, session_id: str, cache_key: str,
                  scenarios: List[Any], options: List[Any]) -> None:
         """Store both shapes from a single ScenarioBuilder compute."""
         self._drop_session(session_id)
-        self._cache[(session_id, step)] = {
+        self._cache[(session_id, cache_key)] = {
             "scenarios": scenarios,
             "options": options,
         }
