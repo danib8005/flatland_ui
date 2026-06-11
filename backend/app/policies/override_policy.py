@@ -52,12 +52,20 @@ class OverridePolicy(Policy):
     def act_many(self, handles, observations, **kwargs):
         # 1) Ask default policy for baseline actions.
         actions = self._default.act_many(handles, observations, **kwargs)
-        # 2) Overlay user overrides where applicable, and auto-clear
-        #    them once the agent reaches its decision point. The
-        #    override is a *one-shot* directive: it represents the
-        #    user's choice for the agent's NEXT decision point.
-        #    Once that decision is made, the default policy takes
-        #    over again on subsequent steps.
+        # 2) Overlay user overrides where applicable. Overrides are
+        #    STICKY: once set, they apply at every decision point the
+        #    agent passes — including STOP, which holds the agent at
+        #    each switch indefinitely — until the user explicitly
+        #    clears them via DELETE /override (toggled by clicking
+        #    the same action pill again in the UI).
+        #
+        #    Rationale: a user instruction is a user instruction.
+        #    'Go left' means 'go left at every switch you reach' until
+        #    revoked, the same way 'STOP' means 'hold at every switch'
+        #    until revoked. Earlier this code consumed the override on
+        #    the first SWITCH/MERGING cell, which made STOP impossible
+        #    (agent paused for one tick then continued) and routing
+        #    overrides surprising at multi-switch junctions.
         env = self._env
         if env is None:
             return actions
@@ -67,18 +75,14 @@ class OverridePolicy(Policy):
                 continue
             agent = env.agents[h]
             if agent.position is None:
-                # Agent is off-map (WAITING / DONE) — keep the override
-                # parked; it will be applied when the agent reaches
-                # its first SWITCH/MERGING cell.
+                # Agent is off-map (WAITING / DONE). The override stays
+                # parked and will apply once the agent enters the map
+                # and reaches its first decision cell.
                 continue
             cell_kind = classify_cell(env, agent.position, agent.direction)
             if cell_kind in ("SWITCH", "MERGING"):
-                # Apply the override AND consume it.
+                # Apply the override; do NOT clear — sticky semantics.
                 actions[h] = RailEnvActions(int(override))
-                override_manager.clear(self._session_id, h)
-            # If the agent is at a non-decision cell, the override
-            # is parked: we keep it until the agent reaches a
-            # decision point. (The user clicked early; that's OK.)
         return actions
 
     def act_for_handle(self, handle, observation=None, eps=0.0):
@@ -97,7 +101,7 @@ class OverridePolicy(Policy):
             return action
         cell_kind = classify_cell(env, agent.position, agent.direction)
         if cell_kind in ("SWITCH", "MERGING"):
-            override_manager.clear(self._session_id, handle)
+            # Sticky override: do NOT clear — see act_many for rationale.
             return RailEnvActions(int(override))
         return action
 
