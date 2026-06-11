@@ -40,6 +40,61 @@
         }
       </div>
         </div>
+        @let glyph = decisionGlyph();
+        @if (glyph) {
+          <svg class="marey-topology-glyph"
+               [attr.viewBox]="'0 0 ' + W + ' ' + GLYPH_PX"
+               preserveAspectRatio="none"
+               [style.height.px]="GLYPH_PX">
+            <path class="decision-path"
+                  [attr.d]="glyph.pathD"
+                  [attr.stroke]="glyph.color"
+                  stroke-width="4"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-dasharray="6 6"
+                  opacity="0.85" />
+            @if (glyph.cellKind === 'switch') {
+              <circle class="decision-marker switch"
+                      [attr.cx]="glyph.decisionCx"
+                      [attr.cy]="TOPOLOGY_PX / 2"
+                      r="12"
+                      fill="none"
+                      [attr.stroke]="glyph.color"
+                      stroke-width="2.5"
+                      opacity="0.9" />
+            } @else {
+              <circle class="decision-marker merge"
+                      [attr.cx]="glyph.decisionCx"
+                      [attr.cy]="TOPOLOGY_PX / 2"
+                      r="12"
+                      fill="none"
+                      [attr.stroke]="glyph.color"
+                      stroke-width="2.5"
+                      opacity="0.9" />
+            }
+            <g class="decision-pills" opacity="0.95">
+              @for (opt of glyph.options; track opt.action; let i = $index) {
+                <g class="pill"
+                   [class.override]="opt.isOverride"
+                   [class.recommended]="opt.isRecommended"
+                   (click)="onMareyPillClick(glyph.handle, opt.action, opt.isOverride)">
+                  <rect class="pill-bg"
+                        [attr.x]="glyph.pillsX"
+                        [attr.y]="glyph.pillsY + i * 16"
+                        width="62" height="14" rx="8" ry="8"
+                        stroke-width="1.5" />
+                  <text class="pill-text"
+                        [attr.x]="glyph.pillsX + 31"
+                        [attr.y]="glyph.pillsY + i * 16 + 10"
+                        text-anchor="middle"
+                        font-size="9">{{ opt.label }}</text>
+                </g>
+              }
+            </g>
+          </svg>
+        }
       </div><!-- /cell-topology -->
 
       <!-- Cell 2×1: Time-axis + Y-slider placeholder -->

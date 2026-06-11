@@ -4,8 +4,39 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SessionStore } from '../../core/session.store';
-import { RailTile } from '../../core/models';
+import { RailTile, NextDecision, DecisionOption, AgentDTO } from '../../core/models';
 import { AgentColorService } from '../../core/agent-color.service';
+
+interface DecisionPill {
+  /** Action int (0..4) — matches RailEnvActions / AgentDTO.override_action. */
+  action: number;
+  /** Label shown on the pill, e.g. "← Left". */
+  label: string;
+  /** True if the user already set this action as override. */
+  isOverride: boolean;
+  /** True if the active baseline policy would play this action at the
+   *  next decision point — used to render the pill bold. */
+  isRecommended: boolean;
+}
+
+interface DecisionGlyph {
+  handle: number;
+  color: string;
+  /** SVG path 'M x y L x y L ...' along the cells from the agent's
+   *  current position to the next decision cell, drawn at the current
+   *  time-row in the Marey. */
+  pathD: string;
+  /** Centre of the decision marker (the 'o' at the end of the glyph). */
+  decisionCx: number;
+  decisionCy: number;
+  /** Origin for the pill stack. */
+  pillsX: number;
+  pillsY: number;
+  /** Pills shown next to the decision marker. */
+  options: DecisionPill[];
+  /** SWITCH or MERGING — controls marker style. */
+  cellKind: 'switch' | 'merge';
+}
 
 interface AgentLine {
   handle: number;
@@ -46,6 +77,19 @@ interface AgentLabel {
 export class MareyChartComponent implements AfterViewInit {
   private readonly store = inject(SessionStore);
   private readonly colors = inject(AgentColorService);
+  // ── decision-pill click (mirrors left-sidebar.onActionClick) ────
+  // First click sets the override; second click on the same action
+  // clears it. The store handles the API round-trip + state refresh,
+  // and the sticky-override semantics in OverridePolicy mean the
+  // action keeps applying at every decision point until cleared.
+  onMareyPillClick(handle: number, action: number, isOverride: boolean): void {
+    if (isOverride) {
+      this.store.clearOverride(handle);
+    } else {
+      this.store.setOverride(handle, action);
+    }
+  }
+
   private readonly svgRef = viewChild<ElementRef<SVGSVGElement>>('svgEl');
   private svgEl: SVGSVGElement | null = null;
 
@@ -112,7 +156,8 @@ export class MareyChartComponent implements AfterViewInit {
   readonly yRange = signal<{ start: number; end: number }>({ start: 0, end: 0 });
 
   /** Topology header height in CSS pixels (matches HTML overlay). */
-  readonly TOPOLOGY_PX = 48;
+  readonly TOPOLOGY_PX = 48; readonly GLYPH_PX = 64;
+
 
   /** CSS transform for the HTML topology track, driven by xRange.
    *  The flex track is N tiles wide at 100%. To show only [start, end]:
@@ -406,6 +451,127 @@ export class MareyChartComponent implements AfterViewInit {
     return all.slice(r.start, end);
   });
 
+  // ── decision glyph (active agent only) ──────────────────────────
+  // Mirrors the path-to-next-decision visual from flatland-map:
+  // a polyline of arrows from the agent's current cell to its next
+  // SWITCH/MERGING cell, with action pills at the end. The bold pill
+  // is the action the active baseline policy would play, derived from
+  // the forecast trajectory's direction change at the decision cell.
+  readonly decisionGlyph = computed<DecisionGlyph | null>(() => {
+    if (!this.store.layerVisibility().nextDecisions) return null;
+
+    const handle = this.activeHandle();
+    if (handle == null) return null;
+
+    const agents = this.store.agents();
+    const agent: AgentDTO | undefined = agents.find(a => a.handle === handle);
+    if (!agent || !agent.next_decision || !agent.position) return null;
+    if (this.axesSwapped()) return null;  // glyph layout assumes X=cells, Y=time
+
+    const nd: NextDecision = agent.next_decision;
+    const cells = this.pathCells();
+    if (cells.length === 0) return null;
+
+    // Map next_decision.path cells (each "[r,c]") onto pathCells indices.
+    // pathCells holds the active agent's full forecast trail, so the
+    // first few cells of nd.path should already be in there in order.
+    // We accept any monotone non-decreasing index sequence; if a cell
+    // isn't found we bail (defensive: forecast/state mismatch can happen
+    // during a state-update race).
+    const cellKey = (rc: [number, number]) => `${rc[0]},${rc[1]}`;
+    let lastIdx = -1;
+    const pathIdx: number[] = [];
+    for (const rc of nd.path) {
+      const key = cellKey(rc);
+      const idx = cells.indexOf(key, Math.max(0, lastIdx));
+      if (idx < 0) return null;
+      pathIdx.push(idx);
+      lastIdx = idx;
+    }
+    const decisionIdx = cells.indexOf(cellKey(nd.decision_position), lastIdx);
+    if (decisionIdx < 0) return null;
+
+    // Build SVG path along the topology row, NOT the Marey body.
+    // The overlay is rendered absolutely over cell-topology [2].
+    const y = this.TOPOLOGY_PX / 2;
+    const pts = pathIdx.map(i => ({ x: this.pathCoord(i), y }));
+    pts.push({ x: this.pathCoord(decisionIdx), y });
+    const pathD = pts.map((p, i) =>
+      (i === 0 ? 'M' : 'L') + ` ${p.x} ${p.y}`
+    ).join(' ');
+
+    // Pill anchor: just below+right of the agent's tile, exactly
+    // the way flatland-map positions it. The overlay sits OVER
+    // cell-topology [2], so agent_y is the tile-row centre.
+    const decisionCx = this.pathCoord(decisionIdx);
+    const decisionCy = y;
+    const agentX = pts[0].x;
+    const agentY = y;
+    const pillsX = agentX + 12;
+    const pillsY = agentY + 8;
+
+    // Recommended action: derive from the baseline forecast trajectory.
+    // Find the first forecast step where the agent sits ON the decision
+    // cell, then look at the NEXT step's direction. The change in
+    // direction (mod 4) tells us LEFT / FORWARD / RIGHT.
+    //   delta 0  → FORWARD (action 2)
+    //   delta +1 → RIGHT   (action 3)   [E→S, S→W, W→N, N→E]
+    //   delta -1 → LEFT    (action 1)
+    //   no movement (same cell next step) → STOP (action 4)
+    const recommendedAction = this._recommendedActionAt(handle, nd.decision_position);
+
+    const cellKind: 'switch' | 'merge' =
+      nd.cell_type === 'SWITCH' ? 'switch' : 'merge';
+
+    const options: DecisionPill[] = nd.options.map((opt: DecisionOption) => ({
+      action: opt.action,
+      label: opt.label,
+      isOverride: agent.override_action === opt.action,
+      isRecommended: recommendedAction != null && opt.action === recommendedAction,
+    }));
+
+    return {
+      handle,
+      color: this.colors.getColor(handle),
+      pathD,
+      decisionCx,
+      decisionCy,
+      pillsX,
+      pillsY,
+      options,
+      cellKind,
+    };
+  });
+
+  /** Walk the active baseline forecast for `handle`; return the action
+   *  the policy would play AT `decisionPos` (the next decision cell).
+   *  Returns null when the forecast doesn't reach that cell or any
+   *  required snapshot is missing. */
+  private _recommendedActionAt(handle: number, decisionPos: [number, number]): number | null {
+    const sc = this.forecastScenario();
+    if (!sc?.trajectories) return null;
+    const traj = sc.trajectories[String(handle)];
+    if (!traj || traj.length < 2) return null;
+
+    // Find first index where (row,col) == decisionPos.
+    const i = traj.findIndex(p => p.row === decisionPos[0] && p.col === decisionPos[1]);
+    if (i < 0) return null;
+
+    // Stopping detection: agent is on the decision cell for >=2 steps.
+    const next = traj[i + 1];
+    if (!next) return null;
+    if (next.row === decisionPos[0] && next.col === decisionPos[1] && next.dir === traj[i].dir) {
+      return 4; // STOP
+    }
+
+    // Direction-change → LEFT/FORWARD/RIGHT.
+    const delta = ((next.dir - traj[i].dir) + 4) % 4;
+    if (delta === 0) return 2; // FORWARD
+    if (delta === 1) return 3; // RIGHT
+    if (delta === 3) return 1; // LEFT
+    return null;
+  }
+
   readonly agentLines = computed<AgentLine[]>(() => {
     const sc = this.forecastScenario();
     const active = this.activeHandle();
@@ -552,9 +718,20 @@ export class MareyChartComponent implements AfterViewInit {
    *  get clipped by the SVG. Topology + chart use the same range so
    *  they stay structurally in sync. */
   pathCoord(i: number): number {
+    // Map a path-cell INDEX to the pixel coord at the CELL CENTRE.
+    //
+    // The visible window covers cells [start..end] inclusive, i.e.
+    // (end - start + 1) cells laid out edge-to-edge in flex. Cell k's
+    // centre therefore sits at fraction (k - start + 0.5) / count of
+    // the inner pixel range. Earlier this returned an endpoint scale
+    // (0 → left edge, end-start → right edge), which made cell 0
+    // render at x=0 instead of x=tileSize/2. Visible result: the
+    // decision-glyph + agent-line started at the LEFT EDGE of the
+    // first tile instead of going through its centre, off-by-half
+    // a tile across the whole topology row.
     const r = this.xRange();
-    const span = Math.max(1, r.end - r.start);
-    const t = (i - r.start) / span;
+    const count = Math.max(1, r.end - r.start + 1);
+    const t = (i - r.start + 0.5) / count;
     if (this.axesSwapped()) {
       const inner = this.H - this.PAD.top - this.PAD.bottom;
       return this.PAD.top + t * inner;
