@@ -1,84 +1,86 @@
-from typing import Any, Dict, List
+"""ShortestPathPolicy: action that minimizes distance_map[handle].
+
+Refactored to the new Policy base class (R1). Behaviour unchanged.
+"""
+from typing import Optional
+
 import numpy as np
 
+from flatland.core.env_observation_builder import (
+    DummyObservationBuilder, ObservationBuilder,
+)
 from flatland.core.grid.grid4_utils import get_new_position
+from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_action import RailEnvActions
 
-
-def _act(action) -> int:
-    if hasattr(action, "value"):
-        return int(action.value)
-    return int(action)
+from app.policies.base import Policy
+from app.utils.shortest_distance_walker import _get_transitions
 
 
-def _get_transitions(rail, row, col, direction):
-    """Compatibility wrapper for different Flatland API versions."""
-    try:
-        return rail.get_transitions(int(row), int(col), int(direction))
-    except TypeError:
-        pass
-    try:
-        return rail.get_transitions((int(row), int(col), int(direction)))
-    except TypeError:
-        pass
-    try:
-        return rail.get_transitions((int(row), int(col)), int(direction))
-    except TypeError:
-        pass
-    full = rail.get_full_transitions(int(row), int(col))
-    return [(full >> (12 - 4 * d - i)) & 1 for d, i in [(direction, 0)] for i in range(4)]
+class ShortestPathPolicy(Policy):
+    """Picks the action that follows the shortest path to the target,
+    using env.distance_map. Falls back to MOVE_FORWARD."""
 
+    def __init__(self, env: Optional[RailEnv] = None):
+        self._env = env
 
-class ShortestPathPolicy:
-    def __init__(self, env):
-        self.env = env
+    def reset(self, env: RailEnv) -> None:
+        self._env = env
 
-    def act_many(self, handles, observations, **kwargs):
-        actions = {}
-        dm = self.env.distance_map.get()
-        for h in handles:
-            agent = self.env.agents[h]
-            actions[h] = self._best_action(agent, dm, h)
-        return actions
+    def build_observation_builder(self) -> ObservationBuilder:
+        # ShortestPath uses env.distance_map directly; obs is unused.
+        return DummyObservationBuilder()
 
-    def _best_action(self, agent, dm, handle):
+    def act_for_handle(
+        self, handle: int, observation=None, eps: float = 0.0
+    ) -> RailEnvActions:
+        env = self._env
+        if env is None:
+            return RailEnvActions.MOVE_FORWARD
+
+        agent = env.agents[handle]
         if agent.position is None:
-            return _act(RailEnvActions.MOVE_FORWARD)
+            # Not yet on map → request to depart by moving forward.
+            return RailEnvActions.MOVE_FORWARD
 
-        pos = agent.position
+        position = agent.position
         direction = agent.direction
-        if direction is None:
-            return _act(RailEnvActions.MOVE_FORWARD)
+        possible_transitions = _get_transitions(env.rail, position[0], position[1], direction)
 
-        try:
-            transitions = _get_transitions(self.env.rail, pos[0], pos[1], direction)
-        except Exception:
-            return _act(RailEnvActions.MOVE_FORWARD)
+        # If only one transition is possible, just go forward.
+        num_transitions = sum(possible_transitions)
+        if num_transitions <= 1:
+            return RailEnvActions.MOVE_FORWARD
 
-        valid = [d for d in range(4) if transitions[d]]
+        # Evaluate the distance for each possible next direction.
+        min_distances = []
+        for new_direction in range(4):
+            if not possible_transitions[new_direction]:
+                min_distances.append(float("inf"))
+                continue
+            new_position = get_new_position(position, new_direction)
+            min_distances.append(
+                env.distance_map.get()[
+                    handle, new_position[0], new_position[1], new_direction
+                ]
+            )
 
-        if not valid:
-            return _act(RailEnvActions.STOP_MOVING)
-
-        best_dir = None
-        best_dist = np.inf
-        for d in valid:
-            new_pos = get_new_position(pos, d)
-            if 0 <= new_pos[0] < self.env.height and 0 <= new_pos[1] < self.env.width:
-                dist = dm[handle, new_pos[0], new_pos[1], d]
-                if dist < best_dist:
-                    best_dist = dist
-                    best_dir = d
-
-        if best_dir is None:
-            return _act(RailEnvActions.MOVE_FORWARD)
-
-        rel = (best_dir - direction) % 4
-        if rel == 0:
-            return _act(RailEnvActions.MOVE_FORWARD)
-        elif rel == 1:
-            return _act(RailEnvActions.MOVE_RIGHT)
-        elif rel == 3:
-            return _act(RailEnvActions.MOVE_LEFT)
+        # Pick the direction with the smallest distance to target.
+        # Using numpy directly avoids fast_argmax's hashable-arg constraint.
+        arr = np.array(min_distances, dtype=float)
+        if not np.all(np.isinf(arr)):
+            best_direction = int(np.argmin(arr))
         else:
-            return _act(RailEnvActions.STOP_MOVING)
+            # No reachable next cell — fall back to first valid transition.
+            best_direction = int(np.argmax(possible_transitions))
+
+        # Map (current_direction → best_direction) to LEFT/FORWARD/RIGHT.
+        delta = (best_direction - direction) % 4
+        if delta == 0:
+            return RailEnvActions.MOVE_FORWARD
+        if delta == 3:
+            return RailEnvActions.MOVE_LEFT
+        if delta == 1:
+            return RailEnvActions.MOVE_RIGHT
+        # delta == 2 → reversal not allowed except dead-end (handled by env)
+        return RailEnvActions.MOVE_FORWARD

@@ -19,6 +19,11 @@ from app.core.ws_manager import ws_manager
 from app.core.play_manager import play_manager, PlayState
 from app.policies.random_policy import RandomPolicy
 from app.policies.shortest_path_policy import ShortestPathPolicy
+from app.policies.override_policy import OverridePolicy
+from app.policies.forward_only_policy import ForwardOnlyPolicy
+from app.policies.deadlock_avoidance_policy import DeadLockAvoidancePolicy
+from app.policies.do_nothing_policy import DoNothingPolicy
+from app.core.override_manager import override_manager
 
 router = APIRouter()
 
@@ -41,7 +46,11 @@ def _is_done(env) -> bool:
 
 
 def _build_state_payload(session_id: str, env) -> dict:
-    state = serialize_env(env)
+    """Build the state payload broadcast over WebSocket.
+    Includes the current overrides so the frontend keeps showing the
+    selected action pills while play is running."""
+    overrides = override_manager.get_all(session_id)
+    state = serialize_env(env, overrides=overrides)
     state["episode_done"] = _is_done(env)
     return {"type": "state", "session_id": session_id, "state": state}
 
@@ -56,14 +65,29 @@ async def _play_loop(session_id: str):
 
     env = session.env
 
+    # Build default policy. Mirrors api/sessions.py:_build_policy.
     if state.policy == "random":
         try:
             action_size = int(env.action_space[0])
         except Exception:
             action_size = 5
-        policy = RandomPolicy(action_size=action_size)
+        default_policy = RandomPolicy(action_size=action_size)
+    elif state.policy == "shortest_path":
+        default_policy = ShortestPathPolicy(env)
+    elif state.policy == "do_nothing":
+        default_policy = DoNothingPolicy()
+    elif state.policy == "forward_only":
+        default_policy = ForwardOnlyPolicy()
+    elif state.policy == "deadlock_avoidance":
+        default_policy = DeadLockAvoidancePolicy()
     else:
-        policy = ShortestPathPolicy(env)
+        # Unknown policy → fall back to deadlock_avoidance (safest default).
+        default_policy = DeadLockAvoidancePolicy()
+
+    # Hybrid Policy lifecycle: reset both inner and wrapper.
+    default_policy.reset(env)
+    policy = OverridePolicy(default_policy, session_id)
+    policy.reset(env)
 
     while state.running:
         if _is_done(env):
@@ -77,8 +101,10 @@ async def _play_loop(session_id: str):
         try:
             handles = env.get_agent_handles()
             observations = session.last_observations or {}
+            policy.start_step()
             actions = policy.act_many(handles, observations)
             next_obs, rewards, dones, info = env.step(actions)
+            policy.end_step()
             session.last_observations = next_obs
             session.last_info = info
         except Exception as e:

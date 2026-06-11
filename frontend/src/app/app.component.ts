@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, inject, signal } from '@angular/core';
+import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject, signal } from '@angular/core';
 import { ToolbarComponent } from './features/toolbar/toolbar.component';
 import { AgentInspectorComponent } from './features/agent-inspector/agent-inspector.component';
 import { LeftSidebarComponent } from './features/left-sidebar/left-sidebar.component';
@@ -32,18 +32,24 @@ import { SessionStore } from './core/session.store';
   styleUrl: './app.component.scss',
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   store = inject(SessionStore);
 
   newWidth = signal(50);
   newHeight = signal(20);
   newAgents = signal(3);
+  newMaxSteps = signal(1000);
 
   onNewSession() {
     this.store.newSession({
       width: this.newWidth(),
       height: this.newHeight(),
       agents: this.newAgents(),
+      maxSteps: this.newMaxSteps(),
     });
+  }
+
+  ngOnInit(): void {
+    this.store.loadPolicies();
   }
 }

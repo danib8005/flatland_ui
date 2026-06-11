@@ -1,22 +1,33 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
+import { AgentColorService } from '../../core/agent-color.service';
 import { AgentDTO, DecisionCell, RailTile, DecisionOption, NextDecision } from '../../core/models';
 
-const AGENT_COLORS = [
-  '#eb0000', '#0079c7', '#00973b', '#ffaa00', '#9c4ddc',
-  '#b3489e', '#0aafa5', '#5a4f3f', '#a3641c', '#3f4d8c',
-];
+
+interface DirectionalMarker {
+  id: string;
+  kind: 'signal' | 'switch';
+  x: number;
+  y: number;
+  rotation: number;
+  d: number;
+  // Cell centre (start point of the spoke from centre to this marker)
+  cx: number;
+  cy: number;
+}
 
 interface DecisionLayer {
   handle: number;
   color: string;
+  // 'switch' or 'merge' from agent.next_decision.cell_type,
+  // used to render the right destination symbol on the map.
+  cellKind: 'switch' | 'merge';
   pathD: string;
   decisionCx: number;
   decisionCy: number;
   pillsX: number;
   pillsY: number;
   options: PillData[];
-  cellType: 'SWITCH' | 'MERGING';
 }
 
 interface PillData {
@@ -41,10 +52,23 @@ interface BoundingBox {
 })
 export class FlatlandMapComponent {
   store = inject(SessionStore);
+  private agentColors = inject(AgentColorService);
 
   newWidth = signal(50);
   newHeight = signal(20);
   newAgents = signal(3);
+
+  // Rail tiles transparency (0..1). User-controllable so the operator
+  // can dim or strengthen the track layout against agent overlays.
+  railOpacity = signal(0.25);
+
+  // Zoom factor. 1 = neutral; <1 zooms in, >1 zooms out (because we
+  // scale the viewBox dimensions, not the SVG element).
+  zoom = signal(1);
+
+  // Display helpers (avoid the | number pipe so we do not need CommonModule).
+  zoomPercent = computed(() => Math.round((1 / this.zoom()) * 100));
+  opacityPercent = computed(() => Math.round(this.railOpacity() * 100));
 
   onNewSession() {
     this.store.newSession({
@@ -83,7 +107,7 @@ export class FlatlandMapComponent {
 
   readonly bbox = computed<BoundingBox>(() => {
     const tiles = this.store.railTiles();
-    const agents = this.store.agents();
+    const agents = this.agents();
 
     let minR = Infinity, maxR = -Infinity;
     let minC = Infinity, maxC = -Infinity;
@@ -128,19 +152,201 @@ export class FlatlandMapComponent {
     const b = this.bbox();
     const x = b.minC * this.cellSize + this.panX();
     const y = b.minR * this.cellSize + this.panY();
-    const w = (b.maxC - b.minC + 1) * this.cellSize;
-    const h = (b.maxR - b.minR + 1) * this.cellSize;
+    const w = (b.maxC - b.minC + 1) * this.cellSize * this.zoom();
+    const h = (b.maxR - b.minR + 1) * this.cellSize * this.zoom();
     return `${x} ${y} ${w} ${h}`;
   });
 
   readonly tiles = computed(() => this.store.railTiles());
-  readonly agents = computed(() => this.store.agents());
+  /** Active agents only: hide WAITING (not yet departed) and DONE
+   *  (already arrived). The sidebar still shows the full roster. */
+  readonly agents = computed(() =>
+    this.store.agents().filter((a) => a.is_visible !== false),
+  );
 
   readonly mergeCells = computed<DecisionCell[]>(() => {
     const state = this.store.state();
     const all = (state?.decision_cells ?? []) as DecisionCell[];
     return all.filter((c) => c.kind === 'merge');
   });
+  /**
+   * Markers for old "merge" cells - rendered as the Signals layer.
+   * Each cell yields one marker per incoming rail direction, placed
+   * at the OUTGOING edge of the cell along the rail axis (where a
+   * physical signal would stand), rotated to face the direction of
+   * travel.
+   *
+   * Direction encoding (matches Flatland): 0=N, 1=E, 2=S, 3=W
+   * That is also the angle in 90deg steps for a glyph that natively
+   * points NORTH (i.e. up) - we therefore rotate by direction*90.
+   */
+  readonly signalMarkers = computed<DirectionalMarker[]>(() => {
+    const cells = (this.store.state()?.decision_cells ?? []) as DecisionCell[];
+    return cells
+      .filter((c) => c.kind === 'merge')
+      .flatMap((c) => this._buildDirectionalMarkers(c, 'signal'));
+  });
+
+
+  /** Switches/signals symbols at the destination of every visible
+   * Next-Decisions layer. Rendered ALWAYS when decisionLayers shows
+   * the line, even if the All-Switches / All-Signals layer toggles
+   * are off - so the operator can still see "what kind of decision
+   * point is the train heading to". */
+  readonly decisionDestSwitchInflows = computed(() => {
+    return this._destSwitchCells().flatMap((c) => this._buildSwitchInflows(c));
+  });
+
+  readonly decisionDestSwitchExits = computed(() => {
+    return this._destSwitchCells().flatMap((c) => {
+      const exits = c.switch_exits ?? [];
+      if (exits.length === 0) return [];
+      return this._buildDirectionalMarkers({ ...c, directions: exits }, 'switch');
+    });
+  });
+
+  readonly decisionDestSignals = computed(() => {
+    return this._destSignalCells().flatMap((c) => this._buildDirectionalMarkers(c, 'signal'));
+  });
+
+  private _destSwitchCells(): DecisionCell[] {
+    const cells = (this.store.state()?.decision_cells ?? []) as DecisionCell[];
+    const byPos = new Map(cells.map((c) => [`${c.r}_${c.c}`, c]));
+    // Dedup: when N agents target the SAME decision cell, we still only
+    // render its switch markings once. Without this guard, _buildSwitchInflows
+    // would emit identical IDs N times → NG0955 'duplicated keys' warnings
+    // in @for tracking. Functionally identical: same cell, same arrows.
+    const out: DecisionCell[] = [];
+    const seen = new Set<string>();
+    for (const layer of this.decisionLayers()) {
+      if (layer.cellKind !== 'switch') continue;
+      const key = this._destKeyForLayer(layer);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const cell = byPos.get(key);
+      if (cell) out.push(cell);
+    }
+    return out;
+  }
+
+  private _destSignalCells(): DecisionCell[] {
+    const cells = (this.store.state()?.decision_cells ?? []) as DecisionCell[];
+    const byPos = new Map(cells.map((c) => [`${c.r}_${c.c}`, c]));
+    // Same dedup rationale as _destSwitchCells: multiple agents may share
+    // a destination merge cell. We render its signal markings only once.
+    const out: DecisionCell[] = [];
+    const seen = new Set<string>();
+    for (const layer of this.decisionLayers()) {
+      if (layer.cellKind !== 'merge') continue;
+      const key = this._destKeyForLayer(layer);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const cell = byPos.get(key);
+      if (cell) out.push(cell);
+    }
+    return out;
+  }
+
+  private _destKeyForLayer(layer: DecisionLayer): string {
+    // decisionCx/Cy are pixel centres; reverse to grid r,c.
+    const cs = this.cellSize;
+    const r = Math.floor(layer.decisionCy / cs);
+    const c = Math.floor(layer.decisionCx / cs);
+    return `${r}_${c}`;
+  }
+
+  /** Inflow lines for a single switch cell, factored out so we can
+   * reuse it both in switchInflows() and decisionDestSwitchInflows(). */
+  private _buildSwitchInflows(cell: DecisionCell): {
+    id: string; x1: number; y1: number; x2: number; y2: number;
+  }[] {
+    const cs = this.cellSize;
+    const cx = cell.c * cs + cs / 2;
+    const cy = cell.r * cs + cs / 2;
+    const reach = cs * 0.33;
+    const out: { id: string; x1: number; y1: number; x2: number; y2: number }[] = [];
+    for (const d of cell.directions ?? []) {
+      const sx = d === 1 ? cx - reach : d === 3 ? cx + reach : cx;
+      const sy = d === 0 ? cy + reach : d === 2 ? cy - reach : cy;
+      out.push({
+        id: `inflow_${cell.r}_${cell.c}_${d}`,
+        x1: sx, y1: sy, x2: cx, y2: cy,
+      });
+    }
+    return out;
+  }
+
+  /** Animated inflow line per switch entry direction.
+   * Each switch may classify under one or more headings (directions[]).
+   * For each heading we draw an animated ">>>>>" line that comes from
+   * 25% beyond the cell edge (i.e. into the neighbour cell) and runs
+   * to the cell centre - showing how a train would enter that switch. */
+  readonly switchInflows = computed<{
+    id: string; x1: number; y1: number; x2: number; y2: number;
+  }[]>(() => {
+    const cells = (this.store.state()?.decision_cells ?? []) as DecisionCell[];
+    return cells
+      .filter((c) => c.kind === 'switch')
+      .flatMap((c) => this._buildSwitchInflows(c));
+  });
+
+  /** Centre marker per switch-cell (one diamond in the middle).
+   * Renders for every switch and signals "this cell is a switch" at a glance. */
+  readonly switchCentres = computed<{ id: string; x: number; y: number }[]>(() => {
+    const cells = (this.store.state()?.decision_cells ?? []) as DecisionCell[];
+    const cs = this.cellSize;
+    return cells
+      .filter((c) => c.kind === 'switch')
+      .map((c) => ({
+        id: `switch_centre_${c.r}_${c.c}`,
+        x: c.c * cs + cs / 2,
+        y: c.r * cs + cs / 2,
+      }));
+  });
+
+  /** Exit arrows per switch-cell - one outward arrow per switch_exits direction.
+   * Reuses _buildDirectionalMarkers by feeding switch_exits as if they were
+   * "directions", so each arrow sits on the corresponding cell edge pointing
+   * OUT in that direction. */
+  readonly switchExitArrows = computed<DirectionalMarker[]>(() => {
+    const cells = (this.store.state()?.decision_cells ?? []) as DecisionCell[];
+    return cells
+      .filter((c) => c.kind === 'switch')
+      .flatMap((c) => {
+        const exits = c.switch_exits ?? [];
+        if (exits.length === 0) return [];
+        const fakeCell: DecisionCell = { ...c, directions: exits };
+        return this._buildDirectionalMarkers(fakeCell, 'switch');
+      });
+  });
+
+  private _buildDirectionalMarkers(
+    cell: DecisionCell,
+    kind: 'signal' | 'switch',
+  ): DirectionalMarker[] {
+    const dirs = cell.directions ?? [];
+    if (dirs.length === 0) return [];
+    const cs = this.cellSize;
+    const cx = cell.c * cs + cs / 2;
+    const cy = cell.r * cs + cs / 2;
+    // Arrow tip sits 5% before the cell edge (off = 0.45 * cellSize).
+    const off = cs * 0.33;
+    return dirs.map((d, i) => {
+      // Move (dx, dy) one direction step from centre toward edge
+      const dx = d === 1 ? off : d === 3 ? -off : 0;
+      const dy = d === 0 ? -off : d === 2 ? off : 0;
+      return {
+        id: `${kind}_${cell.r}_${cell.c}_${d}_${i}`,
+        kind,
+        x: cx + dx,
+        y: cy + dy,
+        rotation: d * 90,
+        d,
+        cx,
+        cy,
+      };
+    });
+  }
 
   readonly decisionLayers = computed<DecisionLayer[]>(() => {
     const result: DecisionLayer[] = [];
@@ -182,16 +388,18 @@ export class FlatlandMapComponent {
       isOverride: a.override_action === opt.action,
     }));
 
+    const cellKind: 'switch' | 'merge' =
+      nd.cell_type === 'SWITCH' ? 'switch' : 'merge';
     return {
       handle: a.handle,
       color: this.agentColor(a.handle),
+      cellKind,
       pathD,
       decisionCx,
       decisionCy,
       pillsX,
       pillsY,
       options,
-      cellType: nd.cell_type,
     };
   }
 
@@ -271,6 +479,26 @@ export class FlatlandMapComponent {
   resetPan() {
     this.panX.set(0);
     this.panY.set(0);
+    this.zoom.set(1);
+  }
+
+  // Zoom: smaller value = zoomed in (smaller viewBox)
+  zoomIn() {
+    this._zoomBy(1 / 1.2, 0.5, 0.5);
+  }
+
+  zoomOut() {
+    this._zoomBy(1.2, 0.5, 0.5);
+  }
+
+  onWheel(event: WheelEvent) {
+    event.preventDefault();
+    if (!this.svgEl) return;
+    const rect = this.svgEl.getBoundingClientRect();
+    const cxRel = (event.clientX - rect.left) / rect.width;
+    const cyRel = (event.clientY - rect.top) / rect.height;
+    const factor = event.deltaY < 0 ? 1 / 1.1 : 1.1;
+    this._zoomBy(factor, cxRel, cyRel);
   }
 
   // ========== Standard Helpers ==========
@@ -287,7 +515,10 @@ export class FlatlandMapComponent {
   tileHref(t: RailTile): string { return `/flatland-svg/${t.svg}`; }
 
   agentColor(handle: number): string {
-    return AGENT_COLORS[handle % AGENT_COLORS.length];
+    // Map paths and agent symbols need full opacity to read clearly,
+    // so use the solid palette. Selected agents pop in focus state.
+    const state = this.isSelected(handle) ? 'focus' : 'default';
+    return this.agentColors.getColorSolid(handle, state);
   }
 
   agentX(a: AgentDTO): number {
@@ -330,4 +561,37 @@ export class FlatlandMapComponent {
   trackByAgent = (_: number, a: AgentDTO) => a.handle;
   trackByLayer = (_: number, l: DecisionLayer) => l.handle;
   trackByPill = (_: number, p: PillData) => p.action;
+
+  /**
+   * Apply a zoom factor while keeping a chosen anchor point fixed.
+   * cxRel/cyRel are 0..1 relative coordinates inside the SVG element
+   * (0.5/0.5 = window centre, cursor-relative for wheel zoom).
+   */
+  private _zoomBy(factor: number, cxRel: number, cyRel: number) {
+    if (!this.svgEl) {
+      this.zoom.update((v) => Math.min(5, Math.max(0.2, v * factor)));
+      return;
+    }
+    const b = this.bbox();
+    const oldZoom = this.zoom();
+    const newZoom = Math.min(5, Math.max(0.2, oldZoom * factor));
+    if (newZoom === oldZoom) return;
+
+    const colSpan = (b.maxC - b.minC + 1) * this.cellSize;
+    const rowSpan = (b.maxR - b.minR + 1) * this.cellSize;
+    const vbX = b.minC * this.cellSize + this.panX();
+    const vbY = b.minR * this.cellSize + this.panY();
+
+    // World point under the anchor BEFORE zoom
+    const anchorVbX = vbX + cxRel * (colSpan * oldZoom);
+    const anchorVbY = vbY + cyRel * (rowSpan * oldZoom);
+
+    this.zoom.set(newZoom);
+
+    // Solve new pan so that the anchor world point stays under (cxRel, cyRel)
+    const newPanX = anchorVbX - cxRel * (colSpan * newZoom) - b.minC * this.cellSize;
+    const newPanY = anchorVbY - cyRel * (rowSpan * newZoom) - b.minR * this.cellSize;
+    this.panX.set(newPanX);
+    this.panY.set(newPanY);
+  }
 }

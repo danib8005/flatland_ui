@@ -10,6 +10,9 @@ class Session:
         self.env = env
         self.last_observations = None
         self.last_info = None
+        # Currently active policy (used as baseline in /hmi/scenarios
+        # and applied to every step unless overridden in the step request).
+        self.policy: str = "deadlock_avoidance" 
 
 
 class SessionManager:
@@ -18,9 +21,20 @@ class SessionManager:
 
     def create(self, **env_kwargs) -> Session:
         sid = str(uuid.uuid4())[:8]
+        # Pull out max_episode_steps BEFORE create_env (Flatland's reset()
+        # would overwrite it otherwise). We re-apply it after reset().
+        max_ep_override = env_kwargs.pop("max_episode_steps", None)
         env = create_env(**env_kwargs)
         session = Session(sid, env)
-        obs, info = env.reset()
+        # env_factory already reset() the env (inside its retry block, so
+        # IndexErrors from timetable_generator are caught). Reuse stashed
+        # obs/info instead of resetting again.
+        obs = getattr(env, "_initial_obs", None)
+        info = getattr(env, "_initial_info", None)
+        if obs is None:
+            obs, info = env.reset()
+        if max_ep_override is not None and int(max_ep_override) > 0:
+            env._max_episode_steps = int(max_ep_override)
         session.last_observations = obs
         session.last_info = info
         self._sessions[sid] = session

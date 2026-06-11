@@ -8,7 +8,7 @@ import {
   ScenarioOption,
 } from './events/event-types';
 import { WebSocketService } from './websocket.service';
-import { AgentDTO, RailTile, SessionInfo, SessionState, PolicyName } from './models';
+import { AgentDTO, PolicyInfo, PolicyName, RailTile, SessionInfo, SessionState } from './models';
 
 export interface TrajectoryPoint {
   step: number;
@@ -25,7 +25,24 @@ export class SessionStore {
 
   readonly session = signal<SessionInfo | null>(null);
   readonly state = signal<SessionState | null>(null);
-  readonly selectedHandles = signal<Set<number>>(new Set());
+  // Single-selection: at most one agent at a time.
+  readonly selectedHandle = signal<number | null>(null);
+
+  /** When user hovers a scenario card, store its id here so the Marey
+   *  can swap its forecast preview. null = use the active baseline. */
+  readonly previewScenarioId = signal<string | null>(null);
+  // Backwards-compat: components that still call .has(h) on a Set.
+  readonly selectedHandles = computed<Set<number>>(() => {
+    const h = this.selectedHandle();
+    return h == null ? new Set<number>() : new Set([h]);
+  });
+  // 'Active' = explicitly selected, OR first agent in list (Marey default).
+  readonly activeHandle = computed<number | null>(() => {
+    const sel = this.selectedHandle();
+    if (sel != null) return sel;
+    const ags = this.agents();
+    return ags.length > 0 ? ags[0].handle : null;
+  });
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
@@ -41,6 +58,21 @@ export class SessionStore {
   readonly trajectories = signal<Map<number, TrajectoryPoint[]>>(new Map());
 
   readonly agents = computed<AgentDTO[]>(() => this.state()?.agents ?? []);
+
+  // ── Policies (loaded once at app start) ───────────────────────
+  private readonly _policies = signal<PolicyInfo[]>([]);
+  readonly availablePolicies = computed<PolicyInfo[]>(() => this._policies());
+  readonly defaultPolicy = computed<PolicyName>(() => {
+    const def = this._policies().find((p) => p.is_default);
+    return (def?.id ?? 'deadlock_avoidance') as PolicyName;
+  });
+
+  loadPolicies(): void {
+    this.api.listPolicies().subscribe({
+      next: (list) => this._policies.set(list),
+      error: (err) => console.warn('Failed to load policies', err),
+    });
+  }
   readonly elapsedSteps = computed(() => this.state()?.elapsed_steps ?? 0);
   readonly maxSteps = computed(() => this.state()?.max_episode_steps ?? 0);
   readonly width = computed(() => this.state()?.width ?? 0);
@@ -53,9 +85,10 @@ export class SessionStore {
   // === HMI-Architektur (Phase A) ===
   readonly simulationTime = signal<number>(0);
   readonly layerVisibility = signal<LayerVisibility>({
-    trains: true,
-    switches: true,
-    signals: true,
+    grid: true,
+    nextDecisions: true,
+    switches: false,
+    signals: false,
   });
   readonly kpiPriorities = signal<KpiPriorities>({
     time: 1,
@@ -131,7 +164,7 @@ export class SessionStore {
     if (!this.showMap() && !this.showMarey()) this.showMap.set(true);
   }
 
-  newSession(opts: { width?: number; height?: number; agents?: number } = {}) {
+  newSession(opts: { width?: number; height?: number; agents?: number; maxSteps?: number } = {}) {
     this.loading.set(true);
     this.error.set(null);
     this.message.set(null);
@@ -243,14 +276,15 @@ export class SessionStore {
   }
 
   toggleAgentSelection(handle: number) {
-    const cur = new Set(this.selectedHandles());
-    if (cur.has(handle)) cur.delete(handle);
-    else cur.add(handle);
-    this.selectedHandles.set(cur);
+    // Single-select: clicking the same agent again deselects it,
+    // clicking another swaps the selection.
+    this.selectedHandle.set(
+      this.selectedHandle() === handle ? null : handle,
+    );
   }
 
   clearSelection() {
-    this.selectedHandles.set(new Set());
+    this.selectedHandle.set(null);
   }
 
   // ========== Decision Override (T6) ==========
@@ -293,4 +327,13 @@ export class SessionStore {
       error: (e: any) => this.error.set('Clear override failed: ' + e.message),
     });
   }
+
+  // ── Active policy (synced with backend session.policy) ────────
+  private readonly _activePolicy = signal<PolicyName>('deadlock_avoidance');
+  readonly activePolicy = computed<PolicyName>(() => this._activePolicy());
+
+  setActivePolicy(policy: PolicyName): void {
+    this._activePolicy.set(policy);
+  }
+
 }

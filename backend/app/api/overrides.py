@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.core.session_manager import session_manager
+from app.core.scenario_cache import scenario_cache
 from app.core.override_manager import override_manager
 
 router = APIRouter()
@@ -26,7 +27,7 @@ def set_override(session_id: str, handle: int, req: OverrideRequest):
     if req.action not in (0, 1, 2, 3, 4):
         raise HTTPException(400, f"Invalid action {req.action}")
 
-    override_manager.set(session_id, handle, req.action)
+    scenario_cache.clear_session(session_id); override_manager.set(session_id, handle, req.action)
     return {
         "session_id": session_id,
         "handle": handle,
@@ -40,7 +41,7 @@ def clear_override(session_id: str, handle: int):
     if not session:
         raise HTTPException(404, f"Session {session_id} not found")
 
-    override_manager.clear(session_id, handle)
+    scenario_cache.clear_session(session_id); override_manager.clear(session_id, handle)
     return {"session_id": session_id, "handle": handle, "cleared": True}
 
 

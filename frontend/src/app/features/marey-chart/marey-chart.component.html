@@ -1,124 +1,210 @@
-<div class="marey-wrapper">
-  <div class="marey-header">
-    <h3 class="title">Time-Distance Diagram (Marey)</h3>
-    <span class="subtitle">Distance to target over time</span>
-  </div>
-
-  @if (store.session()) {
-    <svg
-      class="marey-svg"
-      [attr.viewBox]="viewBox()"
-      preserveAspectRatio="xMidYMid meet">
-
-      <!-- Grid lines -->
-      @for (t of yTicks(); track trackByTick($index, t)) {
-        <line
-          [attr.x1]="margin.left"
-          [attr.x2]="chartWidth - margin.right"
-          [attr.y1]="t.pos"
-          [attr.y2]="t.pos"
-          class="grid-line" />
-      }
-
-      @for (t of xTicks(); track trackByTick($index, t)) {
-        <line
-          [attr.x1]="t.pos"
-          [attr.x2]="t.pos"
-          [attr.y1]="margin.top"
-          [attr.y2]="chartHeight - margin.bottom"
-          class="grid-line vertical" />
-      }
-
-      <!-- Axes -->
-      <line
-        [attr.x1]="margin.left"
-        [attr.y1]="margin.top"
-        [attr.x2]="margin.left"
-        [attr.y2]="chartHeight - margin.bottom"
-        class="axis" />
-      <line
-        [attr.x1]="margin.left"
-        [attr.y1]="chartHeight - margin.bottom"
-        [attr.x2]="chartWidth - margin.right"
-        [attr.y2]="chartHeight - margin.bottom"
-        class="axis" />
-
-      <!-- X-axis labels -->
-      @for (t of xTicks(); track trackByTick($index, t)) {
-        <text
-          [attr.x]="t.pos"
-          [attr.y]="chartHeight - margin.bottom + 18"
-          text-anchor="middle"
-          class="tick-label">
-          {{ t.label }}
-        </text>
-      }
-
-      <!-- Y-axis labels -->
-      @for (t of yTicks(); track trackByTick($index, t)) {
-        <text
-          [attr.x]="margin.left - 8"
-          [attr.y]="t.pos + 4"
-          text-anchor="end"
-          class="tick-label">
-          {{ t.label }}
-        </text>
-      }
-
-      <!-- Axis titles -->
-      <text
-        [attr.x]="chartWidth / 2"
-        [attr.y]="chartHeight - 6"
-        text-anchor="middle"
-        class="axis-title">
-        Step
-      </text>
-      <text
-        [attr.x]="14"
-        [attr.y]="chartHeight / 2"
-        text-anchor="middle"
-        class="axis-title"
-        [attr.transform]="'rotate(-90, 14, ' + (chartHeight / 2) + ')'">
-        Progress
-      </text>
-
-      <!-- Current step indicator -->
-      <line
-        [attr.x1]="margin.left + (store.elapsedSteps() / (store.maxSteps() || 1)) * innerWidth()"
-        [attr.x2]="margin.left + (store.elapsedSteps() / (store.maxSteps() || 1)) * innerWidth()"
-        [attr.y1]="margin.top"
-        [attr.y2]="chartHeight - margin.bottom"
-        class="now-line" />
-
-      <!-- Agent trajectories -->
-      @for (line of lines(); track trackByLine($index, line)) {
-        <path
-          [attr.d]="line.pathD"
-          [attr.stroke]="line.color"
-          [attr.stroke-width]="line.selected ? 3 : 1.8"
-          [attr.opacity]="line.selected ? 1 : 0.85"
-          fill="none"
-          class="agent-line"
-          (click)="toggleSelect(line.handle)" />
-      }
-    </svg>
-
-    <!-- Legend -->
-    <div class="legend">
-      @for (line of lines(); track trackByLine($index, line)) {
-        <button
-          class="legend-item"
-          [class.selected]="line.selected"
-          (click)="toggleSelect(line.handle)">
-          <span class="swatch" [style.background]="line.color"></span>
-          <span>Agent {{ line.handle }}</span>
-        </button>
-      }
+<div class="marey-shell">
+  @if (pathCells().length === 0) {
+    <div class="marey-empty">
+      <p>Select an agent to see its time–distance trajectory.</p>
     </div>
   } @else {
-    <div class="empty">
-      <p>Marey-Diagramm zeigt Trajektorien der Agents ueber die Zeit.</p>
-      <p>Erstelle eine Session mit <strong>+ New Session</strong>.</p>
+    <div class="marey-layout">
+
+      <!-- Cell 1×1: Reset -->
+      <div class="cell-reset">
+        <button class="nav-btn" title="Reset view" (click)="resetPan()">⌂</button>
+      </div>
+
+      <!-- Cell 1×2: Topology header -->
+      <div class="cell-topology">
+        <div class="marey-topology-html"
+             [style.height.px]="TOPOLOGY_PX">
+      <div class="marey-topology-track">
+        @for (pt of pathTilesVisible(); track $index; let visibleIdx = $index) {
+          @let cellIdx = visibleIdx + xRange().start;
+          <div class="topo-cell">
+            @if (pt) {
+              <img class="topo-tile"
+                   [src]="'/flatland-svg/' + pt.svg"
+                   [style.transform]="'rotate(' + pt.rot + 'deg)'" />
+              @if (showGrid()) {
+                <div class="topo-border"></div>
+              }
+              @for (lbl of agentLabels(); track lbl.handle) {
+                @if (lbl.tileIndex === cellIdx) {
+                  <button class="topo-agent"
+                          [class.selected]="isSelected(lbl.handle)"
+                          [style.background]="lbl.color"
+                          (click)="onAgentClick(lbl.handle, $event)"
+                          [title]="'Agent ' + lbl.handle">{{ lbl.handle }}</button>
+                }
+              }
+            }
+          </div>
+        }
+      </div>
+        </div>
+      </div><!-- /cell-topology -->
+
+      <!-- Cell 2×1: Time-axis + Y-slider placeholder -->
+      <div class="cell-time-axis">
+        <!-- Y range brush — drives yRange signal. Background shows
+             ALL time ticks; window highlights the visible range;
+             handles drag to resize, window drags to pan. -->
+        <div class="y-brush" #yBrush
+             (mousedown)="onYBrushDown($event, 'window', yBrush)">
+          <!-- Tick labels behind the brush -->
+          <div class="y-brush-bg">
+            @for (t of timeTicks(); track t.v) {
+              <span class="time-axis-label"
+                    [style.top.%]="(t.coord / H) * 100">{{ t.v }}</span>
+            }
+          </div>
+          <!-- Dim regions outside the visible window -->
+          <div class="y-brush-dim y-brush-dim-top"
+               [style.height.%]="yBrushTopPct()"></div>
+          <div class="y-brush-dim y-brush-dim-bottom"
+               [style.top.%]="yBrushTopPct() + yBrushHeightPct()"></div>
+          <!-- Window with handles -->
+          <div class="y-brush-window"
+               [style.top.%]="yBrushTopPct()"
+               [style.height.%]="yBrushHeightPct()">
+            <div class="y-brush-handle y-brush-handle-top"
+                 (mousedown)="onYBrushDown($event, 'top', yBrush)"></div>
+            <div class="y-brush-handle y-brush-handle-bottom"
+                 (mousedown)="onYBrushDown($event, 'bottom', yBrush)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cell 2×2: Marey chart -->
+      <div class="cell-marey">
+    <svg #svgEl
+         class="marey-svg"
+         [attr.viewBox]="viewBox()"
+         preserveAspectRatio="none"
+         (wheel)="onWheel($event)"
+         (mousedown)="onMouseDown($event)"
+         (mousemove)="onMouseMove($event)"
+         (mouseup)="onMouseUp()"
+         (mouseleave)="onMouseLeave()">
+
+      <!-- Bounding lines at start/end of topology -->
+      <g class="marey-bounds">
+        @if (pathCells().length > 0 && !axesSwapped()) {
+          <line
+            [attr.x1]="pathCoord(0)" [attr.x2]="pathCoord(0)"
+            [attr.y1]="PAD.top" [attr.y2]="H - PAD.bottom" />
+          <line
+            [attr.x1]="pathCoord(pathCells().length - 1)"
+            [attr.x2]="pathCoord(pathCells().length - 1)"
+            [attr.y1]="PAD.top" [attr.y2]="H - PAD.bottom" />
+        }
+      </g>
+
+      <!-- Per-cell column lines under the topology, only when grid is on -->
+      <g class="marey-vgrid">
+        @if (showGrid() && !axesSwapped()) {
+          @for (cell of pathCells(); track $index) {
+            <line
+              [attr.x1]="pathCoord($index) - tileSize() / 2"
+              [attr.x2]="pathCoord($index) - tileSize() / 2"
+              [attr.y1]="PAD.top"
+              [attr.y2]="H - PAD.bottom" />
+          }
+          <line
+            [attr.x1]="pathCoord(pathCells().length - 1) + tileSize() / 2"
+            [attr.x2]="pathCoord(pathCells().length - 1) + tileSize() / 2"
+            [attr.y1]="PAD.top"
+            [attr.y2]="H - PAD.bottom" />
+        }
+      </g>
+
+      <g class="marey-grid">
+        @for (t of timeTicks(); track t.v) {
+          @if (axesSwapped()) {
+            <line [attr.x1]="t.coord" [attr.x2]="t.coord"
+                  [attr.y1]="PAD.top" [attr.y2]="H - PAD.bottom" />
+            <text [attr.x]="t.coord" [attr.y]="PAD.top - 4" text-anchor="middle">{{ t.v }}</text>
+          } @else {
+            <line [attr.x1]="PAD.left" [attr.x2]="W - PAD.right"
+                  [attr.y1]="t.coord" [attr.y2]="t.coord" />
+            <text [attr.x]="PAD.left - 8" [attr.y]="t.coord + 4" text-anchor="end">{{ t.v }}</text>
+          }
+        }
+      </g>
+
+      <g class="marey-now">
+        @if (axesSwapped()) {
+          <line [attr.x1]="nowCoord()" [attr.x2]="nowCoord()"
+                [attr.y1]="PAD.top"    [attr.y2]="H - PAD.bottom" />
+          <text [attr.x]="nowCoord() + 4" [attr.y]="PAD.top - 4">now</text>
+        } @else {
+          <line [attr.x1]="PAD.left" [attr.x2]="W - PAD.right"
+                [attr.y1]="nowCoord()" [attr.y2]="nowCoord()" />
+          <text [attr.x]="W - PAD.right + 4" [attr.y]="nowCoord() + 4">now</text>
+        }
+      </g>
+
+      <g class="marey-lines">
+        @for (line of agentLines(); track line.handle) {
+          <g [class.is-active]="line.isActive">
+            @if (line.pastD) {
+              <path class="past" [attr.d]="line.pastD" [attr.stroke]="line.color" />
+            }
+            @if (line.futureD) {
+              <path class="future" [attr.d]="line.futureD" [attr.stroke]="line.color" />
+            }
+          </g>
+        }
+      </g>
+    </svg>
+    <!-- Zoom overlay (above pan-cross) -->
+    <!-- Swap-axes overlay: where flatland-map has its opacity slider -->
+    <div class="map-swap-overlay">
+      <button title="Swap horizontal/vertical axes" class="nav-btn"
+              [class.active]="axesSwapped()" (click)="swapAxes()">⇄</button>
     </div>
+      </div><!-- /cell-marey -->
+
+      <!-- Cell 3×1: empty -->
+      <div class="cell-empty"></div>
+
+      <!-- Cell 3×2: X range brush over a mini full-topology preview.
+             Background = ALL tiles at 100% (no xRange transform), so the
+             user sees what they are selecting. Foreground = brush window
+             (drag to zoom/pan), driven by xRange. -->
+        <div class="cell-topology-slider">
+          <div class="x-brush" #xBrush
+               (mousedown)="onBrushDown($event, 'window', xBrush)">
+            <!-- Mini topology preview — same tiles, fixed full transform -->
+            <div class="x-brush-bg">
+              <div class="marey-topology-track">
+                @for (pt of pathTiles(); track $index) {
+                  <div class="topo-cell">
+                    @if (pt) {
+                      <img class="topo-tile"
+                           [src]="'/flatland-svg/' + pt.svg"
+                           [style.transform]="'rotate(' + pt.rot + 'deg)'" />
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+            <!-- Dim overlays for the regions outside the brush window -->
+            <div class="x-brush-dim x-brush-dim-left"
+                 [style.width.%]="brushWindowLeftPct()"></div>
+            <div class="x-brush-dim x-brush-dim-right"
+                 [style.left.%]="brushWindowLeftPct() + brushWindowWidthPct()"
+                 [style.right]="'0'"></div>
+            <!-- Brush window with handles -->
+            <div class="x-brush-window"
+                 [style.left.%]="brushWindowLeftPct()"
+                 [style.width.%]="brushWindowWidthPct()">
+              <div class="x-brush-handle x-brush-handle-left"
+                   (mousedown)="onBrushDown($event, 'left', xBrush)"></div>
+              <div class="x-brush-handle x-brush-handle-right"
+                   (mousedown)="onBrushDown($event, 'right', xBrush)"></div>
+            </div>
+          </div>
+        </div>
+
+    </div><!-- /marey-layout -->
   }
 </div>

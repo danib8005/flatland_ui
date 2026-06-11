@@ -10,6 +10,7 @@ class SessionCreateRequest(BaseModel):
     max_num_cities: int = Field(default=4, ge=2, le=10)
     max_rails_between_cities: int = 2
     max_rail_pairs_in_city: int = 2
+    max_episode_steps: int | None = None
 
 
 class SessionInfo(BaseModel):
@@ -20,7 +21,7 @@ class SessionInfo(BaseModel):
 
 
 class StepRequest(BaseModel):
-    policy: str = Field(default="random", description="random | shortest_path")
+    policy: str = Field(default="deadlock_avoidance", description="random | shortest_path | do_nothing | forward_only | deadlock_avoidance")
     n_steps: int = Field(default=1, ge=1, le=100)
 
 

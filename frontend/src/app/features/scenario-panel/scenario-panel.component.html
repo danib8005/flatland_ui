@@ -1,43 +1,76 @@
 <div class="scenario-panel">
-  <h3 class="panel-title">Scenarios</h3>
+  <h3 class="panel-title">Scenarios — Policy Comparison</h3>
 
   @if (store.scenarios().length === 0) {
     <p class="empty">No scenarios available</p>
   } @else {
     <div class="scenarios">
       @for (s of store.scenarios(); track s.id) {
-        <div class="scenario-card" [class.recommended]="s.isRecommended">
-          @if (s.isRecommended) {
-            <span class="rec-badge">Recommended</span>
+        <div class="scenario-card"
+             [class.baseline]="s.isBaseline"
+             [class.recommended]="s.isRecommended"
+             [class.avoid]="s.tag === 'avoid'" (mouseenter)="store.previewScenarioId.set(s.id)" (mouseleave)="store.previewScenarioId.set(null)">
+
+          <!-- Header row -->
+          <div class="card-header">
+            <h4 class="title">{{ s.title }}</h4>
+            @if (s.isBaseline) {
+              <span class="badge current">Current</span>
+            } @else if (s.isRecommended) {
+              <span class="badge recommended">Recommended</span>
+            } @else if (s.tag === 'avoid') {
+              <span class="badge avoid">Avoid</span>
+            }
+          </div>
+
+          <!-- Headline: the prominent plain-language summary -->
+          <p class="headline"
+             [class.good]="(s.description || '').startsWith('✓')"
+             [class.warn]="(s.description || '').startsWith('⚠')"
+             [class.bad]="(s.description || '').startsWith('✗')">
+            {{ s.description }}
+          </p>
+
+          <!-- Compact KPI strip -->
+          <div class="kpi-strip">
+            <span class="kpi-pill">
+              <span class="kpi-label">Done</span>
+              <span class="kpi-value">{{ s.kpis?.done ?? '–' }}/{{ totalAgents() }}</span>
+            </span>
+            <span class="kpi-pill" [class.bad]="(s.kpis?.deadlocks ?? 0) > 0">
+              <span class="kpi-label">Stuck</span>
+              <span class="kpi-value">
+                {{ s.kpis?.deadlocks ?? '–' }}
+                @if ((s.kpis?.deadlocks ?? 0) > 0) { <span class="kpi-unit"> in deadlock</span> }
+              </span>
+            </span>
+            <span class="kpi-pill" [class.warn]="(s.kpis?.meanDelay ?? 0) > 5">
+              <span class="kpi-label">Mean Delay</span>
+              <span class="kpi-value">
+                {{ s.kpis?.meanDelay ?? '–' }}
+                @if ((s.kpis?.totalDelay ?? 0) > 0) {
+                  <span class="kpi-unit"> ({{ s.kpis?.totalDelay }} total)</span>
+                }
+              </span>
+            </span>
+            <span class="kpi-pill">
+              <span class="kpi-label">Steps</span>
+              <span class="kpi-value">
+                {{ s.kpis?.episodeSteps ?? '–' }}
+                <span class="kpi-unit">{{ s.kpis?.episodeFinished ? '✓' : '✗' }}</span>
+              </span>
+            </span>
+          </div>
+
+          @if (!s.isBaseline) {
+            <div class="actions">
+              <button class="btn btn-confirm"
+                      [disabled]="confirming() === s.id"
+                      (click)="confirm(s)">
+                {{ confirming() === s.id ? 'Switching…' : 'Switch to this policy' }}
+              </button>
+            </div>
           }
-          <h4 class="title">{{ s.title }}</h4>
-          <p class="desc">{{ s.description }}</p>
-
-          <div class="kpis">
-            @if (s.kpiDelta.time != null) {
-              <span class="pill"
-                    [class.good]="isPositive(s.kpiDelta.time)"
-                    [class.bad]="isNegative(s.kpiDelta.time)">
-                ⏱ {{ formatTime(s.kpiDelta.time) }}
-              </span>
-            }
-            @if (s.kpiDelta.energy != null) {
-              <span class="pill"
-                    [class.good]="isPositive(s.kpiDelta.energy)"
-                    [class.bad]="isNegative(s.kpiDelta.energy)">
-                ⚡ {{ formatEnergy(s.kpiDelta.energy) }}
-              </span>
-            }
-          </div>
-
-          <div class="actions">
-            <button class="btn btn-secondary" (click)="simulate(s)">
-              Simulate
-            </button>
-            <button class="btn btn-primary" (click)="confirm(s)">
-              Confirm
-            </button>
-          </div>
         </div>
       }
     </div>

@@ -1,43 +1,150 @@
 <div class="sidebar-content">
   @if (store.session(); as s) {
 @if (store.state()) {
-<h3 class="section-title">Agents ({{ store.agents().length }})</h3>
-      <div class="agent-list">
-        @for (a of store.agents(); track a.handle) {
-          <div
-            class="agent-card"
-            [class.selected]="isSelected(a.handle)"
-            (click)="toggleSelect(a.handle)">
+<h3 class="section-title">
+        Agents ({{ activeCount() }} / {{ totalCount() }})
+      </h3>
 
-            <div class="agent-header">
-              <span class="agent-dot" [style.background]="agentColor(a.handle)"></span>
-              <span class="agent-name">Train {{ a.handle }}</span>
-              <span class="agent-state state-{{ a.state.toLowerCase() }}">{{ a.state }}</span>
-            </div>
+      <!-- ─── MOVING (always open) ────────────────────────────── -->
+      <div class="agent-group">
+        <div class="group-header group-moving">
+          <span class="group-label">MOVING</span>
+          <span class="group-count">{{ movingAgents().length }} / {{ totalCount() }}</span>
+        </div>
 
-            <div class="agent-meta">
-              <span class="cell-type-badge cell-{{ a.cell_type.toLowerCase() }}">
-                {{ a.cell_type }}
-              </span>
-              @if (a.position) {
-                <span class="agent-pos">[{{ a.position[0] }}, {{ a.position[1] }}]</span>
+        <div class="agent-list">
+          @for (a of movingAgents(); track a.handle) {
+            <div
+              class="agent-card"
+              [class.selected]="isSelected(a.handle)"
+              [class.overdue]="isOverdue(a)"
+              (click)="toggleSelect(a.handle)">
+
+              <div class="agent-header">
+                <span class="agent-dot" [style.background]="agentColor(a.handle)"></span>
+                <span class="agent-name">Train {{ a.handle }}</span>
+
+                @if (a.state === 'READY_TO_DEPART') {
+                  <span class="agent-state state-outside" title="Ready to depart">
+                    READY → {{ formatEta(a) }}
+                  </span>
+                } @else {
+                  <span class="agent-mid" title="Latest arrival">
+                    arr {{ a.latest_arrival ?? '–' }}
+                  </span>
+                }
+
+                <span
+                  class="deadline-badge"
+                  [style]="deadlineBadgeStyle(a)"
+                  title="Steps until / past latest arrival ({{ a.latest_arrival }})">
+                  {{ formatDeadlineDelta(a) }}
+                </span>
+              </div>
+
+              @if (a.position || a.cell_type) {
+                <div class="agent-meta">
+                  <span class="cell-type-badge cell-{{ a.cell_type.toLowerCase() }}">
+                    {{ a.cell_type }}
+                  </span>
+                  @if (a.position) {
+                    <span class="agent-pos">[{{ a.position[0] }}, {{ a.position[1] }}]</span>
+                  }
+                </div>
+              }
+
+              @if (a.next_decision; as nd) {
+                <div class="agent-actions" (click)="$event.stopPropagation()">
+                  <span class="actions-label">Next: {{ nd.cell_type }}</span>
+                  <div class="action-buttons">
+                    @for (opt of nd.options; track opt.action) {
+                      <button
+                        class="action-btn"
+                        [class.override]="isOverrideOption(a.handle, opt.action)"
+                        (click)="onActionClick(a.handle, opt.action, isOverrideOption(a.handle, opt.action))">
+                        {{ opt.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
               }
             </div>
+          }
+          @if (movingAgents().length === 0) {
+            <div class="empty-mini">no trains active</div>
+          }
+        </div>
+      </div>
 
-            @if (a.next_decision; as nd) {
-              <div class="agent-actions" (click)="$event.stopPropagation()">
-                <span class="actions-label">Next: {{ nd.cell_type }}</span>
-                <div class="action-buttons">
-                  @for (opt of nd.options; track opt.action) {
-                    <button
-                      class="action-btn"
-                      [class.override]="isOverrideOption(a.handle, opt.action)"
-                      (click)="onActionClick(a.handle, opt.action, isOverrideOption(a.handle, opt.action))">
-                      {{ opt.label }}
-                    </button>
+      <!-- ─── WAITING (collapsible, default open) ─────────────── -->
+      <div class="agent-group">
+        <div
+          class="group-header group-waiting clickable"
+          (click)="toggleGroup('WAITING')">
+          <span class="group-label">WAITING</span>
+          <span class="group-count">{{ waitingAgents().length }} / {{ totalCount() }}</span>
+          <span class="caret" [class.collapsed]="collapsed().WAITING">▾</span>
+        </div>
+
+        @if (!collapsed().WAITING) {
+          <div class="agent-list">
+            @for (a of waitingAgents(); track a.handle) {
+              <div
+                class="agent-card dimmed"
+                [class.selected]="isSelected(a.handle)"
+                (click)="toggleSelect(a.handle)">
+                <div class="agent-header">
+                  <span class="agent-dot" [style.background]="agentColor(a.handle)"></span>
+                  <span class="agent-name">Train {{ a.handle }}</span>
+                  <span class="agent-mid" title="Earliest departure">
+                    dep {{ a.earliest_departure ?? '–' }}
+                  </span>
+                  <span class="countdown-badge" title="Steps until earliest departure">
+                    {{ formatEta(a) }}
+                  </span>
+                </div>
+              </div>
+            }
+            @if (waitingAgents().length === 0) {
+              <div class="empty-mini">none waiting</div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- ─── DONE (collapsible, default open) ────────────────── -->
+      <div class="agent-group">
+        <div
+          class="group-header group-done clickable"
+          (click)="toggleGroup('DONE')">
+          <span class="group-label">DONE</span>
+          <span class="group-count">{{ doneAgents().length }} / {{ totalCount() }}</span>
+          <span class="caret" [class.collapsed]="collapsed().DONE">▾</span>
+        </div>
+
+        @if (!collapsed().DONE) {
+          <div class="agent-list">
+            @for (a of doneAgents(); track a.handle) {
+              <div
+                class="agent-card dimmed"
+                [class.selected]="isSelected(a.handle)"
+                (click)="toggleSelect(a.handle)">
+                <div class="agent-header">
+                  <span class="agent-dot" [style.background]="agentColor(a.handle)"></span>
+                  <span class="agent-name">Train {{ a.handle }}</span>
+                  <span class="agent-mid" title="Latest arrival target">
+                    arr {{ a.latest_arrival ?? '–' }}
+                  </span>
+                  @if (isOverdue(a)) {
+                    <span class="delay-badge">+{{ a.delay }} delay</span>
+                  } @else {
+                    <span class="ontime-badge">on time</span>
                   }
                 </div>
               </div>
+            }
+            @if (doneAgents().length === 0) {
+              <div class="empty-mini">none arrived yet</div>
             }
           </div>
         }
@@ -62,3 +169,4 @@
       <p class="empty-desc">Klicke <strong>+ New Session</strong> in der Toolbar um zu starten.</p>
     </div>
   }
+</div>

@@ -1,4 +1,16 @@
-export type PolicyName = 'random' | 'shortest_path';
+export type PolicyName =
+  | 'deadlock_avoidance'
+  | 'shortest_path'
+  | 'forward_only'
+  | 'do_nothing'
+  | 'random';
+
+export interface PolicyInfo {
+  id: PolicyName;
+  label: string;
+  description: string;
+  is_default: boolean;
+}
 
 export type CellType = 'OUTSIDE' | 'FORWARD_ONLY' | 'MERGING' | 'SWITCH' | 'DONE' | 'UNKNOWN';
 
@@ -30,6 +42,11 @@ export interface AgentDTO {
   speed: number;
   earliest_departure: number | null;
   latest_arrival: number | null;
+  eta_to_depart: number | null;
+  time_to_deadline: number | null;
+  delay: number;
+  is_visible: boolean;
+  delay_color_intensity: number;
   cell_type: CellType;
   next_decision: NextDecision | null;
   override_action: ActionInt | null;
@@ -84,4 +101,6 @@ export interface DecisionCell {
   r: number;
   c: number;
   kind: 'switch' | 'merge';
+  directions?: number[]; // 0=N, 1=E, 2=S, 3=W (incoming)
+  switch_exits?: number[];   // for SWITCH cells: directions a train can leave by
 }

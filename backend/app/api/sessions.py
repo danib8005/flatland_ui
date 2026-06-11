@@ -1,5 +1,6 @@
 import asyncio
 
+from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
 from typing import List
 
@@ -15,6 +16,9 @@ from app.models.session import (
 from app.models.agent import ActionRequest
 from app.policies.random_policy import RandomPolicy
 from app.policies.shortest_path_policy import ShortestPathPolicy
+from app.policies.do_nothing_policy import DoNothingPolicy
+from app.policies.forward_only_policy import ForwardOnlyPolicy
+from app.policies.deadlock_avoidance_policy import DeadLockAvoidancePolicy
 from app.policies.override_policy import OverridePolicy
 
 router = APIRouter()
@@ -69,6 +73,10 @@ async def _broadcast_state(session_id: str, env):
 
 
 def _build_policy(session_id: str, env, policy_name: str):
+    """Build a policy + wrap in OverridePolicy.
+
+    R1: hybrid Policy interface — call policy.reset(env) so stateful
+    heuristics (DLA later) get an env reference."""
     if policy_name == "random":
         try:
             action_size = int(env.action_space[0])
@@ -77,9 +85,18 @@ def _build_policy(session_id: str, env, policy_name: str):
         default = RandomPolicy(action_size=action_size)
     elif policy_name == "shortest_path":
         default = ShortestPathPolicy(env)
+    elif policy_name == "do_nothing":
+        default = DoNothingPolicy()
+    elif policy_name == "forward_only":
+        default = ForwardOnlyPolicy()
+    elif policy_name == "deadlock_avoidance":
+        default = DeadLockAvoidancePolicy()
     else:
         raise HTTPException(400, f"Unknown policy: {policy_name}")
-    return OverridePolicy(env, session_id, default)
+    default.reset(env)
+    wrapped = OverridePolicy(default, session_id)
+    wrapped.reset(env)
+    return wrapped
 
 
 @router.post("", response_model=SessionInfo)
@@ -92,6 +109,7 @@ def create_session(req: SessionCreateRequest):
         max_num_cities=req.max_num_cities,
         max_rails_between_cities=req.max_rails_between_cities,
         max_rail_pairs_in_city=req.max_rail_pairs_in_city,
+        max_episode_steps=req.max_episode_steps,
     )
     return SessionInfo(
         id=session.id,
@@ -137,6 +155,9 @@ async def step(session_id: str, req: StepRequest):
         }
 
     policy = _build_policy(session_id, env, req.policy)
+    # Track the most recently used policy so /hmi/scenarios can
+    # use it as baseline.
+    session.policy = req.policy
 
     rewards = {}
     dones = {}
@@ -148,14 +169,17 @@ async def step(session_id: str, req: StepRequest):
             break
         handles = env.get_agent_handles()
         observations = session.last_observations or {}
+        policy.start_step()
         actions = policy.act_many(handles, observations)
         try:
             next_obs, rewards, dones, info = env.step(actions)
         except Exception as e:
             if "Episode is done" in str(e):
+                policy.end_step()
                 all_done = True
                 break
             raise
+        policy.end_step()
         session.last_observations = next_obs
         session.last_info = info
         if dones.get("__all__", False):
@@ -218,3 +242,31 @@ def delete_session(session_id: str):
         raise HTTPException(404, f"Session {session_id} not found")
     override_manager.clear_all(session_id)
     return {"deleted": session_id}
+
+
+# ── POST /session/{id}/policy: set active policy without stepping ──
+class PolicyChangeRequest(BaseModel):
+    policy: str
+
+
+@router.post("/{session_id}/policy")
+def set_session_policy(session_id: str, req: PolicyChangeRequest):
+    """Switch the active policy for a session without stepping.
+    Subsequent steps and /hmi/scenarios use this as baseline."""
+    session = session_manager.get(session_id)
+    if not session:
+        raise HTTPException(404, f"Session {session_id} not found")
+    # Validate against known policy ids
+    known = {"deadlock_avoidance", "shortest_path", "forward_only", "do_nothing", "random"}
+    if req.policy not in known:
+        raise HTTPException(400, f"Unknown policy: {req.policy}")
+    session.policy = req.policy
+    # Invalidate the scenario cache so the next /hmi/scenarios call
+    # recomputes with the new baseline.
+    try:
+        from app.core.scenario_cache import scenario_cache
+        scenario_cache.clear_session(session_id)
+    except Exception:
+        pass
+    return {"session_id": session_id, "policy": session.policy}
+

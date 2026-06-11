@@ -240,23 +240,84 @@ def _build_merging_options(env, position, direction) -> List[Dict]:
 def find_decision_cells(env) -> List[Dict]:
     """Liste aller Cells im Grid die SWITCH oder MERGING sind.
 
-    Pruefe jede Cell fuer alle 4 Richtungen. Wenn fuer mind. eine
-    Richtung SWITCH/MERGING erkannt wird, ist die Cell ein
-    Decision-Point. SWITCH dominiert ueber MERGING in der Anzeige.
+    For each cell:
+      - kind = "switch" if it is a SWITCH (multi-choice for some heading)
+        otherwise "merge" if it is MERGING (signal before a switch).
+      - directions = list of integers 0=N, 1=E, 2=S, 3=W.
+
+    For SWITCH cells, directions are the headings under which the cell
+    behaves like a switch (used to orient the diamond marker on the map).
+
+    For MERGE cells, directions are *only* those headings whose direct
+    grid-neighbour cell is a SWITCH. This way the yellow signal arrow
+    sits on the cell edge that touches the switch, pointing to it -
+    which is the real-world semantic of a pre-switch signal.
+
+    Merge cells without a direct switch neighbour are still classified
+    as merge, but their `directions` list is empty - the frontend then
+    skips drawing an arrow rather than guessing.
     """
-    out: List[Dict] = []
+    # First pass: classify every cell, collect SWITCH/MERGING headings.
+    raw: Dict = {}
     for r in range(env.height):
         for c in range(env.width):
-            kinds = set()
+            switch_dirs: List[int] = []
+            merge_dirs: List[int] = []
             for direction in range(4):
                 try:
                     ct = classify_cell_at(env, (r, c), direction)
                 except Exception:
                     continue
-                if ct in ("SWITCH", "MERGING"):
-                    kinds.add(ct)
-            if kinds:
-                kind = "switch" if "SWITCH" in kinds else "merge"
-                out.append({"r": int(r), "c": int(c), "kind": kind})
+                if ct == "SWITCH":
+                    switch_dirs.append(direction)
+                elif ct == "MERGING":
+                    merge_dirs.append(direction)
+            if switch_dirs or merge_dirs:
+                raw[(r, c)] = {"switch": switch_dirs, "merge": merge_dirs}
+
+    # Quick lookup: which cells are switches?
+    switch_cells = {pos for pos, info in raw.items() if info["switch"]}
+
+    def _switch_exits(r: int, c: int, in_dirs: List[int]) -> List[int]:
+        """Collect all rail directions in which the cell can be left,
+        across every incoming direction that classifies as SWITCH.
+        Returns a sorted, unique list of 0..3."""
+        exits = set()
+        for d in in_dirs:
+            try:
+                trans = _get_transitions(env, r, c, d)
+            except Exception:
+                continue
+            for od in range(4):
+                if trans[od]:
+                    exits.add(int(od))
+        return sorted(exits)
+
+    # 0=N -> (-1,0), 1=E -> (0,+1), 2=S -> (+1,0), 3=W -> (0,-1)
+    NEIGH = {0: (-1, 0), 1: (0, 1), 2: (1, 0), 3: (0, -1)}
+
+    out: List[Dict] = []
+    for (r, c), info in raw.items():
+        if info["switch"]:
+            out.append({
+                "r": int(r),
+                "c": int(c),
+                "kind": "switch",
+                "directions": [int(d) for d in info["switch"]],
+                "switch_exits": _switch_exits(r, c, info["switch"]),
+            })
+        else:
+            # MERGE: keep only directions whose immediate neighbour is a switch.
+            ptr_dirs = []
+            for d in info["merge"]:
+                dr, dc = NEIGH[d]
+                if (r + dr, c + dc) in switch_cells:
+                    ptr_dirs.append(int(d))
+            out.append({
+                "r": int(r),
+                "c": int(c),
+                "kind": "merge",
+                "directions": ptr_dirs,
+            })
     return out
 
