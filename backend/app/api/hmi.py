@@ -7,6 +7,8 @@
   fallback if DLA is already optimal or generation fails.
 """
 from typing import Optional
+import logging
+import time
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -51,6 +53,13 @@ _ALL_POLICIES = _build_all_policies()
 def _policy_factory_for(policy_id: str):
     return _ALL_POLICIES.get(policy_id)
 
+
+_perf_log = logging.getLogger("flatland.perf")
+_perf_log.setLevel(logging.INFO)
+if not _perf_log.handlers:
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(message)s"))
+    _perf_log.addHandler(_h)
 
 router = APIRouter()
 
@@ -147,10 +156,18 @@ def get_scenarios(
     ]
 
     try:
+        n_agents = len(env.get_agent_handles()) if hasattr(env, 'get_agent_handles') else 0
+        n_policies = 1 + len(candidates)  # baseline + candidates
+        t_total0 = time.perf_counter()
         builder = ScenarioBuilder(env, baseline_id, baseline_factory, session_id=session_id)
         scenarios = builder.generate_scenarios(
             candidate_policies=candidates,
             horizon=horizon,
+        )
+        t_total_ms = (time.perf_counter() - t_total0) * 1000
+        _perf_log.info(
+            f"[SCENARIOS] agents={n_agents} policies={n_policies} "
+            f"horizon={horizon} total={t_total_ms:.1f}ms"
         )
     except Exception as e:
         import logging
@@ -160,7 +177,10 @@ def get_scenarios(
         return mock_generate_scenarios(session_id, _step_for(session_id))
 
     options = scenarios_to_options(scenarios)
-    scenario_cache.put(session_id, cache_key_step, options)
+    # Cache BOTH shapes from this single compute run, so a subsequent
+    # /hmi/recommendations call for the same step can reuse the
+    # Scenario objects without re-running ScenarioBuilder.
+    scenario_cache.put_full(session_id, cache_key_step, scenarios, options)
     return options
 
 
@@ -186,14 +206,21 @@ def get_recommendations(session_id: str):
     max_ep = int(getattr(env, "_max_episode_steps", 0) or 0)
     horizon = min(max(50, max_ep - elapsed) if max_ep else 200, 500)
 
-    # We share the scenario cache with /hmi/scenarios so we don't re-run
-    # the same 5 branches twice in a row.
+    # Try the cache FIRST: if /hmi/scenarios was just called for this
+    # same step, the Scenario objects are already there — recommendations
+    # take ~10ms instead of re-running 1300ms of DLA simulation.
     cache_key_step = elapsed * 1000 + horizon
-    cached_options = scenario_cache.get(session_id, cache_key_step)
+    scenarios = scenario_cache.get_scenarios(session_id, cache_key_step)
 
-    # Cached options are already serialized; we need the Scenario objects.
-    # Easiest: rebuild from scratch when the cache only has options.
-    # (Future optimization: cache both shapes.)
+    if scenarios is not None:
+        _perf_log.info(
+            f"[REC] cache_hit session={session_id[:8]} step={elapsed} "
+            f"horizon={horizon} (no re-compute)"
+        )
+        return real_recommendations(session_id, scenarios)
+
+    # Cache miss → compute. Mirror the /hmi/scenarios setup so the cache
+    # entry we drop in is identical.
     try:
         candidates = [
             (pid, fac) for pid, fac in _ALL_POLICIES.items() if pid != baseline_id
@@ -202,6 +229,12 @@ def get_recommendations(session_id: str):
         scenarios = builder.generate_scenarios(
             candidate_policies=candidates, horizon=horizon,
         )
+        # Populate cache so the next /hmi/scenarios pull is also free.
+        try:
+            options = scenarios_to_options(scenarios)
+            scenario_cache.put_full(session_id, cache_key_step, scenarios, options)
+        except Exception:
+            pass  # Best-effort: if serialization fails, still return recs.
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(

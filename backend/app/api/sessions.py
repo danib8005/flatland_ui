@@ -2,6 +2,8 @@ import asyncio
 
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
+import logging
+import time
 from typing import List
 
 from app.core.session_manager import session_manager
@@ -20,6 +22,13 @@ from app.policies.do_nothing_policy import DoNothingPolicy
 from app.policies.forward_only_policy import ForwardOnlyPolicy
 from app.policies.deadlock_avoidance_policy import DeadLockAvoidancePolicy
 from app.policies.override_policy import OverridePolicy
+
+_perf_log = logging.getLogger("flatland.perf")
+_perf_log.setLevel(logging.INFO)
+if not _perf_log.handlers:
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(message)s"))
+    _perf_log.addHandler(_h)
 
 router = APIRouter()
 
@@ -163,6 +172,9 @@ async def step(session_id: str, req: StepRequest):
     dones = {}
     all_done = False
 
+    t_total0 = time.perf_counter()
+    n_done_steps = 0
+
     for _ in range(req.n_steps):
         if _is_done(env):
             all_done = True
@@ -182,11 +194,23 @@ async def step(session_id: str, req: StepRequest):
         policy.end_step()
         session.last_observations = next_obs
         session.last_info = info
+        n_done_steps += 1
         if dones.get("__all__", False):
             all_done = True
             break
 
+    t_total_ms = (time.perf_counter() - t_total0) * 1000
+    t_ser0 = time.perf_counter()
     await _broadcast_state(session_id, env)
+    t_ser_ms = (time.perf_counter() - t_ser0) * 1000
+
+    n_agents = len(env.get_agent_handles())
+    avg_ms = t_total_ms / max(n_done_steps, 1)
+    _perf_log.info(
+        f"[STEP] requested={req.n_steps} done={n_done_steps} agents={n_agents} "
+        f"total={t_total_ms:.1f}ms avg={avg_ms:.1f}ms/step "
+        f"final_broadcast={t_ser_ms:.1f}ms"
+    )
 
     return {
         "session_id": session_id,

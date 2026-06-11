@@ -5,6 +5,15 @@ We answer by running each candidate policy from the current env state
 forward over a short horizon and reporting outcome KPIs.
 """
 from __future__ import annotations
+import logging
+import time
+_perf_log = logging.getLogger("flatland.perf")
+_perf_log.setLevel(logging.INFO)
+if not _perf_log.handlers:
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(message)s"))
+    _perf_log.addHandler(_h)
+
 
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -99,9 +108,20 @@ class ScenarioBuilder:
             except Exception:
                 overrides = {}
 
+        try:
+            n_agents = len(self._env.get_agent_handles())
+        except Exception:
+            n_agents = 0
+
         baseline_runner = TrajectoryBranchRunner(self._env, self._baseline_factory)
+        t0 = time.perf_counter()
         baseline_result = baseline_runner.run_branch(
             overrides=overrides, max_steps=horizon, blocked_threshold=blocked_threshold,
+        )
+        t_ms = (time.perf_counter() - t0) * 1000
+        _perf_log.info(
+            f"[SCN] policy={self._baseline_id} role=baseline "
+            f"agents={n_agents} horizon={horizon} compute={t_ms:.1f}ms"
         )
         baseline_score = score_branch(baseline_result, self._weights)
         baseline = Scenario(
@@ -118,10 +138,19 @@ class ScenarioBuilder:
                 continue
             runner = TrajectoryBranchRunner(self._env, cand_factory)
             try:
+                t0 = time.perf_counter()
                 result = runner.run_branch(
                     overrides=overrides, max_steps=horizon, blocked_threshold=blocked_threshold,
                 )
-            except Exception:
+                t_ms = (time.perf_counter() - t0) * 1000
+                _perf_log.info(
+                    f"[SCN] policy={cand_id} role=candidate "
+                    f"agents={n_agents} horizon={horizon} compute={t_ms:.1f}ms"
+                )
+            except Exception as e:
+                _perf_log.info(
+                    f"[SCN] policy={cand_id} role=candidate FAILED: {e!r}"
+                )
                 continue
             sc = score_branch(result, self._weights)
             candidates.append(Scenario(
