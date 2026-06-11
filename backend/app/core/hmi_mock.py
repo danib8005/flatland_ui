@@ -144,6 +144,13 @@ def generate_notifications(session_id: str, step: int) -> List[AppNotification]:
                     relatedElement=RelatedElement(kind="train", id=aid),
                 ))
 
+    # Add short-lived event notifications (e.g. override impact alerts).
+    try:
+        from app.core.notification_manager import notification_manager
+        out.extend(notification_manager.get_active(session_id, step))
+    except Exception:
+        pass
+
     return out
 
 

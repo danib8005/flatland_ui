@@ -1,0 +1,7 @@
+<div class="status-bar">
+  @if (store.wsConnected()) {
+    <span class="status-dot connected" title="WebSocket Connected"></span>
+  } @else {
+    <span class="status-dot disconnected" title="WebSocket Disconnected"></span>
+  }
+</div>

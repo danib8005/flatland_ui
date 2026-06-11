@@ -339,24 +339,48 @@ export class MareyChartComponent implements AfterViewInit {
     return all.find(s => s.isBaseline) ?? all[0];
   });
 
-  readonly pathCells = computed<string[]>(() => {
+  readonly mergedTrajectories = computed<Record<string, Array<{ step: number; row: number; col: number; dir: number }>>>(() => {
     const sc = this.forecastScenario();
-    const handle = this.activeHandle();
-    if (!sc || handle == null || !sc.trajectories) return [];
-    const traj = sc.trajectories[String(handle)] ?? [];
-    // Cells in the order the active agent visits them, deduping only
-    // back-to-back identical entries (multi-step dwells) but KEEPING
-    // repeat visits that come from loops — those become separate
-    // X-axis positions so the active agent's line stays monotone.
-    const out: string[] = [];
-    let lastKey = "";
-    for (const p of traj) {
-      const key = `${p.row},${p.col}`;
-      if (key === lastKey) continue;
-      lastKey = key;
-      out.push(key);
+    const now = this.elapsed();
+    if (!sc) return {};
+
+    const forecast = sc.trajectories ?? {};
+    const history = this.store.trajectories();
+    const handles = new Set<string>([
+      ...Object.keys(forecast),
+      ...Array.from(history.keys()).map((h) => String(h)),
+    ]);
+
+    const out: Record<string, Array<{ step: number; row: number; col: number; dir: number }>> = {};
+    for (const handleStr of handles) {
+      const h = Number(handleStr);
+      const hist = (history.get(h) ?? [])
+        .filter((p) => p.position != null && p.step <= now)
+        .map((p) => ({
+          step: p.step,
+          row: Number(p.position![0]),
+          col: Number(p.position![1]),
+          dir: Number(p.direction ?? 0),
+        }));
+
+      const fut = (forecast[handleStr] ?? [])
+        .filter((p) => p.step > now)
+        .map((p) => ({ step: p.step, row: p.row, col: p.col, dir: p.dir }));
+
+      out[handleStr] = [...hist, ...fut];
     }
     return out;
+  });
+
+  readonly pathCells = computed<string[]>(() => {
+    const handle = this.activeHandle();
+    const tr = this.mergedTrajectories();
+    if (handle == null) return [];
+    const traj = tr[String(handle)] ?? [];
+    // Keep every step-cell (including repeated dwells on the same cell).
+    // This makes the topology visibly longer when an agent is delayed,
+    // blocked, or misses the target horizon.
+    return traj.map((p) => `${p.row},${p.col}`);
   });
 
   readonly pathIndex = computed<Map<string, number[]>>(() => {
@@ -374,12 +398,12 @@ export class MareyChartComponent implements AfterViewInit {
    *  auf dem Original-Tile (Map) und der Action des aktiven Zugs (F/L/R), die
    *  aus den `dir`-Werten benachbarter Trajectory-Punkte abgeleitet wird. */
   readonly pathTiles = computed<({ svg: string; rot: number; xCoord: number; yCoord: number } | null)[]>(() => {
-    const sc = this.forecastScenario();
     const handle = this.activeHandle();
     const cells = this.pathCells();
-    if (!sc || handle == null || cells.length === 0 || !sc.trajectories) return [];
+    const tr = this.mergedTrajectories();
+    if (handle == null || cells.length === 0) return [];
 
-    const traj = sc.trajectories[String(handle)] ?? [];
+    const traj = tr[String(handle)] ?? [];
     if (traj.length === 0) return [];
 
     // Cell-key → first index of that cell in the trajectory.
@@ -548,9 +572,10 @@ export class MareyChartComponent implements AfterViewInit {
    *  Returns null when the forecast doesn't reach that cell or any
    *  required snapshot is missing. */
   private _recommendedActionAt(handle: number, decisionPos: [number, number]): number | null {
+    const now = this.elapsed();
     const sc = this.forecastScenario();
     if (!sc?.trajectories) return null;
-    const traj = sc.trajectories[String(handle)];
+    const traj = (sc.trajectories[String(handle)] ?? []).filter((p) => p.step >= now);
     if (!traj || traj.length < 2) return null;
 
     // Find first index where (row,col) == decisionPos.
@@ -573,15 +598,15 @@ export class MareyChartComponent implements AfterViewInit {
   }
 
   readonly agentLines = computed<AgentLine[]>(() => {
-    const sc = this.forecastScenario();
     const active = this.activeHandle();
     const idx = this.pathIndex();
-    if (!sc || active == null || idx.size === 0 || !sc.trajectories) return [];
+    const tr = this.mergedTrajectories();
+    if (active == null || idx.size === 0) return [];
 
     const now = this.elapsed();
     const lines: AgentLine[] = [];
 
-    for (const [handleStr, traj] of Object.entries(sc.trajectories)) {
+    for (const [handleStr, traj] of Object.entries(tr)) {
       const handle = Number(handleStr);
       const isActive = handle === active;
       const past: { x: number; y: number }[] = [];
@@ -629,16 +654,16 @@ export class MareyChartComponent implements AfterViewInit {
 
   /** Agent labels at the START of each line, side determined by motion direction. */
   readonly agentLabels = computed<AgentLabel[]>(() => {
-    const sc = this.forecastScenario();
     const active = this.activeHandle();
     const idx = this.pathIndex();
-    if (!sc || active == null || idx.size === 0 || !sc.trajectories) return [];
+    const tr = this.mergedTrajectories();
+    if (active == null || idx.size === 0) return [];
 
     const out: AgentLabel[] = [];
     const OFFSET = 16;  // distance from line start to circle centre
 
     const now = this.elapsed();
-    for (const [handleStr, traj] of Object.entries(sc.trajectories)) {
+    for (const [handleStr, traj] of Object.entries(tr)) {
       const handle = Number(handleStr);
       const isActive = handle === active;
 

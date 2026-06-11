@@ -14,39 +14,20 @@ export class AgentInspectorComponent {
   store = inject(SessionStore);
   private agentColors = inject(AgentColorService);
 
-  readonly selectedAgents = computed<AgentDTO[]>(() => {
-    const sel = this.store.selectedHandles();
-    return this.store.agents().filter((a) => sel.has(a.handle));
+  readonly activeAgent = computed<AgentDTO | null>(() => {
+    const h = this.store.activeHandle();
+    if (h == null) return null;
+    return this.store.agents().find((a) => a.handle === h) ?? null;
   });
 
-  readonly allAgents = computed<AgentDTO[]>(() => this.store.agents());
-
   /**
-   * Agent dot / badge colour. Selected agents show the 'focus' state,
-   * unselected ones the regular 'default'. Train type comes from
-   * AgentColorService (round-robin over TRAIN_TYPES).
+   * Agent dot / badge colour.
    */
   agentColor(handle: number): string {
-    const state = this.isSelected(handle) ? 'focus' : 'default';
-    return this.agentColors.getColor(handle, state);
-  }
-
-  /** Train type label for tooltips/inspector panels. */
-  trainTypeLabel(handle: number): string {
-    return this.agentColors.getLabel(handle);
-  }
-
-  toggle(handle: number) {
-    this.store.toggleAgentSelection(handle);
-  }
-
-  isSelected(handle: number): boolean {
-    return this.store.selectedHandles().has(handle);
+    return this.agentColors.getColor(handle, 'default');
   }
 
   clearSelection() {
     this.store.clearSelection();
   }
-
-  trackByAgent = (_: number, a: AgentDTO) => a.handle;
 }

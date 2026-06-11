@@ -242,13 +242,21 @@ class TrajectoryBranchRunner:
 
         Uses RailEnvPersister.save → load_new so the clone is a fresh
         RailEnv instance with the same rail layout, agents, schedule
-        and current state as the base env.
+        and current state (incl. current step count) as the base env.
+        
+        The forked env inherits _elapsed_steps from base_env so the
+        branch continues from the current simulation step.
         """
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / f"branch-{uuid.uuid4().hex}.pkl"
             RailEnvPersister.save(self._base_env, str(path))
             forked, _ = RailEnvPersister.load_new(str(path))
-        forked.reset()
+        
+        # Preserve the current step count from the base env so the branch
+        # continues from where the main simulation currently is.
+        if hasattr(self._base_env, "_elapsed_steps"):
+            forked._elapsed_steps = self._base_env._elapsed_steps
+        
         return forked
 
     def _make_override_policy(

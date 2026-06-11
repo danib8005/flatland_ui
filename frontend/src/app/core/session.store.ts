@@ -13,10 +13,9 @@ import { AgentDTO, PolicyInfo, PolicyName, RailTile, SessionInfo, SessionState }
 export interface TrajectoryPoint {
   step: number;
   position: [number, number] | null;
+  direction: number | null;
   state: string;
 }
-
-const MAX_TRAJECTORY_POINTS = 500;
 
 @Injectable({ providedIn: 'root' })
 export class SessionStore {
@@ -36,10 +35,12 @@ export class SessionStore {
     const h = this.selectedHandle();
     return h == null ? new Set<number>() : new Set([h]);
   });
-  // 'Active' = explicitly selected, OR first agent in list (Marey default).
+  // 'Active' = explicit selection; when Marey is visible, fall back to
+  // the first agent so the inspector can show a default context.
   readonly activeHandle = computed<number | null>(() => {
-    const sel = this.selectedHandle();
-    if (sel != null) return sel;
+    const selected = this.selectedHandle();
+    if (selected != null) return selected;
+    if (!this.showMarey()) return null;
     const ags = this.agents();
     return ags.length > 0 ? ags[0].handle : null;
   });
@@ -140,12 +141,9 @@ export class SessionStore {
       const updated = [...list, {
         step: state.elapsed_steps,
         position: a.position,
+        direction: a.direction,
         state: a.state,
       }];
-      // Cap to prevent memory blowup
-      if (updated.length > MAX_TRAJECTORY_POINTS) {
-        updated.splice(0, updated.length - MAX_TRAJECTORY_POINTS);
-      }
       newMap.set(a.handle, updated);
       changed = true;
     }
@@ -169,6 +167,55 @@ export class SessionStore {
     if (!this.showMap() && !this.showMarey()) this.showMap.set(true);
   }
 
+  private _isAnyAgentMoving(st: SessionState | null): boolean {
+    if (!st || st.agents.length === 0) return false;
+    return st.agents.some((a) => a.state === 'MOVING');
+  }
+
+  private _autoAdvanceUntilFirstAgentReady(maxSteps: number = 300): void {
+    const s = this.session();
+    if (!s) return;
+    const policy = this.activePolicy() || this.defaultPolicy();
+    let stepped = 0;
+
+    const run = () => {
+      const st = this.state();
+      if (!st) {
+        this.loading.set(false);
+        return;
+      }
+      if (this._isAnyAgentMoving(st) || st.episode_done || stepped >= maxSteps) {
+        this.loading.set(false);
+        this.refreshForecasts();
+        return;
+      }
+
+      this.loading.set(true);
+      this.api.step(s.id, policy, 1).subscribe({
+        next: () => {
+          stepped += 1;
+          this.api.getState(s.id).subscribe({
+            next: (nextState) => {
+              this.state.set(nextState);
+              this._recordTrajectory(nextState);
+              run();
+            },
+            error: (e) => {
+              this.error.set(`State failed: ${e.message}`);
+              this.loading.set(false);
+            },
+          });
+        },
+        error: (e) => {
+          this.error.set(`Auto-step failed: ${e.message}`);
+          this.loading.set(false);
+        },
+      });
+    };
+
+    run();
+  }
+
   newSession(opts: { width?: number; height?: number; agents?: number; maxSteps?: number } = {}) {
     this.loading.set(true);
     this.error.set(null);
@@ -183,7 +230,7 @@ export class SessionStore {
       next: (s) => {
         this.session.set(s);
         this.ws.connect(s.id);
-        this.refreshState();
+        this.refreshState(true);
       },
       error: (e) => {
         this.error.set(`Create failed: ${e.message}`);
@@ -192,14 +239,18 @@ export class SessionStore {
     });
   }
 
-  refreshState() {
+  refreshState(autoAdvanceFirstAgent: boolean = false) {
     const s = this.session();
     if (!s) return;
     this.api.getState(s.id).subscribe({
       next: (st) => {
         this.state.set(st);
         this._recordTrajectory(st);
-        this.loading.set(false);
+        if (autoAdvanceFirstAgent) {
+          this._autoAdvanceUntilFirstAgentReady();
+        } else {
+          this.loading.set(false);
+        }
       },
       error: (e) => {
         this.error.set(`State failed: ${e.message}`);
@@ -229,7 +280,10 @@ export class SessionStore {
       this._pollHandle = setInterval(() => {
         if (!this.loading()) { this._stopPolling(); return; }
         this.api.getState(s.id).subscribe({
-          next: (st) => this.state.set(st),
+          next: (st) => {
+            this.state.set(st);
+            this._recordTrajectory(st);
+          },
           error: () => { /* swallow — main step request will report */ },
         });
       }, 500);
@@ -240,6 +294,7 @@ export class SessionStore {
         this._stopPolling();
         this.targetStep.set(null);
         this.refreshState();
+        this.refreshForecasts();
       },
       error: (e) => {
         this.error.set(`Step failed: ${e.message}`);
@@ -267,7 +322,7 @@ export class SessionStore {
     this.playing.set(false);
     this._resetTrajectories();
     this.api.reset(s.id).subscribe({
-      next: () => this.refreshState(),
+      next: () => this.refreshState(true),
       error: (e) => {
         this.error.set(`Reset failed: ${e.message}`);
         this.loading.set(false);
@@ -347,7 +402,10 @@ export class SessionStore {
     const s = this.session();
     if (!s) return;
     this.api.setOverride(s.id, handle, action as any).subscribe({
-      next: () => this.refreshState(),
+      next: () => {
+        this.refreshState();
+        this.refreshForecasts();
+      },
       error: (e: any) => this.error.set('Override failed: ' + e.message),
     });
   }
@@ -356,8 +414,24 @@ export class SessionStore {
     const s = this.session();
     if (!s) return;
     this.api.clearOverride(s.id, handle).subscribe({
-      next: () => this.refreshState(),
+      next: () => {
+        this.refreshState();
+        this.refreshForecasts();
+      },
       error: (e: any) => this.error.set('Clear override failed: ' + e.message),
+    });
+  }
+
+  refreshForecasts(): void {
+    const s = this.session();
+    if (!s) return;
+    this.api.getScenarios(s.id).subscribe({
+      next: (scenarios) => this.scenarios.set(scenarios),
+      error: () => {},
+    });
+    this.api.getRecommendations(s.id).subscribe({
+      next: (recs) => this.recommendations.set(recs),
+      error: () => {},
     });
   }
 

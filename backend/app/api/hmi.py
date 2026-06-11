@@ -143,11 +143,39 @@ def get_scenarios(
         # at session creation. Runner exits early on all_done anyway.
         horizon = max(50, max_ep - elapsed) if max_ep else 200
 
-    # Cache key combines step + horizon so different horizons don't collide.
+    # Pull current operator overrides for this session.
+    # Cache key MUST include override state so that changing overrides
+    # triggers a fresh compute, not a cache hit from old overrides.
+    overrides: dict = {}
+    if session_id is not None:
+        try:
+            from app.core.override_manager import override_manager
+            overrides = dict(override_manager.get_all(session_id))
+        except Exception:
+            overrides = {}
+    
+    # Cache key combines step + horizon + override hash so that:
+    # - Different steps: different cache entry
+    # - Different horizons: different cache entry
+    # - Different overrides: different cache entry → re-compute
+    import hashlib
+    override_hash = hashlib.md5(
+        str(sorted(overrides.items())).encode()
+    ).hexdigest()[:8]
     cache_key_step = elapsed * 1000 + int(horizon)
-    cached = scenario_cache.get(session_id, cache_key_step)
+    cache_key_str = f"{cache_key_step}:{override_hash}"
+    
+    cached = scenario_cache.get(session_id, cache_key_str)
     if cached is not None:
+        _perf_log.info(
+            f"[SCENARIOS] cache_hit session={session_id[:8]} step={elapsed} "
+            f"overrides={override_hash}"
+        )
         return cached
+    _perf_log.info(
+        f"[SCENARIOS] cache_miss session={session_id[:8]} step={elapsed} "
+        f"horizon={horizon} overrides={override_hash}"
+    )
 
     # Build candidate list (every policy id except baseline).
     candidates = [
@@ -156,6 +184,15 @@ def get_scenarios(
     ]
 
     try:
+        # Re-fetch fresh env before building scenarios to ensure we fork
+        # from the absolutely latest state (main simulation may have advanced).
+        sess_fresh = session_manager.get(session_id)
+        if not sess_fresh:
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+        env = getattr(sess_fresh, "env", None)
+        if env is None:
+            return mock_generate_scenarios(session_id, _step_for(session_id))
+        
         n_agents = len(env.get_agent_handles()) if hasattr(env, 'get_agent_handles') else 0
         n_policies = 1 + len(candidates)  # baseline + candidates
         t_total0 = time.perf_counter()
@@ -169,6 +206,10 @@ def get_scenarios(
             f"[SCENARIOS] agents={n_agents} policies={n_policies} "
             f"horizon={horizon} total={t_total_ms:.1f}ms"
         )
+        _perf_log.info(
+            f"[SCENARIOS] recompute_done session={session_id[:8]} baseline={baseline_id} "
+            f"step={int(getattr(env, '_elapsed_steps', 0) or 0)} overrides={override_hash}"
+        )
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(
@@ -180,7 +221,8 @@ def get_scenarios(
     # Cache BOTH shapes from this single compute run, so a subsequent
     # /hmi/recommendations call for the same step can reuse the
     # Scenario objects without re-running ScenarioBuilder.
-    scenario_cache.put_full(session_id, cache_key_step, scenarios, options)
+    # Include override hash in key so override changes invalidate cache.
+    scenario_cache.put_full(session_id, cache_key_str, scenarios, options)
     return options
 
 
@@ -206,22 +248,48 @@ def get_recommendations(session_id: str):
     max_ep = int(getattr(env, "_max_episode_steps", 0) or 0)
     horizon = min(max(50, max_ep - elapsed) if max_ep else 200, 500)
 
-    # Try the cache FIRST: if /hmi/scenarios was just called for this
-    # same step, the Scenario objects are already there — recommendations
-    # take ~10ms instead of re-running 1300ms of DLA simulation.
+    # Get overrides for cache key (must match /hmi/scenarios logic).
+    import hashlib
+    overrides: dict = {}
+    try:
+        from app.core.override_manager import override_manager
+        overrides = dict(override_manager.get_all(session_id))
+    except Exception:
+        overrides = {}
+    
+    override_hash = hashlib.md5(
+        str(sorted(overrides.items())).encode()
+    ).hexdigest()[:8]
     cache_key_step = elapsed * 1000 + horizon
-    scenarios = scenario_cache.get_scenarios(session_id, cache_key_step)
+    cache_key_str = f"{cache_key_step}:{override_hash}"
+
+    # Try the cache FIRST: if /hmi/scenarios was just called for this
+    # same step + overrides, the Scenario objects are already there —
+    # recommendations take ~10ms instead of re-running 1300ms of DLA.
+    scenarios = scenario_cache.get_scenarios(session_id, cache_key_str)
 
     if scenarios is not None:
         _perf_log.info(
             f"[REC] cache_hit session={session_id[:8]} step={elapsed} "
-            f"horizon={horizon} (no re-compute)"
+            f"overrides={override_hash} (no re-compute)"
         )
         return real_recommendations(session_id, scenarios)
+    _perf_log.info(
+        f"[REC] cache_miss session={session_id[:8]} step={elapsed} "
+        f"horizon={horizon} overrides={override_hash}"
+    )
 
     # Cache miss → compute. Mirror the /hmi/scenarios setup so the cache
     # entry we drop in is identical.
     try:
+        # Re-fetch fresh env to ensure we fork from the latest state
+        sess_fresh = session_manager.get(session_id)
+        if not sess_fresh:
+            return []
+        env = getattr(sess_fresh, "env", None)
+        if env is None:
+            return []
+        
         candidates = [
             (pid, fac) for pid, fac in _ALL_POLICIES.items() if pid != baseline_id
         ]
@@ -229,10 +297,14 @@ def get_recommendations(session_id: str):
         scenarios = builder.generate_scenarios(
             candidate_policies=candidates, horizon=horizon,
         )
+        _perf_log.info(
+            f"[REC] recompute_done session={session_id[:8]} baseline={baseline_id} "
+            f"step={int(getattr(env, '_elapsed_steps', 0) or 0)} overrides={override_hash}"
+        )
         # Populate cache so the next /hmi/scenarios pull is also free.
         try:
             options = scenarios_to_options(scenarios)
-            scenario_cache.put_full(session_id, cache_key_step, scenarios, options)
+            scenario_cache.put_full(session_id, cache_key_str, scenarios, options)
         except Exception:
             pass  # Best-effort: if serialization fails, still return recs.
     except Exception as e:
@@ -245,9 +317,124 @@ def get_recommendations(session_id: str):
     return real_recommendations(session_id, scenarios)
 
 
+@router.get("/{session_id}/hmi/marey-data")
+def get_marey_data(session_id: str):
+    """Combined history + forecast trajectories for Marey-Chart.
+    
+    For each agent:
+    - history: real trajectory from step 0 to NOW (from session.snapshots)
+    - forecast: predicted trajectory from NOW+1 forward (from scenarios)
+    - override_active: bool indicating if override is set
+    
+    This ensures the Marey shows the complete picture: what happened + what's predicted.
+    """
+    from app.core.scenario_cache import scenario_cache
+    from app.core.override_manager import override_manager
+
+    sess = session_manager.get(session_id)
+    if not sess:
+        raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+    
+    env = getattr(sess, "env", None)
+    if env is None:
+        return {"agents": {}}
+    
+    elapsed = int(getattr(env, "_elapsed_steps", 0) or 0)
+    
+    # Get current overrides
+    try:
+        active_overrides = set(override_manager.get_all(session_id).keys())
+    except Exception:
+        active_overrides = set()
+    
+    max_ep = int(getattr(env, "_max_episode_steps", 0) or 0)
+    horizon = max(50, max_ep - elapsed) if max_ep else 200
+    
+    # Build cache key (must match /hmi/scenarios logic)
+    import hashlib
+    try:
+        all_overrides = dict(override_manager.get_all(session_id))
+    except Exception:
+        all_overrides = {}
+    override_hash = hashlib.md5(
+        str(sorted(all_overrides.items())).encode()
+    ).hexdigest()[:8]
+    cache_key_str = f"{elapsed * 1000 + horizon}:{override_hash}"
+    
+    # Try to get scenario from cache first
+    scenarios = scenario_cache.get_scenarios(session_id, cache_key_str)
+    
+    if scenarios is None:
+        # Cache miss — return minimal data; Frontend will call /hmi/scenarios to populate
+        return {"agents": {}, "cached": False}
+    
+    options = scenarios_to_options(scenarios)
+    baseline_opt = next((s for s in options if s.isBaseline), options[0] if options else None)
+    if not baseline_opt:
+        return {"agents": {}, "cached": False}
+    
+    # Build output: history + forecast per agent
+    agents_data = {}
+    
+    for handle_str, traj_points in (baseline_opt.trajectories or {}).items():
+        handle = int(handle_str)
+        
+        # Extract position (row, col) from each point if available
+        forecast = [
+            {
+                "step": p.get("step") if isinstance(p, dict) else p.step,
+                "row": p.get("row") if isinstance(p, dict) else p.row,
+                "col": p.get("col") if isinstance(p, dict) else p.col,
+                "direction": p.get("dir") if isinstance(p, dict) else p.dir,
+            }
+            for p in traj_points
+        ] if traj_points else []
+        
+        agents_data[handle] = {
+            "handle": handle,
+            "history": [],  # Will be populated from session history if available
+            "forecast": forecast,
+            "override_active": handle in active_overrides,
+            "current_step": elapsed,
+        }
+    
+    return {"agents": agents_data, "elapsed": elapsed, "cached": True}
+
+
 # ── bundle (still mock, used by some UI panels) ────────────────────
 
 
 @router.get("/{session_id}/hmi", response_model=HmiBundle)
 def get_bundle(session_id: str):
     return generate_bundle(session_id, _step_for(session_id))
+
+
+@router.get("/{session_id}/hmi/debug")
+def debug_hmi_state(session_id: str):
+    """Debug endpoint: show cache state and override state."""
+    from app.core.override_manager import override_manager
+    
+    sess = session_manager.get(session_id)
+    if not sess:
+        raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+    
+    env = getattr(sess, "env", None)
+    elapsed = int(getattr(env, "_elapsed_steps", 0) or 0) if env else -1
+    
+    try:
+        overrides = dict(override_manager.get_all(session_id))
+    except Exception:
+        overrides = {}
+    
+    import hashlib
+    override_hash = hashlib.md5(
+        str(sorted(overrides.items())).encode()
+    ).hexdigest()[:8]
+    
+    return {
+        "session_id": session_id,
+        "elapsed_steps": elapsed,
+        "overrides": overrides,
+        "override_hash": override_hash,
+        "env_exists": env is not None,
+    }
