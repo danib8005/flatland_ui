@@ -1,7 +1,9 @@
 :host {
   display: block;
-  height: 100%;
-  overflow-y: auto;
+  height: auto;
+  overflow: visible;
+  border-bottom: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  background: var(--sbb-color-milk, #f6f6f6);
 }
 
 .sidebar-content {
@@ -57,8 +59,8 @@
 }
 
 .agent-card {
-  background: var(--sbb-color-milk, #f6f6f6);
-  border: 1px solid transparent;
+  background: white;
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
   border-radius: 4px;
   padding: 8px 10px;
   cursor: pointer;
@@ -66,12 +68,13 @@
 }
 .agent-card:hover {
   background: white;
-  border-color: var(--sbb-color-cloud, #d2d2d2);
+  border-color: var(--sbb-color-charcoal, #212121);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 .agent-card.selected {
   background: white;
   border-color: var(--sbb-color-orange, #ffaa00);
-  box-shadow: 0 0 0 1px var(--sbb-color-orange, #ffaa00);
+  box-shadow: 0 0 0 2px var(--sbb-color-orange, #ffaa00);
 }
 
 .agent-header {
@@ -308,14 +311,6 @@
   background: #dff2e0;
   color: #2a8a3a;
   font-weight: 600;
-}
-
-/* Dim WAITING and DONE so MOVING agents pop */
-.agent-card.dimmed {
-  opacity: 0.6;
-}
-.agent-card.dimmed:hover {
-  opacity: 0.9;
 }
 
 /* ──────────────────────────────────────────────────────────────── */

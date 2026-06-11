@@ -10,6 +10,7 @@ from app.core.session_manager import session_manager
 from app.core.serializer import serialize_env
 from app.core.ws_manager import ws_manager
 from app.core.override_manager import override_manager
+from app.core.notification_manager import notification_manager
 from app.models.session import (
     SessionCreateRequest,
     SessionInfo,
@@ -231,6 +232,7 @@ async def reset_session(session_id: str):
     session.last_observations = obs
     session.last_info = info
     override_manager.clear_all(session_id)
+    notification_manager.clear_session(session_id)
 
     await _broadcast_state(session_id, session.env)
 
@@ -265,6 +267,7 @@ def delete_session(session_id: str):
     if not session_manager.delete(session_id):
         raise HTTPException(404, f"Session {session_id} not found")
     override_manager.clear_all(session_id)
+    notification_manager.clear_session(session_id)
     return {"deleted": session_id}
 
 

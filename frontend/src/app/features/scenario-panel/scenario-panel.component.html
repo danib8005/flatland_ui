@@ -14,9 +14,7 @@
           <!-- Header row -->
           <div class="card-header">
             <h4 class="title">{{ s.title }}</h4>
-            @if (s.isBaseline) {
-              <span class="badge current">Current</span>
-            } @else if (s.isRecommended) {
+            @if (s.isRecommended) {
               <span class="badge recommended">Recommended</span>
             } @else if (s.tag === 'avoid') {
               <span class="badge avoid">Avoid</span>
@@ -38,10 +36,9 @@
               <span class="kpi-value">{{ s.kpis?.done ?? '–' }}/{{ totalAgents() }}</span>
             </span>
             <span class="kpi-pill" [class.bad]="(s.kpis?.deadlocks ?? 0) > 0">
-              <span class="kpi-label">Stuck</span>
+              <span class="kpi-label">Deadlock</span>
               <span class="kpi-value">
                 {{ s.kpis?.deadlocks ?? '–' }}
-                @if ((s.kpis?.deadlocks ?? 0) > 0) { <span class="kpi-unit"> in deadlock</span> }
               </span>
             </span>
             <span class="kpi-pill" [class.warn]="(s.kpis?.meanDelay ?? 0) > 5">
@@ -57,7 +54,6 @@
               <span class="kpi-label">Steps</span>
               <span class="kpi-value">
                 {{ s.kpis?.episodeSteps ?? '–' }}
-                <span class="kpi-unit">{{ s.kpis?.episodeFinished ? '✓' : '✗' }}</span>
               </span>
             </span>
           </div>

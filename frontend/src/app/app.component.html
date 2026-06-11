@@ -7,13 +7,14 @@
     <div class="header-meta">
       <span class="grid_info-id">Grid: {{ store.state()?.width }} × {{ store.state()?.height }}</span>
       <span class="anzahl_Agents-id">Agents: {{ store.agents().length }}</span>
-      <span class="session-id">Session: {{ store.session()?.id }}</span>
+      <span class="session-id">
+        Session: {{ store.session()?.id }}
+        <button class="btn-close" (click)="reset()" title="Close session">×</button>
+      </span>
+      <span class="connection-status" [class.connected]="store.wsConnected()">
+        <span class="dot"></span>
+      </span>
     </div>
-  }
-
-<!-- Session meta (compact) -->
-  @if (store.session()) {
-    
   }
 
 </header>
@@ -24,8 +25,10 @@
   <div class="three-col">
     <aside class="left-pane">
       <app-notifications-panel></app-notifications-panel>
-      <app-left-sidebar></app-left-sidebar>
       <app-layer-visibility></app-layer-visibility>
+      <div class="left-kpi-filter">
+        <app-kpi-filter></app-kpi-filter>
+      </div>
     </aside>
 
     <section class="center-pane">
@@ -55,8 +58,11 @@
     <aside class="right-pane">
       <app-scenario-panel></app-scenario-panel>
       <app-recommendations-panel></app-recommendations-panel>
+      <section class="agents-section">
+        <h3 class="agents-section-title">Agents</h3>
+        <app-left-sidebar></app-left-sidebar>
+      </section>
       <app-agent-inspector></app-agent-inspector>
-      <app-kpi-filter></app-kpi-filter>
     </aside>
   </div>
 } @else {
@@ -106,19 +112,27 @@
 }
 
 <footer class="footer">
-  @if (store.session()) {
-    <span>Step: <strong>{{ store.elapsedSteps() }}</strong> / {{ store.maxSteps() }}</span>
-    <span>Agents: <strong>{{ store.agents().length }}</strong></span>
-    @if (store.playing()) {
-      <span class="playing-indicator">
-        <sbb-loading-indicator-circle size="s"></sbb-loading-indicator-circle>
-        Playing
-      </span>
+  <div class="footer-left">
+    @if (store.session()) {
+      <span>Step: <strong>{{ store.elapsedSteps() }}</strong> / {{ store.maxSteps() }}</span>
+      <span>Agents: <strong>{{ store.agents().length }}</strong></span>
+      @if (store.playing()) {
+        <span class="playing-indicator">
+          <sbb-loading-indicator-circle size="s"></sbb-loading-indicator-circle>
+          Playing
+        </span>
+      }
+      @if (store.loading()) {
+        <span class="loading">Loading…</span>
+      }
+    } @else {
+      <span class="footer-idle">No active session</span>
     }
-    @if (store.loading()) {
-      <span class="loading">Loading…</span>
-    }
-  } @else {
-    <span class="footer-idle">No active session</span>
-  }
+  </div>
+  
+  <div class="footer-right">
+    <span class="ws-status" [class.connected]="store.wsConnected()" title="WebSocket connection">
+      <span class="ws-dot"></span>
+    </span>
+  </div>
 </footer>

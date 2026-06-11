@@ -59,7 +59,7 @@ def _describe(
     # ── Baseline (current policy) ───────────────────────────────
     if is_baseline:
         if n_dl > 0:
-            return f"⚠ {n_dl} train(s) end up stuck in deadlock"
+            return f"⚠ {n_dl} train(s) end up in deadlock"
         if n_done == total_agents:
             return f"✓ All {total_agents} trains will arrive"
         if n_done == 0:
@@ -74,7 +74,7 @@ def _describe(
 
     # Worst signal first: deadlocks introduced
     if d_dl > 0:
-        return f"⚠ Would leave {d_dl} more train(s) stuck in deadlock"
+        return f"⚠ Would leave {d_dl} more train(s) in deadlock"
 
     # Catastrophic loss of arrivals
     if n_done == 0 and d_done < 0:

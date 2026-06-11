@@ -1,0 +1,29 @@
+:host {
+  display: block;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--sbb-color-granite, #686868);
+  padding: 8px 12px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.connected {
+  background: #00973b;
+  cursor: help;
+}
+
+.status-dot.disconnected {
+  background: #eb0000;
+  cursor: help;
+}

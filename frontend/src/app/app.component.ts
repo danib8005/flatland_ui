@@ -1,5 +1,6 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject, signal } from '@angular/core';
 import { ToolbarComponent } from './features/toolbar/toolbar.component';
+import { StatusBarComponent } from './features/status-bar/status-bar.component';
 import { AgentInspectorComponent } from './features/agent-inspector/agent-inspector.component';
 import { LeftSidebarComponent } from './features/left-sidebar/left-sidebar.component';
 import { ViewToggleComponent } from './features/view-toggle/view-toggle.component';
@@ -17,6 +18,7 @@ import { SessionStore } from './core/session.store';
   standalone: true,
   imports: [
     ToolbarComponent,
+    StatusBarComponent,
     TrackLayoutComponent,
     GraphicTimetableComponent,
     LayerVisibilityComponent,
@@ -47,6 +49,10 @@ export class AppComponent implements OnInit {
       agents: this.newAgents(),
       maxSteps: this.newMaxSteps(),
     });
+  }
+
+  reset() {
+    this.store.reset();
   }
 
   ngOnInit(): void {
