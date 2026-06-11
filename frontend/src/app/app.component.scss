@@ -30,6 +30,15 @@
   letter-spacing: 1px;
 }
 
+
+.header-app-logo {
+  /* Height-aligned with the SBB block / header-title (~28px tall).
+     Aspect ratio 144x58 means width ~70px at 28px height. */
+  height: 28px;
+  width: auto;
+  display: block;
+}
+
 .header-title {
   font-size: 18px;
   font-weight: 600;
@@ -175,8 +184,13 @@
 }
 
 .welcome-icon {
-  font-size: 56px;
-  line-height: 1;
+  /* Logo-Bild (kein Emoji mehr): feste Breite, automatische Höhe
+     wahrt das 144x58 Aspect Ratio. Display block damit die Box
+     im Flex-/Block-Layout der welcome-card sauber zentriert. */
+  display: block;
+  width: 220px;
+  height: auto;
+  margin: 0 auto;
 }
 
 .welcome-title {
