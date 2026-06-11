@@ -106,23 +106,6 @@ sbb-tag {
   font-weight: 600;
 }
 
-.ws-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 4px;
-
-  &.connected {
-    background: #00973b;
-    box-shadow: 0 0 0 2px rgba(0, 151, 59, 0.2);
-  }
-
-  &.disconnected {
-    background: var(--sbb-color-granite, #686868);
-  }
-}
-
 .info-msg {
   font-size: 13px;
   color: var(--sbb-color-orange, #ffaa00);
