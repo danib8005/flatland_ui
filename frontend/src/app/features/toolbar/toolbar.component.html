@@ -20,7 +20,7 @@
     }
 
     <div class="speed-control">
-      <label>Speed</label>
+      <label>Simulation speed</label>
       <input
         type="range"
         min="1"
@@ -29,7 +29,7 @@
         [value]="speed()"
         (input)="onSpeedChange($event)"
         class="slider" />
-      <span class="speed-value">{{ speed() }} st/s</span>
+      <span class="speed-value">{{ speed() }} step{{ speed() > 1 ? 's' : '' }}</span>
     </div>
 
     <!-- Step-Buttons nur sichtbar wenn NICHT Playing -->

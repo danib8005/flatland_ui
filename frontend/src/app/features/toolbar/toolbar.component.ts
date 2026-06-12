@@ -19,7 +19,7 @@ export class ToolbarComponent {
 
   policy = signal<PolicyName>('deadlock_avoidance');
   enabledPolicyIds = signal<string[]>([]);
-  speed = signal(5);
+  speed = signal(1);
 
   readonly selectablePolicies = computed(() => {
     const enabled = new Set(this.enabledPolicyIds());
