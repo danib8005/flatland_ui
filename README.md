@@ -1,8 +1,9 @@
 # Flatland Dispatcher- A Human-AI Teaming Playground (UI)
 
 
-Human-in-the-loop train dispatching based on the Flatland Reinforcement Learning environment, integrated into the AI4REALNET research project.  
-Frontend follows the official SBB Design System and uses SBB Lyne Web Components.
+Human-in-the-loop train dispatching based on the [Flatland Reinforcement Learning environment](https://www.flatland-association.org/projects), integrated into the [AI4REALNET](https://ai4realnet.eu/) research project.  
+
+Frontend follows the official [SBB Design System](https://digital.sbb.ch/en/) and uses [SBB Lyne Web Components](https://lyne-angular.app.sbb.ch/).
 
 [preview.webm](https://github.com/user-attachments/assets/0162eea7-570a-4d50-a979-b0b2b84d3707)
 
@@ -194,8 +195,8 @@ npm run start
 
 The UI follows the official SBB Design System and uses SBB Lyne Web Components:
 
-- SBB Design System: https://digital.sbb.ch/en/design-system  
-- SBB Lyne Web Components: https://digital.sbb.ch/en/design-system/web-components  
+- SBB Design System: https://digital.sbb.ch/en/
+- SBB Lyne Web Components: https://lyne-angular.app.sbb.ch/)
 - Lyne GitHub: https://github.com/sbb-design-systems/lyne-components  
 
 Benefits:
@@ -209,9 +210,8 @@ Benefits:
 
 Flatland is a multi-agent RL environment for railway dispatching:
 
-- GitHub: https://github.com/flatland-rl/flatland  
-- Documentation: https://flatland-rl-docs.s3.eu-central-1.amazonaws.com/index.html  
-
+- GitHub:  https://github.com/flatland-association/flatland-rl
+- Documentation: https://flatland-association.github.io/flatland-book/challenges/ecml2026.html
 Features:
 
 - Grid-based railway topology  
