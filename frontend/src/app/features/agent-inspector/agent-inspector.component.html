@@ -1,15 +1,30 @@
-<div class="inspector">
-  <div class="section">
-    <div class="section-header">
-      <h3>Agent Details</h3>
-      @if (activeAgent()) {
-        <button class="btn-clear" (click)="clearSelection()">Clear</button>
-      }
-    </div>
-
-    @if (!activeAgent()) {
-      <p class="empty">Wähle einen Agenten in MOVING / WAITING / DONE aus.</p>
+<div class="inspector" [class.has-agent]="!!activeAgent()" tabindex="0">
+  <div
+    class="inspector-line"
+    (mouseenter)="onLineMouseEnter($event)"
+    (mousemove)="onLineMouseMove($event)"
+    (mouseleave)="onLineMouseLeave()">
+    <span class="line-label">Agent Info</span>
+    @if (activeAgent()) {
+      <span class="line-train">Agent {{ activeAgent()!.handle }}</span>
+      <span class="line-hint">hover</span>
+      <button class="line-clear" (click)="clearSelection()">Clear</button>
     } @else {
+      <span class="line-placeholder">Select an agent</span>
+    }
+  </div>
+
+  @if (activeAgent() && popoverVisible()) {
+    <div
+      class="hover-popover"
+      [style.left.px]="popoverLeft()"
+      [style.top.px]="popoverTop()"
+      (mouseenter)="onPopoverMouseEnter()"
+      (mouseleave)="onPopoverMouseLeave()">
+      <div class="section-header">
+        <h3>Agent Details</h3>
+      </div>
+
       <div class="detail-card">
         <div class="card-header">
           <span class="dot" [style.background]="agentColor(activeAgent()!.handle)"></span>
@@ -39,6 +54,6 @@
           <dd>{{ activeAgent()!.latest_arrival ?? '–' }}</dd>
         </dl>
       </div>
-    }
-  </div>
+    </div>
+  }
 </div>

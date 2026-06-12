@@ -27,7 +27,7 @@ export class LeftSidebarComponent {
   // Collapsed state per group (default: all open).
   readonly collapsed = signal<Record<AgentGroup, boolean>>({
     MOVING: false,   // header is decorative, not clickable
-    WAITING: false,
+    WAITING: true,
     DONE: false,
   });
 

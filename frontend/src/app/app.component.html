@@ -1,8 +1,11 @@
 <header class="header"><div class="header-brand">
     <img class="header-app-logo" src="/ai4realnet_logo.svg" alt="AI4REALNET" />
     <!-- <span class="header-logo">SBB CFF FFS</span> -->
-    <span class="header-title">Flatland Dispatcher</span>
   </div>
+  <span class="header-title">
+    <span class="header-title-main">Flatland Dispatcher</span>
+    <span class="header-title-sub">- A Human-AI Teaming Playground</span>
+  </span>
   @if (store.session()) {
     <div class="header-meta">
       <span class="grid_info-id">Grid: {{ store.state()?.width }} × {{ store.state()?.height }}</span>
@@ -51,10 +54,7 @@
     <aside class="right-pane">
       <app-scenario-panel></app-scenario-panel>
       <app-recommendations-panel></app-recommendations-panel>
-      <section class="agents-section">
-        <h3 class="agents-section-title">Agents</h3>
-        <app-left-sidebar></app-left-sidebar>
-      </section>
+      <app-agents-panel></app-agents-panel>
       <app-agent-inspector></app-agent-inspector>
     </aside>
   </div>
