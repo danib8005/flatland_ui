@@ -4,6 +4,9 @@
 Human-in-the-loop train dispatching based on the Flatland Reinforcement Learning environment, integrated into the AI4REALNET research project.  
 Frontend follows the official SBB Design System and uses SBB Lyne Web Components.
 
+[preview.webm](https://github.com/user-attachments/assets/0162eea7-570a-4d50-a979-b0b2b84d3707)
+
+
 ---
 
 ## Overview
