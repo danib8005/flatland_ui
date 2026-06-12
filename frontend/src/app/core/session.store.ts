@@ -70,12 +70,21 @@ export class SessionStore {
   readonly availablePolicies = computed<PolicyInfo[]>(() => this._policies());
   readonly defaultPolicy = computed<PolicyName>(() => {
     const def = this._policies().find((p) => p.is_default);
-    return (def?.id ?? 'deadlock_avoidance') as PolicyName;
+    const first = this._policies()[0];
+    return (def?.id ?? first?.id ?? 'deadlock_avoidance') as PolicyName;
   });
 
   loadPolicies(): void {
     this.api.listPolicies().subscribe({
-      next: (list) => this._policies.set(list),
+      next: (list) => {
+        this._policies.set(list);
+        if (list.length === 0) return;
+        const current = this._activePolicy();
+        if (!list.some((p) => p.id === current)) {
+          const def = list.find((p) => p.is_default) ?? list[0];
+          this._activePolicy.set(def.id as PolicyName);
+        }
+      },
       error: (err) => console.warn('Failed to load policies', err),
     });
   }
@@ -260,6 +269,10 @@ export class SessionStore {
   }
 
   step(policy: PolicyName, n_steps: number = 1) {
+    this._stepWithPolicy(policy, n_steps, true);
+  }
+
+  private _stepWithPolicy(policy: PolicyName, n_steps: number, canRecover: boolean) {
     const s = this.session();
     if (!s) return;
     if (this.episodeDone()) {
@@ -297,6 +310,10 @@ export class SessionStore {
         this.refreshForecasts();
       },
       error: (e) => {
+        if (canRecover && this._isPolicyNotEnabledError(e)) {
+          this._recoverPolicyAndRetryStep(s.id, n_steps);
+          return;
+        }
         this.error.set(`Step failed: ${e.message}`);
         this._stopPolling();
         this.targetStep.set(null);
@@ -331,6 +348,10 @@ export class SessionStore {
   }
 
   play(policy: PolicyName, speed: number = 5) {
+    this._playWithPolicy(policy, speed, true);
+  }
+
+  private _playWithPolicy(policy: PolicyName, speed: number, canRecover: boolean) {
     const s = this.session();
     if (!s) return;
     if (this.episodeDone()) {
@@ -344,6 +365,10 @@ export class SessionStore {
         this.error.set(null);
       },
       error: (e) => {
+        if (canRecover && this._isPolicyNotEnabledError(e)) {
+          this._recoverPolicyAndRetryPlay(s.id, speed);
+          return;
+        }
         this.error.set(`Play failed: ${e.message}`);
       },
     });
@@ -441,6 +466,51 @@ export class SessionStore {
 
   setActivePolicy(policy: PolicyName): void {
     this._activePolicy.set(policy);
+  }
+
+  private _isPolicyNotEnabledError(err: any): boolean {
+    const msg = String(err?.error?.detail ?? err?.message ?? '').toLowerCase();
+    return msg.includes('not enabled');
+  }
+
+  private _recoverPolicyAndRetryStep(sessionId: string, n_steps: number): void {
+    this.api.getScenarioPolicies(sessionId).subscribe({
+      next: (cfg) => {
+        const fallback = cfg.enabled_ids?.[0] as PolicyName | undefined;
+        if (!fallback) {
+          this.error.set('Step failed: no enabled policy available');
+          this._stopPolling();
+          this.targetStep.set(null);
+          this.loading.set(false);
+          return;
+        }
+        this.setActivePolicy(fallback);
+        this._stepWithPolicy(fallback, n_steps, false);
+      },
+      error: () => {
+        this.error.set('Step failed: unable to resolve enabled policies');
+        this._stopPolling();
+        this.targetStep.set(null);
+        this.loading.set(false);
+      },
+    });
+  }
+
+  private _recoverPolicyAndRetryPlay(sessionId: string, speed: number): void {
+    this.api.getScenarioPolicies(sessionId).subscribe({
+      next: (cfg) => {
+        const fallback = cfg.enabled_ids?.[0] as PolicyName | undefined;
+        if (!fallback) {
+          this.error.set('Play failed: no enabled policy available');
+          return;
+        }
+        this.setActivePolicy(fallback);
+        this._playWithPolicy(fallback, speed, false);
+      },
+      error: () => {
+        this.error.set('Play failed: unable to resolve enabled policies');
+      },
+    });
   }
 
 }

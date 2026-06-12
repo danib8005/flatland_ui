@@ -16,12 +16,18 @@ class PolicyInfo(BaseModel):
 
 @router.get("/policies", response_model=list[PolicyInfo])
 def list_policies() -> list[PolicyInfo]:
+    specs = policy_specs(include_hidden=False)
+    if not specs:
+        return []
+
+    default_id = next((spec.id for spec in specs if spec.is_default), specs[0].id)
+
     return [
         PolicyInfo(
             id=spec.id,
             label=spec.label,
             description=spec.description,
-            is_default=spec.is_default,
+            is_default=(spec.id == default_id),
         )
-        for spec in policy_specs(include_hidden=False)
+        for spec in specs
     ]
