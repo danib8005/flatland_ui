@@ -22,17 +22,20 @@ Frontend: Angular 18 (standalone components, signals) + SBB Lyne Elements.
 - Node.js 20+ / npm 10+
 
 ## Backend - Setup + Start
-
+```bash
 cd ~/workspace/ai4realnet/flatland_ui/backend
+```
 
 # Erstmals: virtuelle Umgebung
+```
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-
+```
 # Start (Auto-Reload bei Code-Aenderung)
+```
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
+```
 
 Backend laeuft dann auf http://localhost:8000:
 - API-Docs interactive: http://localhost:8000/docs
