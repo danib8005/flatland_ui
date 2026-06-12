@@ -1,8 +1,23 @@
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   border-bottom: 1px solid var(--sbb-color-cloud, #d2d2d2);
   padding: 12px 16px;
   background: var(--sbb-color-milk, #f6f6f6);
+  overflow-y: auto;
+  min-height: auto;
+}
+
+:host:not(:has(.empty)) {
+  min-height: 200px;
+}
+
+:host:has(.empty) {
+  min-height: 0;
+  flex: 0;
+  padding: 0;
+  border-bottom: none;
 }
 
 .panel-title {

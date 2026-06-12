@@ -1,0 +1,9 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  border-bottom: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  background: var(--sbb-color-milk, #f6f6f6);
+  overflow-y: auto;
+  min-height: 0;
+}

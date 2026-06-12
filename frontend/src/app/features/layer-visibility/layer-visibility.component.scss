@@ -1,8 +1,17 @@
 :host {
   display: block;
+  flex-shrink: 0;
   border-top: 1px solid var(--sbb-color-cloud, #d2d2d2);
   padding: 12px 16px;
-  background: var(--sbb-color-milk, #f6f6f6);
+  background: var(--sbb-color-milk, #f6f6f6); 
+  border-radius: 4px;
+  margin-bottom: 4px;
+  margin-top: 4px;
+  margin-left: 4px;
+  margin-right: 4px;
+  min-height: 165px;
+  max-height: 165px;
+  overflow-y: auto;
 }
 
 .panel-title {

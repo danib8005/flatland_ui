@@ -1,7 +1,7 @@
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, effect, inject, signal } from '@angular/core';
 import { ToolbarComponent } from './features/toolbar/toolbar.component';
 import { AgentInspectorComponent } from './features/agent-inspector/agent-inspector.component';
-import { LeftSidebarComponent } from './features/left-sidebar/left-sidebar.component';
+import { AgentsPanelComponent } from './features/agents-panel/agents-panel.component';
 import { ViewToggleComponent } from './features/view-toggle/view-toggle.component';
 import { TrackLayoutComponent } from './features/track-layout/track-layout.component';
 import { GraphicTimetableComponent } from './features/graphic-timetable/graphic-timetable.component';
@@ -26,7 +26,7 @@ import { SessionStore } from './core/session.store';
     KpiFilterComponent,
     RecommendationsPanelComponent,
     AgentInspectorComponent,
-    LeftSidebarComponent,
+    AgentsPanelComponent,
     ViewToggleComponent,
   ],
   templateUrl: './app.component.html',

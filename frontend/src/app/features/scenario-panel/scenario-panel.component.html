@@ -43,7 +43,7 @@
               </span>
             </span>
             <span class="kpi-pill" [class.warn]="(s.kpis?.meanDelay ?? 0) > 5">
-              <span class="kpi-label">Mean Delay</span>
+              <span class="kpi-label">Delay</span>
               <span class="kpi-value">
                 {{ s.kpis?.meanDelay ?? '–' }}
                 @if ((s.kpis?.totalDelay ?? 0) > 0) {
