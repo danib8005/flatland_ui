@@ -54,7 +54,7 @@ def test_override_cleared_after_application_at_switch():
         pytest.skip("no agent reached a SWITCH/MERGING in 60 steps")
 
     # Set override.
-    override_manager.set(sid, handle_at_switch, int(RailEnvActions.MOVE_LEFT))
+    override_manager.set(sid, handle_at_switch, RailEnvActions.MOVE_LEFT.value)
     assert override_manager.get(sid, handle_at_switch) is not None
 
     # Run act_many: should apply AND clear.
@@ -62,7 +62,7 @@ def test_override_cleared_after_application_at_switch():
     obs = {h: env for h in handles}
     actions = pol.act_many(handles, obs)
 
-    assert int(actions[handle_at_switch]) == int(RailEnvActions.MOVE_LEFT), (
+    assert actions[handle_at_switch] == RailEnvActions(RailEnvActions.MOVE_LEFT.value), (
         "override should win at the switch"
     )
     assert override_manager.get(sid, handle_at_switch) is None, (
@@ -100,7 +100,7 @@ def test_override_parked_when_not_at_decision_cell():
     if handle_on_track is None:
         pytest.skip("no agent on plain track")
 
-    override_manager.set(sid, handle_on_track, int(RailEnvActions.MOVE_LEFT))
+    override_manager.set(sid, handle_on_track, RailEnvActions.MOVE_LEFT.value)
     handles = env.get_agent_handles()
     obs = {h: env for h in handles}
     pol.act_many(handles, obs)
@@ -131,7 +131,7 @@ def test_override_does_not_persist_across_multiple_steps():
         pytest.skip("no agent on map")
     h = on_map[0]
 
-    override_manager.set(sid, h, int(RailEnvActions.MOVE_LEFT))
+    override_manager.set(sid, h, RailEnvActions.MOVE_LEFT.value)
 
     # Run the override policy for up to 30 steps.
     pol.start_episode()

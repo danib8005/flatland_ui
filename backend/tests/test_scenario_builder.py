@@ -1,4 +1,4 @@
-"""Tests for ScenarioBuilder (R7)."""
+"""Tests for ScenarioBuilder policy-based scenarios."""
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -6,15 +6,15 @@ import pytest
 from flatland.core.env_observation_builder import DummyObservationBuilder
 from flatland.envs.line_generators import sparse_line_generator
 from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_env_action import RailEnvActions
 from flatland.envs.rail_generators import sparse_rail_generator
 
 from app.core.scenario_builder import (
-    Scenario, ScenarioBuilder, ScoringWeights,
-    score_branch, tag_for_score,
+    ScenarioBuilder, ScoringWeights, score_branch, tag_for,
 )
 from app.core.scenario_runner import BranchResult
 from app.policies.deadlock_avoidance_policy import DeadLockAvoidancePolicy
+from app.policies.forward_only_policy import ForwardOnlyPolicy
+from app.policies.do_nothing_policy import DoNothingPolicy
 
 
 def _make_env(num_agents: int = 2, seed: int = 42) -> RailEnv:
@@ -28,7 +28,15 @@ def _make_env(num_agents: int = 2, seed: int = 42) -> RailEnv:
     return e
 
 
-# ── scoring tests (no env needed) ─────────────────────────────────
+def _builder(env: RailEnv) -> ScenarioBuilder:
+    return ScenarioBuilder(env, "deadlock_avoidance", DeadLockAvoidancePolicy)
+
+
+def _candidates():
+    return [
+        ("forward_only", ForwardOnlyPolicy),
+        ("do_nothing", DoNothingPolicy),
+    ]
 
 
 def test_score_perfect_run():
@@ -61,101 +69,53 @@ def test_score_partial_run_in_middle():
 
 def test_tag_avoid_for_deadlocks():
     bad = BranchResult(
-        total_agents=2, success_count=2,  # high success...
-        kpis={"num_deadlock_cycles": 1},  # ...but deadlock present
+        total_agents=2, success_count=2,
+        kpis={"num_deadlock_cycles": 1},
     )
-    tag = tag_for_score(0.9, bad)
-    assert tag == "avoid", "deadlock should override high score"
+    assert tag_for(0.9, 0.0, bad) == "avoid"
 
 
-def test_tag_recommended_only_at_high_score():
+def test_tag_recommended_only_when_better_than_baseline():
     good = BranchResult(total_agents=2, success_count=2, kpis={})
-    assert tag_for_score(0.85, good) == "recommended"
-    assert tag_for_score(0.50, good) is None
-    assert tag_for_score(0.10, good) == "avoid"
-
-
-# ── ScenarioBuilder smoke ─────────────────────────────────────────
+    assert tag_for(0.85, 0.70, good) == "recommended"
+    assert tag_for(0.50, 0.45, good) is None
+    assert tag_for(0.10, 0.30, good) == "avoid"
 
 
 def test_builder_generate_scenarios_shape():
     env = _make_env()
-    builder = ScenarioBuilder(env, DeadLockAvoidancePolicy)
-    scenarios = builder.generate_scenarios(handle=0, horizon=20)
+    scenarios = _builder(env).generate_scenarios(_candidates(), horizon=20)
 
-    # baseline + 4 candidates
-    assert len(scenarios) == 5
-    names = {s.name for s in scenarios}
-    assert "baseline" in names
-    assert {"LEFT", "FORWARD", "RIGHT", "STOP"} <= names
+    assert len(scenarios) == 3
+    assert scenarios[0].name == "baseline"
+    assert scenarios[0].policy_id == "deadlock_avoidance"
+    assert {s.policy_id for s in scenarios} == {
+        "deadlock_avoidance", "forward_only", "do_nothing"
+    }
 
 
-def test_builder_returns_sorted_descending():
+def test_builder_returns_baseline_first_then_candidates_sorted():
     env = _make_env()
-    builder = ScenarioBuilder(env, DeadLockAvoidancePolicy)
-    scenarios = builder.generate_scenarios(handle=0, horizon=300)
-    scores = [s.score for s in scenarios]
-    assert scores == sorted(scores, reverse=True)
+    scenarios = _builder(env).generate_scenarios(_candidates(), horizon=50)
+    assert scenarios[0].name == "baseline"
+    candidate_scores = [s.score for s in scenarios[1:]]
+    assert candidate_scores == sorted(candidate_scores, reverse=True)
 
 
 def test_builder_at_most_one_recommended():
     env = _make_env()
-    builder = ScenarioBuilder(env, DeadLockAvoidancePolicy)
-    scenarios = builder.generate_scenarios(handle=0, horizon=300)
+    scenarios = _builder(env).generate_scenarios(_candidates(), horizon=50)
     n_rec = sum(1 for s in scenarios if s.tag == "recommended")
     assert n_rec <= 1
 
 
-def test_builder_baseline_has_no_override():
+def test_builder_skips_candidate_equal_to_baseline():
     env = _make_env()
-    builder = ScenarioBuilder(env, DeadLockAvoidancePolicy)
-    scenarios = builder.generate_scenarios(handle=0, horizon=20)
-    baseline = next(s for s in scenarios if s.name == "baseline")
-    assert baseline.override_action is None
-
-
-def test_builder_action_branches_have_int_override():
-    env = _make_env()
-    builder = ScenarioBuilder(env, DeadLockAvoidancePolicy)
-    scenarios = builder.generate_scenarios(handle=0, horizon=20)
-    for s in scenarios:
-        if s.name == "baseline":
-            continue
-        assert isinstance(s.override_action, int), (
-            f"{s.name}: override_action must be int, got {type(s.override_action)}"
-        )
-
-
-def test_builder_invalid_handle_raises():
-    env = _make_env(num_agents=2)
-    builder = ScenarioBuilder(env, DeadLockAvoidancePolicy)
-    with pytest.raises(ValueError):
-        builder.generate_scenarios(handle=99, horizon=10)
-
-
-def test_builder_custom_candidates():
-    env = _make_env()
-    builder = ScenarioBuilder(env, DeadLockAvoidancePolicy)
-    scenarios = builder.generate_scenarios(
-        handle=0, horizon=15,
-        candidate_actions=[RailEnvActions.MOVE_LEFT, RailEnvActions.MOVE_RIGHT],
-    )
-    # baseline + 2 = 3
-    assert len(scenarios) == 3
-    names = {s.name for s in scenarios}
-    assert names == {"baseline", "LEFT", "RIGHT"}
-
-
-def test_builder_custom_candidates_dedupe():
-    """Duplicate candidates must be deduplicated."""
-    env = _make_env()
-    builder = ScenarioBuilder(env, DeadLockAvoidancePolicy)
-    scenarios = builder.generate_scenarios(
-        handle=0, horizon=15,
-        candidate_actions=[RailEnvActions.MOVE_LEFT, 1, RailEnvActions.MOVE_LEFT],
-    )
-    # baseline + 1 (LEFT only, deduped)
-    assert len(scenarios) == 2
+    scenarios = _builder(env).generate_scenarios([
+        ("deadlock_avoidance", DeadLockAvoidancePolicy),
+        ("forward_only", ForwardOnlyPolicy),
+    ], horizon=20)
+    assert [s.policy_id for s in scenarios].count("deadlock_avoidance") == 1
 
 
 def test_builder_does_not_modify_base_env():
@@ -163,33 +123,17 @@ def test_builder_does_not_modify_base_env():
     elapsed_before = env._elapsed_steps
     pos_before = [a.position for a in env.agents]
 
-    builder = ScenarioBuilder(env, DeadLockAvoidancePolicy)
-    builder.generate_scenarios(handle=0, horizon=15)
+    _builder(env).generate_scenarios(_candidates(), horizon=15)
 
     assert env._elapsed_steps == elapsed_before
     assert [a.position for a in env.agents] == pos_before
 
 
 def test_builder_scenarios_serialise():
-    """Each scenario must be JSON-friendly via to_dict."""
     env = _make_env()
-    builder = ScenarioBuilder(env, DeadLockAvoidancePolicy)
-    scenarios = builder.generate_scenarios(handle=0, horizon=15)
+    scenarios = _builder(env).generate_scenarios(_candidates(), horizon=15)
     for s in scenarios:
         d = s.to_dict()
-        assert {"name", "override_action", "score", "tag", "result"} <= d.keys()
-        # nested result must also be serialised
+        assert {"name", "policy_id", "score", "tag", "result"} <= d.keys()
         assert "success_rate" in d["result"]
         assert "kpis" in d["result"]
-
-
-def test_builder_with_diverse_outcomes():
-    """The horizon=300 case is known to produce >=2 distinct scores."""
-    env = _make_env()
-    builder = ScenarioBuilder(env, DeadLockAvoidancePolicy)
-    scenarios = builder.generate_scenarios(handle=0, horizon=300)
-    distinct_scores = {round(s.score, 3) for s in scenarios}
-    assert len(distinct_scores) >= 2, (
-        f"expected diverse outcomes at horizon=300, got scores "
-        f"{[round(s.score, 3) for s in scenarios]}"
-    )

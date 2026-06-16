@@ -253,6 +253,7 @@ export class SessionStore {
     if (opts.width != null) payload.width = opts.width;
     if (opts.height != null) payload.height = opts.height;
     if (opts.agents != null) payload.number_of_agents = opts.agents;
+    if (opts.maxSteps != null) payload.max_episode_steps = opts.maxSteps;
     this.api.createSession(payload).subscribe({
       next: (s) => {
         this.session.set(s);
