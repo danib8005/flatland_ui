@@ -1,4 +1,5 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, computed, effect, inject, signal } from '@angular/core';
+import '@sbb-esta/lyne-elements/toggle-check.js';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, EventEmitter, Input, Output, computed, effect, inject, signal } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
 import { PolicyName } from '../../core/models';
 import { ApiService } from '../../core/api.service';
@@ -11,6 +12,11 @@ import { ApiService } from '../../core/api.service';
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class ToolbarComponent {
+  @Input() settingsActive = false;
+  @Input() scenarioPolicyActive = false;
+  @Output() openSettings = new EventEmitter<void>();
+  @Output() openScenarioPolicy = new EventEmitter<void>();
+  @Output() resetRequested = new EventEmitter<void>();
   store = inject(SessionStore);
   private api = inject(ApiService);
   newWidth = signal(50);
@@ -27,12 +33,25 @@ export class ToolbarComponent {
   });
 
   constructor() {
-    // When backend session-policy changes (e.g. via scenario Confirm),
-    // mirror it into the local toolbar selection so the radios reflect it.
+    // Mirror backend/session active policy into the toolbar, but never
+    // re-select a policy that has just been disabled in Settings.
     effect(() => {
       const active = this.store.activePolicy();
-      if (active && active !== this.policy()) {
+      const enabled = this.enabledPolicyIds();
+      if (!active) return;
+      if (enabled.length > 0 && !enabled.includes(active)) return;
+      if (active !== this.policy()) {
         this.policy.set(active);
+      }
+    });
+
+    effect(() => {
+      const ids = this.store.enabledScenarioPolicyIds();
+      if (ids.length > 0) {
+        this.enabledPolicyIds.set(ids);
+        if (!ids.includes(this.policy()) && ids.length > 0) {
+          this.policy.set(ids[0] as PolicyName);
+        }
       }
     });
 
@@ -45,6 +64,7 @@ export class ToolbarComponent {
       this.api.getScenarioPolicies(sid).subscribe({
         next: (cfg) => {
           this.enabledPolicyIds.set(cfg.enabled_ids);
+          this.store.setEnabledScenarioPolicyIds(cfg.enabled_ids);
           if (!cfg.enabled_ids.includes(this.policy()) && cfg.enabled_ids.length > 0) {
             this.policy.set(cfg.enabled_ids[0] as PolicyName);
           }
@@ -63,8 +83,16 @@ export class ToolbarComponent {
     });
   }
 
+  showSettings() {
+    this.openSettings.emit();
+  }
+
+  showScenarioPolicy() {
+    this.openScenarioPolicy.emit();
+  }
+
   reset() {
-    this.store.reset();
+    this.resetRequested.emit();
   }
 
   step(n: number) {

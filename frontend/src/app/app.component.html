@@ -15,7 +15,7 @@
 
 </header>
 
-<app-toolbar></app-toolbar>
+<app-toolbar [settingsActive]="settingsMode()" [scenarioPolicyActive]="scenarioPolicyMode()" (openSettings)="settingsMode() ? cancelSettings() : openSettings()" (openScenarioPolicy)="scenarioPolicyMode() ? cancelScenarioPolicySettings() : openScenarioPolicySettings()" (resetRequested)="resetWithSettings()"></app-toolbar>
 
 @if (store.session()) {
   <div class="three-col">
@@ -60,66 +60,231 @@
   </div>
 } @else {
   <main class="welcome">
-    <div class="welcome-card">
-      <img class="welcome-icon" src="/ai4realnet_logo.svg" alt="AI4REALNET" />
-      <h2 class="welcome-title">Flatland Dispatcher</h2>
-      <p class="welcome-subtitle">A Human-AI Teaming Playground</p>
-      <p class="welcome-desc">
-        Explore how a human dispatcher<br>
-        and agentic AI can co-operate<br>
-        on the Flatland railway simulation.
-      </p>
-      <sbb-button size="l" (click)="onNewSession()">
-        + New Session
-      </sbb-button>
+    @if (!store.session()) {
+      <div class="welcome-card">
+        <img class="welcome-icon" src="/ai4realnet_logo.svg" alt="AI4REALNET" />
+        <h2 class="welcome-title">Flatland Dispatcher</h2>
+        <p class="welcome-subtitle">A Human-AI Teaming Playground</p>
+        <p class="welcome-desc">
+          Explore how a human dispatcher<br>
+          and agentic AI can co-operate<br>
+          on the Flatland railway simulation.
+        </p>
+        <div class="welcome-actions">
+          <sbb-button size="l" (click)="onNewSession()">
+            + New Session
+          </sbb-button>
+        </div>
 
-      <div class="welcome-inputs">
-        <span class="welcome-grid-label">Grid:</span>
-        <label class="welcome-input">
-          <span>Width</span>
-          <input type="number" min="25" max="200"
-                 [value]="newWidth()"
-                 (input)="newWidth.set(+$any($event.target).value)">
-        </label>
-        <label class="welcome-input">
-          <span>Height</span>
-          <input type="number" min="20" max="150"
-                 [value]="newHeight()"
-                 (input)="newHeight.set(+$any($event.target).value)">
-        </label>
-        <label class="welcome-input">
-          <span># Agents</span>
-          <input type="number" min="1" max="50"
-                 [value]="newAgents()"
-                 (input)="newAgents.set(+$any($event.target).value)">
-        </label>
-        <label class="welcome-input"
-               title="Max simulation length. Higher = more thorough what-if forecasts but slower.">
-          <span>Max Steps</span>
-          <input type="number" min="100" max="3000" step="100"
-                 [value]="newMaxSteps()"
-                 (input)="newMaxSteps.set(+$any($event.target).value)">
-        </label>
+        <div class="welcome-inputs">
+          <span class="welcome-grid-label">Grid:</span>
+          <label class="welcome-input">
+            <span>Width</span>
+            <input type="number" min="25" max="200"
+                   [value]="newWidth()"
+                   (input)="newWidth.set(+$any($event.target).value)">
+          </label>
+          <label class="welcome-input">
+            <span>Height</span>
+            <input type="number" min="20" max="150"
+                   [value]="newHeight()"
+                   (input)="newHeight.set(+$any($event.target).value)">
+          </label>
+          <label class="welcome-input">
+            <span># Agents</span>
+            <input type="number" min="1" max="50"
+                   [value]="newAgents()"
+                   (input)="newAgents.set(+$any($event.target).value)">
+          </label>
+          <label class="welcome-input"
+                 title="Max simulation length. Higher = more thorough what-if forecasts but slower.">
+            <span>Max Steps</span>
+            <input type="number" min="100" max="3000" step="100"
+                   [value]="newMaxSteps()"
+                   (input)="newMaxSteps.set(+$any($event.target).value)">
+          </label>
+        </div>
+
+        <div class="welcome-policies">
+          <span class="welcome-grid-label">Scenario Policies:</span>
+          <div class="welcome-policy-list">
+            @for (p of store.availablePolicies(); track p.id) {
+              <label class="welcome-policy-row" [title]="p.description">
+                <input
+                  type="checkbox"
+                  [checked]="isWelcomeScenarioPolicyEnabled(p.id)"
+                  [disabled]="isWelcomeScenarioPolicyEnabled(p.id) && welcomeScenarioPolicyIds().length === 1"
+                  (change)="toggleWelcomeScenarioPolicy(p.id, $any($event.target).checked)" />
+                <span>{{ p.label }}</span>
+              </label>
+            }
+          </div>
+        </div>
+      </div>
+    } @else if (scenarioPolicyMode()) {
+      <div class="policy-card">
+        <div class="settings-header">
+          <div>
+            <h2>Scenarios / Policy</h2>
+            <p>Select which policies are available for scenario generation and dispatcher control.</p>
+          </div>
+          <button class="settings-close" type="button" aria-label="Close policy settings" (click)="cancelScenarioPolicySettings()">×</button>
+        </div>
+
+        <div class="settings-actions">
+          <sbb-secondary-button (click)="cancelScenarioPolicySettings()">Cancel</sbb-secondary-button>
+          <sbb-button (click)="applyScenarioPolicySettings()">Apply</sbb-button>
+        </div>
+      </div>
+    } @else {
+      <div class="settings-card">
+        <div class="settings-header">
+          <div>
+            <h2>Session Properties</h2>
+            <p>Configure Flatland generation and dispatcher defaults.</p>
+          </div>
+          <button class="settings-close" type="button" aria-label="Close settings" (click)="cancelSettings()">×</button>
+        </div>
+
+        <section class="settings-section">
+          <h3>Grid</h3>
+          <div class="settings-grid">
+            <label><span>Width</span><input type="number" min="25" max="200" [value]="draftWidth()" (input)="draftWidth.set(+$any($event.target).value)"></label>
+            <label><span>Height</span><input type="number" min="20" max="150" [value]="draftHeight()" (input)="draftHeight.set(+$any($event.target).value)"></label>
+            <label><span># Agents</span><input type="number" min="1" max="50" [value]="draftAgents()" (input)="draftAgents.set(+$any($event.target).value)"></label>
+            <label><span>Max Steps</span><input type="number" min="100" max="3000" step="100" [value]="draftMaxSteps()" (input)="draftMaxSteps.set(+$any($event.target).value)"></label>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <h3>Timetable & Speed</h3>
+          <div class="settings-grid">
+            <label title="No train starts later than this step."><span>Latest Departure Max</span><input type="number" min="0" max="10000" [value]="draftLatestDepartureMax()" (input)="draftLatestDepartureMax.set(+$any($event.target).value)"></label>
+            <label><span>Speed Profile</span>
+              <select [value]="draftSpeedProfile()" (change)="draftSpeedProfile.set($any($event.target).value)">
+                <option value="uniform_1_0">All trains: 1.0</option>
+                <option value="uniform_0_5">All trains: 0.5</option>
+                <option value="uniform_0_33">All trains: 0.33</option>
+                <option value="uniform_0_25">All trains: 0.25</option>
+                <option value="mixed">Mixed probabilities</option>
+              </select>
+            </label>
+            <label title="Flatland sparse line generator line_length."><span>Line Length</span><input type="number" min="1" max="50" [value]="draftLineLength()" (input)="draftLineLength.set(+$any($event.target).value)"></label>
+            <label><span>Seed</span><input type="number" min="0" max="999999" [value]="draftSeed()" (input)="draftSeed.set(+$any($event.target).value)"></label>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <h3>Rail Generator</h3>
+          <div class="settings-grid">
+            <label><span>Max Cities</span><input type="number" min="2" max="10" [value]="draftMaxNumCities()" (input)="draftMaxNumCities.set(+$any($event.target).value)"></label>
+            <label><span>Rails Between Cities</span><input type="number" min="1" max="10" [value]="draftMaxRailsBetweenCities()" (input)="draftMaxRailsBetweenCities.set(+$any($event.target).value)"></label>
+            <label><span>Rail Pairs In City</span><input type="number" min="1" max="10" [value]="draftMaxRailPairsInCity()" (input)="draftMaxRailPairsInCity.set(+$any($event.target).value)"></label>
+          </div>
+        </section>
+
+        <div class="settings-actions">
+          <sbb-secondary-button size="m" type="button" (click)="cancelSettings()">Cancel</sbb-secondary-button>
+          <sbb-button size="m" type="button" (click)="applySettings()">Apply</sbb-button>
+        </div>
+      </div>
+    }
+  </main>
+}
+
+
+<!-- session-dialog-overlays -->
+@if (settingsMode()) {
+  <div class="session-dialog-backdrop">
+    <div class="settings-card">
+      <div class="settings-header">
+        <div>
+          <h2>Session Properties</h2>
+          <p>Configure Flatland generation and dispatcher defaults.</p>
+        </div>
+        <button class="settings-close" type="button" aria-label="Close settings" (click)="cancelSettings()">×</button>
       </div>
 
-      <div class="welcome-policies">
-        <span class="welcome-grid-label">Scenario Policies:</span>
-        <div class="welcome-policy-list">
+      <section class="settings-section">
+        <h3>Grid</h3>
+        <div class="settings-grid">
+          <label><span>Width</span><input type="number" min="25" max="200" [value]="draftWidth()" (input)="draftWidth.set(+$any($event.target).value)"></label>
+          <label><span>Height</span><input type="number" min="20" max="150" [value]="draftHeight()" (input)="draftHeight.set(+$any($event.target).value)"></label>
+          <label><span># Agents</span><input type="number" min="1" max="50" [value]="draftAgents()" (input)="draftAgents.set(+$any($event.target).value)"></label>
+          <label><span>Max Steps</span><input type="number" min="100" max="3000" step="100" [value]="draftMaxSteps()" (input)="draftMaxSteps.set(+$any($event.target).value)"></label>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h3>Timetable & Speed</h3>
+        <div class="settings-grid">
+          <label><span>Latest Departure Max</span><input type="number" min="0" max="10000" [value]="draftLatestDepartureMax()" (input)="draftLatestDepartureMax.set(+$any($event.target).value)"></label>
+          <label><span>Speed Profile</span>
+            <select [value]="draftSpeedProfile()" (change)="draftSpeedProfile.set($any($event.target).value)">
+              <option value="uniform_1_0">All trains: 1.0</option>
+              <option value="uniform_0_5">All trains: 0.5</option>
+              <option value="uniform_0_33">All trains: 0.33</option>
+              <option value="uniform_0_25">All trains: 0.25</option>
+              <option value="mixed">Mixed probabilities</option>
+            </select>
+          </label>
+          <label><span>Line Length</span><input type="number" min="1" max="50" [value]="draftLineLength()" (input)="draftLineLength.set(+$any($event.target).value)"></label>
+          <label><span>Seed</span><input type="number" min="0" max="999999" [value]="draftSeed()" (input)="draftSeed.set(+$any($event.target).value)"></label>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h3>Rail Generator</h3>
+        <div class="settings-grid">
+          <label><span>Max Cities</span><input type="number" min="2" max="10" [value]="draftMaxNumCities()" (input)="draftMaxNumCities.set(+$any($event.target).value)"></label>
+          <label><span>Rails Between Cities</span><input type="number" min="1" max="10" [value]="draftMaxRailsBetweenCities()" (input)="draftMaxRailsBetweenCities.set(+$any($event.target).value)"></label>
+          <label><span>Rail Pairs In City</span><input type="number" min="1" max="10" [value]="draftMaxRailPairsInCity()" (input)="draftMaxRailPairsInCity.set(+$any($event.target).value)"></label>
+        </div>
+      </section>
+
+      <div class="settings-actions">
+        <sbb-secondary-button (click)="cancelSettings()">Cancel</sbb-secondary-button>
+        <sbb-button (click)="applySettings()">Apply</sbb-button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (scenarioPolicyMode()) {
+  <div class="session-dialog-backdrop">
+    <div class="policy-card">
+      <div class="settings-header">
+        <div>
+          <h2>Scenarios / Policy</h2>
+          <p>Select which policies are available for scenarios and dispatcher control.</p>
+        </div>
+        <button class="settings-close" type="button" aria-label="Close policy settings" (click)="cancelScenarioPolicySettings()">×</button>
+      </div>
+
+      <section class="settings-section">
+        <h3>Scenario Policies</h3>
+        <div class="settings-policy-list">
           @for (p of store.availablePolicies(); track p.id) {
             <label class="welcome-policy-row" [title]="p.description">
               <input
                 type="checkbox"
-                [checked]="isWelcomeScenarioPolicyEnabled(p.id)"
-                [disabled]="isWelcomeScenarioPolicyEnabled(p.id) && welcomeScenarioPolicyIds().length === 1"
-                (change)="toggleWelcomeScenarioPolicy(p.id, $any($event.target).checked)" />
+                [checked]="isDraftScenarioPolicyEnabled(p.id)"
+                [disabled]="isDraftScenarioPolicyEnabled(p.id) && draftScenarioPolicyIds().length === 1"
+                (change)="toggleDraftScenarioPolicy(p.id, $any($event.target).checked)" />
               <span>{{ p.label }}</span>
             </label>
           }
         </div>
+      </section>
+
+      <div class="settings-actions">
+        <sbb-secondary-button (click)="cancelScenarioPolicySettings()">Cancel</sbb-secondary-button>
+        <sbb-button (click)="applyScenarioPolicySettings()">Apply</sbb-button>
       </div>
     </div>
-  </main>
+  </div>
 }
+<!-- /session-dialog-overlays -->
 
 <footer class="footer">
   <div class="footer-left">

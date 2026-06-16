@@ -26,6 +26,7 @@ export class SessionStore {
   readonly state = signal<SessionState | null>(null);
   // Single-selection: at most one agent at a time.
   readonly selectedHandle = signal<number | null>(null);
+  readonly enabledScenarioPolicyIds = signal<string[]>([]);
 
   /** When user hovers a scenario card, store its id here so the Marey
    *  can swap its forecast preview. null = use the active baseline. */
@@ -73,6 +74,10 @@ export class SessionStore {
     const first = this._policies()[0];
     return (def?.id ?? first?.id ?? 'deadlock_avoidance') as PolicyName;
   });
+
+  setEnabledScenarioPolicyIds(ids: string[]): void {
+    this.enabledScenarioPolicyIds.set([...ids]);
+  }
 
   loadPolicies(): void {
     this.api.listPolicies().subscribe({
@@ -243,7 +248,7 @@ export class SessionStore {
     run();
   }
 
-  newSession(opts: { width?: number; height?: number; agents?: number; maxSteps?: number } = {}) {
+  newSession(opts: { width?: number; height?: number; agents?: number; maxSteps?: number; seed?: number; maxNumCities?: number; maxRailsBetweenCities?: number; maxRailPairsInCity?: number; latestDepartureMax?: number; speedProfile?: string; lineLength?: number; scenarioPolicyIds?: string[] } = {}) {
     this.loading.set(true);
     this.error.set(null);
     this.message.set(null);
@@ -254,9 +259,20 @@ export class SessionStore {
     if (opts.height != null) payload.height = opts.height;
     if (opts.agents != null) payload.number_of_agents = opts.agents;
     if (opts.maxSteps != null) payload.max_episode_steps = opts.maxSteps;
+    if (opts.seed != null) payload.seed = opts.seed;
+    if (opts.maxNumCities != null) payload.max_num_cities = opts.maxNumCities;
+    if (opts.maxRailsBetweenCities != null) payload.max_rails_between_cities = opts.maxRailsBetweenCities;
+    if (opts.maxRailPairsInCity != null) payload.max_rail_pairs_in_city = opts.maxRailPairsInCity;
+    if (opts.latestDepartureMax != null) payload.latest_departure_max = opts.latestDepartureMax;
+    if (opts.speedProfile != null) payload.speed_profile = opts.speedProfile;
+    if (opts.lineLength != null) payload.line_length = opts.lineLength;
+    if (opts.scenarioPolicyIds != null) payload.enabled_scenario_policy_ids = opts.scenarioPolicyIds;
     this.api.createSession(payload).subscribe({
       next: (s) => {
         this.session.set(s);
+        if (opts.scenarioPolicyIds != null) {
+          this.setEnabledScenarioPolicyIds(opts.scenarioPolicyIds);
+        }
         this.ws.connect(s.id);
         this.refreshState(true);
       },

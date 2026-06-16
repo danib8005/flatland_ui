@@ -103,6 +103,10 @@ def create_session(req: SessionCreateRequest):
         max_rails_between_cities=req.max_rails_between_cities,
         max_rail_pairs_in_city=req.max_rail_pairs_in_city,
         max_episode_steps=req.max_episode_steps,
+        latest_departure_max=req.latest_departure_max,
+        speed_profile=req.speed_profile,
+        line_length=req.line_length,
+        enabled_scenario_policy_ids=req.enabled_scenario_policy_ids,
     )
     return SessionInfo(
         id=session.id,
