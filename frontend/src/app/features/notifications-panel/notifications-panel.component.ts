@@ -100,6 +100,22 @@ export class NotificationsPanelComponent implements OnDestroy {
     return Array.from(out);
   }
 
+  primaryNotificationAgentHandle(n: AppNotification): number | null {
+    const handles = this.notificationAgentHandles(n);
+    if (handles.length === 0) return null;
+
+    // If one of the notification-related agents is already selected,
+    // clicking the notification should behave exactly like clicking that
+    // selected agent again: toggle it off.
+    const selected = this.store.selectedHandle();
+    if (selected != null && handles.includes(selected)) {
+      return selected;
+    }
+
+    // Otherwise select the first related agent.
+    return handles[0];
+  }
+
   isAgentRelated(n: AppNotification): boolean {
     return this.notificationAgentHandles(n).length > 0;
   }
@@ -118,14 +134,30 @@ export class NotificationsPanelComponent implements OnDestroy {
 
 
   onNotificationMouseEnter(n: AppNotification): void {
-    this.store.setNotificationHoverAgents(this.notificationAgentHandles(n));
+    const handles = this.notificationAgentHandles(n);
+
+    if (handles.length > 0) {
+      // Same cross-panel hover behaviour as hovering agent(s) directly.
+      this.store.setAgentHoverAgents(handles);
+    }
   }
 
   onNotificationMouseLeave(): void {
-    this.store.clearNotificationHoverAgents();
+    // Same cross-panel hover clear behaviour as leaving an agent.
+    this.store.clearAgentHoverAgents();
   }
 
-  focus(n: AppNotification) {
+  onNotificationClick(n: AppNotification): void {
+    const handle = this.primaryNotificationAgentHandle(n);
+
+    if (handle != null) {
+      // Same behaviour as clicking the agent in the Flatland grid map:
+      // select if not selected, deselect if already selected.
+      this.store.toggleAgentSelection(handle);
+      return;
+    }
+
+    // Non-agent notifications keep the previous infrastructure focus behaviour.
     if (n.relatedElement) {
       this.bus.emit({
         type: 'FOCUS_INFRASTRUCTURE_ELEMENT',

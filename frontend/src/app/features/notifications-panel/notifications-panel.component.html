@@ -15,7 +15,7 @@
             [class.hovered-agent-related]="isHoveredAgentRelated(n)"
             (mouseenter)="onNotificationMouseEnter(n)"
             (mouseleave)="onNotificationMouseLeave()"
-            (click)="focus(n)">
+            (click)="onNotificationClick(n)">
           <span class="icon">{{ iconFor(n.kind) }}</span>
           <div class="content">
             <span class="title">{{ n.title }}</span>

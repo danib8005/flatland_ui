@@ -214,19 +214,24 @@ export class FlatlandMapComponent {
     if (!this.store.layerVisibility().agentTrajectory) return [];
 
     const handles: number[] = [];
+    const add = (h: number | null | undefined) => {
+      if (h == null) return;
+      if (!Number.isFinite(h)) return;
+      if (!handles.includes(h)) handles.push(h);
+    };
 
     // Selection is persistent: selected agent trajectory is always visible
     // while the trajectory layer is enabled.
-    const selected = this.store.selectedHandle();
-    if (selected != null) {
-      handles.push(selected);
-    }
+    add(this.store.selectedHandle());
 
-    // Hover is additive: when hovering another agent in the Flatland map,
-    // show that trajectory too instead of replacing the selected one.
-    const hovered = this.hoveredTrajectoryHandle();
-    if (hovered != null && !handles.includes(hovered)) {
-      handles.push(hovered);
+    // Flatland-map-local hover: direct hover over an agent in the grid.
+    add(this.hoveredTrajectoryHandle());
+
+    // Global/store hover: used by notifications and other cross-panel hovers.
+    // This makes notification hover behave exactly like agent hover for
+    // trajectory visibility.
+    for (const h of this.store.notificationHoverHandles()) {
+      add(h);
     }
 
     return handles;

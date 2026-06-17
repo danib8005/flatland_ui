@@ -157,7 +157,7 @@ export class SessionStore {
   readonly layerVisibility = signal<LayerVisibility>({
     grid: true,
     nextDecisions: true,
-    agentTrajectory: false,
+    agentTrajectory: true,
     switches: false,
     signals: false,
   });
