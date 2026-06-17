@@ -21,9 +21,23 @@ export class AgentInspectorComponent {
   private readonly popoverHeight = 300;
 
   readonly activeAgent = computed<AgentDTO | null>(() => {
-    const h = this.store.activeHandle();
-    if (h == null) return null;
-    return this.store.agents().find((a) => a.handle === h) ?? null;
+    const agents = this.store.agents();
+
+    // 1) Explicit click/selection wins.
+    const selected = this.store.selectedHandle();
+    if (selected != null) {
+      return agents.find((a) => a.handle === selected) ?? null;
+    }
+
+    // 2) Hover/cross-highlight fallback.
+    const hovered = Array.from(this.store.notificationHoverHandles?.() ?? []);
+    if (hovered.length > 0) {
+      return agents.find((a) => a.handle === hovered[0]) ?? null;
+    }
+
+    // 3) No default train here. This bottom info line should show
+    //    "Select an agent" until user selects or hovers.
+    return null;
   });
 
   /**
@@ -32,6 +46,14 @@ export class AgentInspectorComponent {
   agentColor(handle: number): string {
     return this.agentColors.getColor(handle, 'default');
   }
+
+  isMalfunctioning(a: AgentDTO | null): boolean {
+    if (!a) return false;
+    return !!a.is_malfunctioning
+      || (a.malfunction_remaining ?? 0) > 0
+      || String(a.state ?? '').includes('MALFUNCTION');
+  }
+
 
   clearSelection() {
     this.store.clearSelection();

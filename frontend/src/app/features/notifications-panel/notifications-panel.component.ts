@@ -78,6 +78,53 @@ export class NotificationsPanelComponent implements OnDestroy {
     }
   }
 
+  notificationAgentHandles(n: AppNotification): number[] {
+    const out = new Set<number>();
+
+    // Structured relation from backend.
+    if (n.relatedElement?.kind === 'train') {
+      const h = Number(n.relatedElement.id);
+      if (Number.isFinite(h)) out.add(h);
+    }
+
+    // Defensive fallback: parse "Train 2", "Train #2", "Agent 2",
+    // "agent #2" from title/message.
+    const text = `${n.title ?? ''} ${n.message ?? ''}`;
+    const re = /\b(?:train|agent)\s*#?\s*(\d+)\b/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const h = Number(m[1]);
+      if (Number.isFinite(h)) out.add(h);
+    }
+
+    return Array.from(out);
+  }
+
+  isAgentRelated(n: AppNotification): boolean {
+    return this.notificationAgentHandles(n).length > 0;
+  }
+
+  isSelectedAgentRelated(n: AppNotification): boolean {
+    const selected = this.store.selectedHandle();
+    if (selected == null) return false;
+    return this.notificationAgentHandles(n).includes(selected);
+  }
+
+  isHoveredAgentRelated(n: AppNotification): boolean {
+    const hovered = this.store.notificationHoverHandles();
+    if (hovered.size === 0) return false;
+    return this.notificationAgentHandles(n).some((h) => hovered.has(h));
+  }
+
+
+  onNotificationMouseEnter(n: AppNotification): void {
+    this.store.setNotificationHoverAgents(this.notificationAgentHandles(n));
+  }
+
+  onNotificationMouseLeave(): void {
+    this.store.clearNotificationHoverAgents();
+  }
+
   focus(n: AppNotification) {
     if (n.relatedElement) {
       this.bus.emit({

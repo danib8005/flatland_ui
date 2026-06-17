@@ -21,7 +21,7 @@
   border: 1px solid var(--sbb-color-cloud, #d2d2d2);
   border-radius: 3px;
   background: var(--sbb-color-white, #fff);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--sbb-color-charcoal, #212121);
   cursor: default;
 }
@@ -38,13 +38,13 @@
 }
 
 .line-hint {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--sbb-color-granite, #686868);
 }
 
 .line-placeholder {
   margin-left: auto;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--sbb-color-granite, #686868);
 }
 
@@ -54,7 +54,7 @@
   border: none;
   color: var(--sbb-color-red, #eb0000);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 13px;
   text-decoration: underline;
   padding: 0;
 }
@@ -97,7 +97,7 @@
   border: none;
   color: var(--sbb-color-red, #eb0000);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   text-decoration: underline;
 
   &:hover {
@@ -121,7 +121,7 @@
 }
 
 .state {
-  font-size: 11px;
+  font-size: 13px;
   padding: 2px 6px;
   border-radius: 2px;
   background: var(--sbb-color-milk, #f6f6f6);
@@ -177,7 +177,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 4px 12px;
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
 
   dt {
     color: var(--sbb-color-granite, #686868);
@@ -189,3 +189,366 @@
     font-family: monospace;
   }
 }
+
+
+
+
+
+
+.line-malfunction,
+.header-malfunction {
+  margin-left: 0;
+}
+
+@keyframes malfunction-html-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.82;
+  }
+}
+
+
+/* malfunction badge hover stability */
+.malfunction-badge-bg,
+.malfunction-badge-text,
+.agent-malfunction,
+.topo-malfunction,
+.line-malfunction,
+.header-malfunction {
+  pointer-events: none;
+}
+
+/* agent-inspector-one-line-only - start
+   Bottom Agent Info component:
+   - outer inspector/host: 48px
+   - inner line: 32px
+   - vertically centered, so top/bottom spacing is balanced. */
+:host {
+  display: block !important;
+  flex: 0 0 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  overflow: hidden !important;
+}
+
+.inspector {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  overflow: hidden !important;
+
+  box-sizing: border-box !important;
+  padding: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+}
+
+.inspector-line {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  width: 100% !important;
+
+  box-sizing: border-box !important;
+  padding: 0 10px !important;
+  margin: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+.inspector-line .line-label,
+.inspector-line .line-placeholder {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+
+  line-height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+.inspector-line .line-label {
+  flex: 0 0 auto !important;
+}
+
+.inspector-line .line-placeholder {
+  flex: 1 1 auto !important;
+  text-overflow: ellipsis !important;
+}
+
+.inspector-line > * {
+  overflow: hidden !important;
+}
+/* agent-inspector-one-line-only - end */
+
+/* agent-inspector-content-center-only - start
+   Component size is already correct.
+   Only center the content vertically inside the existing inspector box. */
+.inspector {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+.inspector-line {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+
+  box-sizing: border-box !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+
+  line-height: 1.25 !important;
+}
+
+.inspector-line .line-label,
+.inspector-line .line-placeholder {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+
+  line-height: 1.25 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+/* agent-inspector-content-center-only - end */
+
+/* agent-inspector-exact-32-line - start
+   Host/inspector stays 48px. Inner inspector-line is exactly 32px,
+   vertically centered. All children are centered and cannot enlarge it. */
+:host {
+  display: block !important;
+  flex: 0 0 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  overflow: hidden !important;
+}
+
+.inspector {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  overflow: hidden !important;
+
+  box-sizing: border-box !important;
+  padding: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+}
+
+.inspector-line {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  width: 100% !important;
+
+  box-sizing: border-box !important;
+  padding: 0 10px !important;
+  margin: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+.inspector-line .line-label,
+.inspector-line .line-placeholder,
+.inspector-line .line-train,
+.inspector-line .line-hint {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  line-height: 32px !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+.inspector-line .line-label {
+  flex: 0 0 auto !important;
+}
+
+.inspector-line .line-placeholder,
+.inspector-line .line-train {
+  flex: 1 1 auto !important;
+  text-overflow: ellipsis !important;
+}
+
+.inspector-line .line-hint {
+  flex: 0 0 auto !important;
+  opacity: 0.7;
+}
+
+/* Clear button must not make the line taller. */
+.inspector-line .line-clear {
+  flex: 0 0 auto !important;
+
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  line-height: 22px !important;
+
+  box-sizing: border-box !important;
+  padding: 0 8px !important;
+  margin: 0 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  font-size: 11px !important;
+  border-radius: 3px !important;
+}
+
+/* Nothing inside the row may expand vertically. */
+.inspector-line > * {
+  max-height: 32px !important;
+  overflow: hidden !important;
+}
+/* agent-inspector-exact-32-line - end */
+
+/* agent-inspector-line-final-center-32 - start
+   Only the inner Agent Info row:
+   - inspector-line is exactly 32px high
+   - vertically centered inside existing inspector height
+   - children cannot enlarge the row */
+.inspector {
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+
+.inspector-line {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  width: 100% !important;
+
+  box-sizing: border-box !important;
+  padding: 0 10px !important;
+  margin: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+.inspector-line .line-label,
+.inspector-line .line-placeholder,
+.inspector-line .line-train,
+.inspector-line .line-hint {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  line-height: 32px !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+
+  box-sizing: border-box !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+.inspector-line .line-label {
+  flex: 0 0 auto !important;
+}
+
+.inspector-line .line-placeholder,
+.inspector-line .line-train {
+  flex: 1 1 auto !important;
+  text-overflow: ellipsis !important;
+}
+
+.inspector-line .line-hint {
+  flex: 0 0 auto !important;
+  opacity: 0.7;
+}
+
+/* Clear button centered and smaller than the 32px row. */
+.inspector-line .line-clear {
+  flex: 0 0 auto !important;
+
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  line-height: 22px !important;
+
+  box-sizing: border-box !important;
+  padding: 0 8px !important;
+  margin: 0 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  font-size: 11px !important;
+  border-radius: 3px !important;
+}
+
+/* Nothing inside the line may make it taller. */
+.inspector-line > * {
+  max-height: 32px !important;
+  overflow: hidden !important;
+}
+/* agent-inspector-line-final-center-32 - end */
+
+/* agent-inspector-element-exact-32 - start
+   Exact fix for:
+   <div tabindex="0" class="inspector">...</div>
+   Only this element gets fixed to 32px. */
+.inspector {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+}
+/* agent-inspector-element-exact-32 - end */

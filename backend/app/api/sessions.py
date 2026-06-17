@@ -106,6 +106,9 @@ def create_session(req: SessionCreateRequest):
         latest_departure_max=req.latest_departure_max,
         speed_profile=req.speed_profile,
         line_length=req.line_length,
+        malfunction_rate=req.malfunction_rate,
+        malfunction_min_duration=req.malfunction_min_duration,
+        malfunction_max_duration=req.malfunction_max_duration,
         enabled_policy_ids=req.enabled_policy_ids,
         enabled_scenario_policy_ids=req.enabled_scenario_policy_ids,
     )

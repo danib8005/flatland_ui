@@ -669,17 +669,125 @@ export class FlatlandMapComponent {
     return pos[0] * this.cellSize + this.cellSize / 2;
   }
 
-  targetX(a: AgentDTO): number {
-    return a.target[1] * this.cellSize + this.cellSize / 2;
-  }
 
-  targetY(a: AgentDTO): number {
-    return a.target[0] * this.cellSize + this.cellSize / 2;
-  }
 
   isSelected(handle: number): boolean {
     return this.store.selectedHandles().has(handle);
   }
+
+  isMalfunctioning(a: AgentDTO): boolean {
+    return !!a.is_malfunctioning
+      || (a.malfunction_remaining ?? 0) > 0
+      || String(a.state ?? '').toUpperCase().includes('MALFUNCTION');
+  }
+
+  isNotificationHovered(handle: number): boolean {
+    return this.store.notificationHoverHandles().has(handle);
+  }
+
+  agentTarget(a: AgentDTO): [number, number] | null {
+    const anyAgent = a as any;
+    return (anyAgent.target ?? anyAgent.target_position ?? null) as [number, number] | null;
+  }
+
+  hasAgentTarget(a: AgentDTO): boolean {
+    return this.agentTarget(a) != null;
+  }
+
+  isAgentTargetHighlighted(a: AgentDTO): boolean {
+    // Cross-hover uses notificationHoverHandles for both notification-hover
+    // and direct agent hover. Explicit selection also highlights the target.
+    return this.isNotificationHovered(a.handle) || this.isSelected(a.handle);
+  }
+
+  targetX(a: AgentDTO): number {
+    const target = this.agentTarget(a);
+    if (target == null) return this.agentX(a);
+
+    // Reuse the already-correct map coordinate conversion from agentX().
+    return this.agentX({ ...(a as any), position: target } as AgentDTO);
+  }
+
+  targetY(a: AgentDTO): number {
+    const target = this.agentTarget(a);
+    if (target == null) return this.agentY(a);
+
+    // Reuse the already-correct map coordinate conversion from agentY().
+    return this.agentY({ ...(a as any), position: target } as AgentDTO);
+  }
+  agentTargetHighlightColor(a: AgentDTO): string {
+    if (this.isSelected(a.handle)) return '#f939e9';
+
+    const anyAgent = a as any;
+    if (anyAgent.color) return String(anyAgent.color);
+    if (anyAgent.agent_color) return String(anyAgent.agent_color);
+
+    const anyThis = this as any;
+    if (typeof anyThis.agentColor === 'function') {
+      try {
+        return anyThis.agentColor(a.handle);
+      } catch {
+        // fall through
+      }
+    }
+
+    if (anyThis.agentColors?.getColor) {
+      try {
+        return anyThis.agentColors.getColor(a.handle, 'default');
+      } catch {
+        // fall through
+      }
+    }
+
+    const palette = [
+      '#0079c7', '#00973b', '#ff9800', '#6f42c1',
+      '#00a1de', '#2e7d32', '#ad1457', '#795548',
+    ];
+    return palette[Math.abs(a.handle) % palette.length];
+  }
+
+  shouldRenderAgentTargetHighlight(a: AgentDTO): boolean {
+    if (!this.isAgentTargetHighlighted(a) || !this.hasAgentTarget(a)) return false;
+
+    const target = this.agentTarget(a);
+    if (target == null) return false;
+
+    const sameTargetHighlighted = this.store.agents()
+      .filter((x) => {
+        const tx = this.agentTarget(x);
+        return tx != null
+          && tx[0] === target[0]
+          && tx[1] === target[1]
+          && this.isAgentTargetHighlighted(x)
+          && this.hasAgentTarget(x);
+      })
+      .sort((x, y) => {
+        // Explicit selected target wins.
+        const sx = this.isSelected(x.handle) ? 0 : 1;
+        const sy = this.isSelected(y.handle) ? 0 : 1;
+        if (sx !== sy) return sx - sy;
+
+        // Stable fallback: lower handle wins for same target.
+        return x.handle - y.handle;
+      });
+
+    return sameTargetHighlighted.length > 0
+      && sameTargetHighlighted[0].handle === a.handle;
+  }
+
+
+
+
+
+  onAgentMouseEnter(handle: number): void {
+    this.store.setAgentHoverAgent(handle);
+  }
+
+  onAgentMouseLeave(): void {
+    this.store.clearAgentHoverAgents();
+  }
+
+
 
   toggleSelect(handle: number) {
     this.store.toggleAgentSelection(handle);

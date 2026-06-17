@@ -36,11 +36,14 @@ export class LeftSidebarComponent {
   /** MOVING includes anyone currently *acting* on the map:
    *  READY_TO_DEPART, MOVING, STOPPED, MALFUNCTION. */
   readonly movingAgents = computed<AgentDTO[]>(() => {
-    const list = this.store.agents().filter((a) =>
-      ['READY_TO_DEPART', 'MOVING', 'STOPPED', 'MALFUNCTION'].includes(a.state),
-    );
-    // Sort: smaller (or more negative) time_to_deadline first → most urgent on top.
+    const list = this.store.agents().filter((a) => this.isMovingGroupAgent(a));
+
+    // Malfunctions first, then most urgent deadlines.
     return list.sort((a, b) => {
+      const ma = this.isMalfunctioning(a) ? 0 : 1;
+      const mb = this.isMalfunctioning(b) ? 0 : 1;
+      if (ma !== mb) return ma - mb;
+
       const ta = a.time_to_deadline ?? Number.POSITIVE_INFINITY;
       const tb = b.time_to_deadline ?? Number.POSITIVE_INFINITY;
       return ta - tb;
@@ -48,8 +51,8 @@ export class LeftSidebarComponent {
   });
 
   readonly waitingAgents = computed<AgentDTO[]>(() => {
-    const list = this.store.agents().filter((a) => a.state === 'WAITING');
-    // Sort: earliest departure first.
+    const list = this.store.agents().filter((a) => this.isWaitingGroupAgent(a));
+
     return list.sort((a, b) => {
       const ea = a.earliest_departure ?? Number.POSITIVE_INFINITY;
       const eb = b.earliest_departure ?? Number.POSITIVE_INFINITY;
@@ -58,7 +61,7 @@ export class LeftSidebarComponent {
   });
 
   readonly doneAgents = computed<AgentDTO[]>(() => {
-    const list = this.store.agents().filter((a) => a.state === 'DONE');
+    const list = this.store.agents().filter((a) => this.isDoneGroupAgent(a));
     return list.sort((a, b) => a.handle - b.handle);
   });
 
@@ -86,6 +89,19 @@ export class LeftSidebarComponent {
     return this.store.selectedHandles().has(handle);
   }
 
+  isNotificationHovered(handle: number): boolean {
+    return this.store.notificationHoverHandles().has(handle);
+  }
+
+  onAgentMouseEnter(handle: number): void {
+    this.store.setAgentHoverAgent(handle);
+  }
+
+  onAgentMouseLeave(): void {
+    this.store.clearAgentHoverAgents();
+  }
+
+
   toggleSelect(handle: number): void {
     this.store.toggleAgentSelection(handle);
   }
@@ -103,6 +119,50 @@ export class LeftSidebarComponent {
     return a?.override_action === action;
   }
 
+  // ── group semantics ───────────────────────────────────────────────
+  //
+  // UI has three operational groups:
+  // - WAITING: not ready to depart yet
+  // - MOVING: ready/active and not done, including stopped/malfunction
+  // - DONE: completed
+  //
+  // Do not rely only on exact Flatland state strings. Some versions expose
+  // malfunction/off-map variants. Those must still be visible under MOVING.
+  isMalfunctioning(a: AgentDTO): boolean {
+    return !!a.is_malfunctioning
+      || (a.malfunction_remaining ?? 0) > 0
+      || String(a.state ?? '').toUpperCase().includes('MALFUNCTION');
+  }
+
+  isDoneGroupAgent(a: AgentDTO): boolean {
+    return String(a.state ?? '').toUpperCase() === 'DONE';
+  }
+
+  isWaitingGroupAgent(a: AgentDTO): boolean {
+    if (this.isDoneGroupAgent(a)) return false;
+    if (this.isMalfunctioning(a)) return false;
+
+    const state = String(a.state ?? '').toUpperCase();
+
+    // Off-map / not ready yet.
+    // READY_TO_DEPART is NOT waiting; it belongs to MOVING.
+    if (state === 'WAITING') {
+      return (a.eta_to_depart ?? 0) > 0;
+    }
+
+    return false;
+  }
+
+  isMovingGroupAgent(a: AgentDTO): boolean {
+    if (this.isDoneGroupAgent(a)) return false;
+    if (this.isWaitingGroupAgent(a)) return false;
+
+    // Everything active/not-done goes here:
+    // READY_TO_DEPART, MOVING, STOPPED, MALFUNCTION,
+    // MALFUNCTION_OFF_MAP, and future Flatland active states.
+    return true;
+  }
+
   // ── presentation helpers ──────────────────────────────────────────
 
   /** READY_TO_DEPART with the departure window already open. */
@@ -113,6 +173,7 @@ export class LeftSidebarComponent {
   isOverdue(a: AgentDTO): boolean {
     return (a.delay ?? 0) > 0;
   }
+
 
   /** Background colour for the time-to-deadline badge.
    *  Goes grey → orange as intensity grows, then deep orange when overdue. */

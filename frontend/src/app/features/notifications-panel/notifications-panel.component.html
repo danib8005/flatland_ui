@@ -6,7 +6,16 @@
   } @else {
     <ul class="notif-list">
       @for (n of store.notifications(); track n.id) {
-        <li class="notif" [class]="'kind-' + n.kind" (click)="focus(n)">
+        <li class="notif"
+            [class.kind-error]="n.kind === 'error'"
+            [class.kind-warning]="n.kind === 'warning'"
+            [class.kind-info]="n.kind === 'info'"
+            [class.agent-related]="isAgentRelated(n)"
+            [class.selected-agent-related]="isSelectedAgentRelated(n)"
+            [class.hovered-agent-related]="isHoveredAgentRelated(n)"
+            (mouseenter)="onNotificationMouseEnter(n)"
+            (mouseleave)="onNotificationMouseLeave()"
+            (click)="focus(n)">
           <span class="icon">{{ iconFor(n.kind) }}</span>
           <div class="content">
             <span class="title">{{ n.title }}</span>

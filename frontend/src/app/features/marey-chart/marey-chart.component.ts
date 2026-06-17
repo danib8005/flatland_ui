@@ -43,6 +43,8 @@ interface AgentLine {
   color: string;
   pastD: string;
   futureD: string;
+  /** Overlay segments for compressed same-cell dwell intervals. */
+  dwellD: string;
   isActive: boolean;
 }
 
@@ -320,6 +322,78 @@ export class MareyChartComponent implements AfterViewInit {
     this.svgEl = this.svgRef()?.nativeElement ?? null;
   }
 
+  isNotificationHovered(handle: number): boolean {
+    return this.store.notificationHoverHandles().has(handle);
+  }
+  mareyAgentLineColor(handle: number, fallbackColor?: string | null): string {
+    if (fallbackColor && String(fallbackColor).trim().length > 0) {
+      return String(fallbackColor);
+    }
+
+    const anyThis = this as any;
+    if (anyThis.agentColors?.getColor) {
+      try {
+        return anyThis.agentColors.getColor(handle, 'default');
+      } catch {
+        // fall through
+      }
+    }
+
+    const palette = [
+      '#0079c7', '#00973b', '#ff9800', '#6f42c1',
+      '#00a1de', '#2e7d32', '#ad1457', '#795548',
+    ];
+    return palette[Math.abs(handle) % palette.length];
+  }
+
+  mareyHoverLineColor(handle: number, fallbackColor?: string | null): string {
+    // Line highlighting in Marey is hover/cross-hover only.
+    // If explicitly selected, hover highlight uses edit magenta.
+    // Otherwise it uses the agent's own line color.
+    if (this.store.selectedHandle() === handle) return '#f939e9';
+    return this.mareyAgentLineColor(handle, fallbackColor);
+  }
+  mareyAgentDisplayColor(handle: number, fallbackColor?: string | null): string {
+    // Only explicit user click gets edit color.
+    // Do NOT use activeHandle(): activeHandle may be default/fallback.
+    if (this.store.selectedHandle() === handle) return '#f939e9';
+
+    if (fallbackColor && String(fallbackColor).trim().length > 0) {
+      return String(fallbackColor);
+    }
+
+    return this.mareyAgentLineColor(handle, fallbackColor);
+  }
+
+
+
+  onAgentMouseEnter(handle: number): void {
+    this.store.setAgentHoverAgent(handle);
+  }
+
+  onAgentMouseLeave(): void {
+    this.store.clearAgentHoverAgents();
+  }
+
+  isAgentMalfunctioning(handle: number): boolean {
+    return this.store.agents().some((a) =>
+      a.handle === handle
+      && (
+        !!a.is_malfunctioning
+        || (a.malfunction_remaining ?? 0) > 0
+        || String(a.state ?? '').includes('MALFUNCTION')
+      )
+    );
+  }
+
+  agentMalfunctionTitle(handle: number): string {
+    const a = this.store.agents().find((x) => x.handle === handle);
+    const remaining = a?.malfunction_remaining ?? 0;
+    return remaining > 0
+      ? `Malfunction: ${remaining} step(s) remaining`
+      : 'Malfunction';
+  }
+
   // ── data: scenario + path + agent lines ──────────────────────
   readonly forecastScenario = computed(() => {
     // Priority: hover-preview from a scenario card → local override
@@ -339,7 +413,57 @@ export class MareyChartComponent implements AfterViewInit {
     return all.find(s => s.isBaseline) ?? all[0];
   });
 
-  readonly mergedTrajectories = computed<Record<string, Array<{ step: number; row: number; col: number; dir: number }>>>(() => {
+
+  compressMareyTrajectoryRuns<T extends {
+    step: number;
+    endStep?: number;
+    durationSteps?: number;
+    dwellSteps?: number;
+    row: number;
+    col: number;
+    dir: number;
+    state?: string;
+  }>(points: T[]): T[] {
+    const sorted = [...points].sort((a, b) => a.step - b.step);
+    const out: T[] = [];
+
+    for (const p of sorted) {
+      const last = out[out.length - 1];
+
+      // Consecutive compression: only compare with immediate previous run.
+      // Same cell later after another cell remains a new run.
+      if (last && last.row === p.row && last.col === p.col) {
+        const endStep = Math.max(last.endStep ?? last.step, p.endStep ?? p.step);
+        const durationSteps = Math.max(1, endStep - last.step + 1);
+
+        out[out.length - 1] = {
+          ...last,
+          endStep,
+          durationSteps,
+          dwellSteps: durationSteps,
+          // Keep latest metadata for the run.
+          dir: p.dir,
+          state: p.state ?? last.state,
+        };
+      } else {
+        const endStep = p.endStep ?? p.step;
+        const durationSteps = p.durationSteps
+          ?? p.dwellSteps
+          ?? Math.max(1, endStep - p.step + 1);
+
+        out.push({
+          ...p,
+          endStep,
+          durationSteps,
+          dwellSteps: p.dwellSteps ?? durationSteps,
+        });
+      }
+    }
+
+    return out;
+  }
+
+  readonly mergedTrajectories = computed<Record<string, Array<{ step: number; endStep?: number; durationSteps?: number; dwellSteps?: number; row: number; col: number; dir: number; state?: string }>>>(() => {
     const sc = this.forecastScenario();
     const now = this.elapsed();
     if (!sc) return {};
@@ -351,23 +475,35 @@ export class MareyChartComponent implements AfterViewInit {
       ...Array.from(history.keys()).map((h) => String(h)),
     ]);
 
-    const out: Record<string, Array<{ step: number; row: number; col: number; dir: number }>> = {};
+    const out: Record<string, Array<{ step: number; endStep?: number; durationSteps?: number; dwellSteps?: number; row: number; col: number; dir: number; state?: string }>> = {};
     for (const handleStr of handles) {
       const h = Number(handleStr);
       const hist = (history.get(h) ?? [])
         .filter((p) => p.position != null && p.step <= now)
         .map((p) => ({
           step: p.step,
-          row: Number(p.position![0]),
-          col: Number(p.position![1]),
-          dir: Number(p.direction ?? 0),
+          endStep: p.endStep ?? p.step,
+          durationSteps: p.durationSteps ?? p.dwellSteps ?? Math.max(1, (p.endStep ?? p.step) - p.step + 1),
+          dwellSteps: p.dwellSteps ?? p.durationSteps ?? Math.max(1, (p.endStep ?? p.step) - p.step + 1),
+          row: p.position![0],
+          col: p.position![1],
+          dir: p.direction ?? 0,
+          state: p.state,
         }));
 
       const fut = (forecast[handleStr] ?? [])
         .filter((p) => p.step > now)
-        .map((p) => ({ step: p.step, row: p.row, col: p.col, dir: p.dir }));
+        .map((p) => ({
+          step: p.step,
+          endStep: p.step,
+          durationSteps: 1,
+          dwellSteps: 1,
+          row: p.row,
+          col: p.col,
+          dir: p.dir,
+        }));
 
-      out[handleStr] = [...hist, ...fut];
+      out[handleStr] = this.compressMareyTrajectoryRuns([...hist, ...fut]);
     }
     return out;
   });
@@ -597,6 +733,28 @@ export class MareyChartComponent implements AfterViewInit {
     return null;
   }
 
+
+  mareyRenderTimesForPoint(
+    p: { step: number; endStep?: number },
+    now: number,
+  ): number[] {
+    const start = p.step;
+    const end = p.endStep ?? p.step;
+
+    const times = new Set<number>();
+    times.add(start);
+
+    if (start < now && now < end) {
+      times.add(now);
+    }
+
+    if (end > start) {
+      times.add(end);
+    }
+
+    return Array.from(times).sort((a, b) => a - b);
+  }
+
   readonly agentLines = computed<AgentLine[]>(() => {
     const active = this.activeHandle();
     const idx = this.pathIndex();
@@ -611,6 +769,7 @@ export class MareyChartComponent implements AfterViewInit {
       const isActive = handle === active;
       const past: { x: number; y: number }[] = [];
       const future: { x: number; y: number }[] = [];
+      const dwellSegments: string[] = [];
 
       // For each on-path step, pick the X-index that is CLOSEST to the
       // previous step's chosen index. This makes the active agent monotone
@@ -637,16 +796,50 @@ export class MareyChartComponent implements AfterViewInit {
           }
         }
         prevXIdx = xIdx;
-        const sx = this.axesSwapped() ? this.timeCoord(p.step) : this.pathCoord(xIdx);
-        const sy = this.axesSwapped() ? this.pathCoord(xIdx)   : this.timeCoord(p.step);
-        (p.step <= now ? past : future).push({ x: sx, y: sy });
+        const dwellEnd = p.endStep ?? p.step;
+        if (dwellEnd > p.step) {
+          // Compressed same-cell run:
+          // draw an explicit overlay at the same path index from step -> endStep.
+          const t0 = p.step;
+          const t1 = dwellEnd;
+
+          if (t1 > t0) {
+            const dwellPts = this.axesSwapped()
+              ? [
+                  { x: this.timeCoord(t0), y: this.pathCoord(xIdx) },
+                  { x: this.timeCoord(t1), y: this.pathCoord(xIdx) },
+                ]
+              : [
+                  { x: this.pathCoord(xIdx), y: this.timeCoord(t0) },
+                  { x: this.pathCoord(xIdx), y: this.timeCoord(t1) },
+                ];
+
+            dwellSegments.push(this.toPathD(dwellPts));
+          }
+        }
+
+        for (const t of this.mareyRenderTimesForPoint(p, now)) {
+          const sx = this.axesSwapped() ? this.timeCoord(t) : this.pathCoord(xIdx);
+          const sy = this.axesSwapped() ? this.pathCoord(xIdx) : this.timeCoord(t);
+          const pt = { x: sx, y: sy };
+
+          if (t <= now) {
+            past.push(pt);
+          }
+
+          if (t >= now) {
+            future.push(pt);
+          }
+        }
       }
 
       const pastD = past.length > 1 ? this.toPathD(past) : '';
       const futureD = future.length > 1 ? this.toPathD(future) : '';
+      const dwellD = dwellSegments.join(' ');
       if (!pastD && !futureD) continue;
 
-      lines.push({ handle, color: this.colors.getColorSolid(handle), pastD, futureD, isActive });
+      lines.push({ handle, color: this.colors.getColorSolid(handle), pastD, futureD, dwellD,
+        isActive });
     }
     lines.sort((a, b) => Number(a.isActive) - Number(b.isActive));
     return lines;
@@ -692,7 +885,7 @@ export class MareyChartComponent implements AfterViewInit {
         }
         prevX = xIdx;
         if (firstXIdx < 0) firstXIdx = xIdx;
-        if (p.step <= now) currentXIdx = xIdx;
+        if (p.step <= now && (p.endStep ?? p.step) >= now) currentXIdx = xIdx;
         const sx = this.axesSwapped() ? this.timeCoord(p.step) : this.pathCoord(xIdx);
         const sy = this.axesSwapped() ? this.pathCoord(xIdx)   : this.timeCoord(p.step);
         pts.push({ x: sx, y: sy });
@@ -764,6 +957,214 @@ export class MareyChartComponent implements AfterViewInit {
     const inner = this.W - this.PAD.left - this.PAD.right;
     return this.PAD.left + t * inner;
   }
+
+
+  private mareyTimePanDrag: {
+    axisCoord: number;
+    range: { start: number; end: number };
+  } | null = null;
+
+  private mareyTimeAxisCoordFromEvent(ev: MouseEvent | WheelEvent, svg: SVGSVGElement): number {
+    const rect = svg.getBoundingClientRect();
+
+    if (!rect || rect.width <= 0 || rect.height <= 0) {
+      return 0;
+    }
+
+    // Convert browser pixels to SVG/viewBox coordinates.
+    const svgX = ((ev.clientX - rect.left) / rect.width) * this.W;
+    const svgY = ((ev.clientY - rect.top) / rect.height) * this.H;
+
+    // Time axis is vertical normally, horizontal when axes are swapped.
+    return this.axesSwapped() ? svgX : svgY;
+  }
+
+  private clampTimeRange(start: number, end: number): { start: number; end: number } {
+    const fullStart = 0;
+    const fullEnd = Math.max(1, this.maxSteps());
+    const span = Math.max(1, end - start);
+
+    let ns = start;
+    let ne = end;
+
+    if (ns < fullStart) {
+      ns = fullStart;
+      ne = ns + span;
+    }
+
+    if (ne > fullEnd) {
+      ne = fullEnd;
+      ns = ne - span;
+    }
+
+    ns = Math.max(fullStart, ns);
+    ne = Math.min(fullEnd, ne);
+
+    return { start: ns, end: ne };
+  }
+
+  onMareyMouseDown(ev: MouseEvent): void {
+    // Left mouse button only.
+    if (ev.button !== 0) return;
+
+    const fullStart = 0;
+    const fullEnd = Math.max(1, this.maxSteps());
+    const r = this.yRange();
+    const span = r.end - r.start;
+    const fullSpan = fullEnd - fullStart;
+
+    // Panning only makes sense when zoomed.
+    if (span >= fullSpan - 1e-6) {
+      this.mareyTimePanDrag = null;
+      return;
+    }
+
+    const svg = ev.currentTarget as SVGSVGElement | null;
+    if (!svg) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    this.mareyTimePanDrag = {
+      axisCoord: this.mareyTimeAxisCoordFromEvent(ev, svg),
+      range: { start: r.start, end: r.end },
+    };
+  }
+
+  onMareyMouseMove(ev: MouseEvent): void {
+    const drag = this.mareyTimePanDrag;
+    if (!drag) return;
+
+    const svg = ev.currentTarget as SVGSVGElement | null;
+    if (!svg) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const axisStart = this.axesSwapped() ? this.PAD.left : this.PAD.top;
+    const axisEnd = this.axesSwapped()
+      ? this.W - this.PAD.right
+      : this.H - this.PAD.bottom;
+
+    const axisSpanPx = Math.max(1, axisEnd - axisStart);
+    const rangeSpan = Math.max(1, drag.range.end - drag.range.start);
+
+    const currentAxisCoord = this.mareyTimeAxisCoordFromEvent(ev, svg);
+    const deltaPx = currentAxisCoord - drag.axisCoord;
+    const deltaSteps = (deltaPx / axisSpanPx) * rangeSpan;
+
+    // Natural "grab chart" behaviour:
+    // dragging down/right moves the visible content down/right,
+    // therefore the time range shifts backwards.
+    const next = this.clampTimeRange(
+      drag.range.start - deltaSteps,
+      drag.range.end - deltaSteps,
+    );
+
+    this.yRange.set(next);
+  }
+
+  onMareyMouseUp(ev?: MouseEvent): void {
+    if (!this.mareyTimePanDrag) return;
+
+    ev?.preventDefault();
+    ev?.stopPropagation();
+
+    this.mareyTimePanDrag = null;
+  }
+
+
+  resetZoom(): void {
+    // Reset Marey view to full time horizon and default pan/zoom.
+    const m = Math.max(1, this.maxSteps());
+
+    this.yRange.set({ start: 0, end: m });
+
+    this.zoomX.set(1);
+    this.zoomY.set(1);
+    this.panX.set(0);
+    this.panY.set(0);
+
+    this.mareyTimePanDrag = null;
+  }
+
+  onMareyWheel(ev: WheelEvent): void {
+    // Wheel zooms the TIME axis only.
+    // The time value under the cursor remains stable after zoom.
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const svg = ev.currentTarget as SVGSVGElement | null;
+    const rect = svg?.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return;
+
+    // Convert browser pixels to SVG/viewBox coordinates.
+    // This is important when the SVG is rendered scaled.
+    const svgX = ((ev.clientX - rect.left) / rect.width) * this.W;
+    const svgY = ((ev.clientY - rect.top) / rect.height) * this.H;
+
+    // Time axis is vertical normally, horizontal when axes are swapped.
+    const axisCoord = this.axesSwapped() ? svgX : svgY;
+
+    const axisStart = this.axesSwapped() ? this.PAD.left : this.PAD.top;
+    const axisEnd = this.axesSwapped()
+      ? this.W - this.PAD.right
+      : this.H - this.PAD.bottom;
+
+    const axisSpanPx = Math.max(1, axisEnd - axisStart);
+
+    // Cursor ratio on the time axis.
+    // Clamp so wheel slightly outside the plot still behaves predictably.
+    const ratio = Math.max(0, Math.min(1, (axisCoord - axisStart) / axisSpanPx));
+
+    const fullStart = 0;
+    const fullEnd = Math.max(1, this.maxSteps());
+
+    const current = this.yRange();
+    const currentStart = Math.max(fullStart, Math.min(current.start, fullEnd));
+    const currentEnd = Math.max(currentStart + 1, Math.min(current.end, fullEnd));
+    const currentSpan = Math.max(1, currentEnd - currentStart);
+
+    // This is the time currently under the cursor.
+    const focusedTime = currentStart + ratio * currentSpan;
+
+    // deltaY < 0 means wheel up -> zoom in.
+    const zoomFactor = ev.deltaY < 0 ? 0.82 : 1.22;
+
+    const minSpan = Math.min(4, fullEnd - fullStart);
+    const maxSpan = Math.max(minSpan, fullEnd - fullStart);
+
+    let newSpan = currentSpan * zoomFactor;
+    newSpan = Math.max(minSpan, Math.min(maxSpan, newSpan));
+
+    // Keep focusedTime at the same cursor ratio:
+    // focusedTime = newStart + ratio * newSpan
+    let newStart = focusedTime - ratio * newSpan;
+    let newEnd = newStart + newSpan;
+
+    // Clamp to full time horizon while keeping span.
+    if (newStart < fullStart) {
+      newStart = fullStart;
+      newEnd = newStart + newSpan;
+    }
+
+    if (newEnd > fullEnd) {
+      newEnd = fullEnd;
+      newStart = newEnd - newSpan;
+    }
+
+    newStart = Math.max(fullStart, newStart);
+    newEnd = Math.min(fullEnd, newEnd);
+
+    // If effectively zoomed fully out, snap exactly to full range.
+    if (newStart <= fullStart + 1e-6 && newEnd >= fullEnd - 1e-6) {
+      this.yRange.set({ start: fullStart, end: fullEnd });
+      return;
+    }
+
+    this.yRange.set({ start: newStart, end: newEnd });
+  }
+
   /** Map a step to its Y (or X if axes swapped) pixel coord, using yRange. */
   timeCoord(step: number): number {
     const r = this.yRange();
@@ -890,7 +1291,9 @@ export class MareyChartComponent implements AfterViewInit {
   }
 
   // ── agent selection (mirrors flatland-map) ───────────────────
+
   isSelected(handle: number): boolean {
+    // Explicit click only. Default/context agent must not look selected.
     return this.store.selectedHandle() === handle;
   }
   onAgentClick(handle: number, ev: MouseEvent): void {

@@ -178,3 +178,30 @@
   font-weight: 600;
   text-align: center;
 }
+
+/* app interaction color concept overrides - start */
+.recommendation-card:hover,
+.recommendation:hover,
+.rec-card:hover,
+.card:hover {
+  background: var(--app-hover-bg, #f8f8f8) !important;
+  border-color: var(--app-hover-border, #8d8d8d) !important;
+  box-shadow:
+    0 0 0 2px var(--app-hover-ring-soft, rgba(104, 104, 104, 0.18)),
+    0 6px 18px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-1px);
+}
+
+.recommendation-card.selected,
+.recommendation-card.active,
+.recommendation.selected,
+.recommendation.active,
+.rec-card.selected,
+.rec-card.active {
+  background: var(--app-select-bg, #fff0fe) !important;
+  border-color: var(--app-select-color, #f939e9) !important;
+  box-shadow:
+    0 0 0 2px var(--app-select-ring, rgba(249, 57, 233, 0.40)),
+    0 6px 18px rgba(0, 0, 0, 0.16) !important;
+}
+/* app interaction color concept overrides - end */

@@ -7,6 +7,9 @@
     <span class="line-label">Agent Info</span>
     @if (activeAgent()) {
       <span class="line-train">Agent {{ activeAgent()!.handle }}</span>
+      @if (isMalfunctioning(activeAgent())) {
+        <span class="malfunction-indicator line-malfunction" title="Malfunction: {{ activeAgent()!.malfunction_remaining }} step(s) remaining">!</span>
+      }
       <span class="line-hint">hover</span>
       <button class="line-clear" (click)="clearSelection()">Clear</button>
     } @else {
@@ -29,6 +32,9 @@
         <div class="card-header">
           <span class="dot" [style.background]="agentColor(activeAgent()!.handle)"></span>
           <span class="title">Train {{ activeAgent()!.handle }}</span>
+          @if (isMalfunctioning(activeAgent())) {
+            <span class="malfunction-indicator header-malfunction" title="Malfunction: {{ activeAgent()!.malfunction_remaining }} step(s) remaining">!</span>
+          }
           <span class="state state-{{ activeAgent()!.state }}">{{ activeAgent()!.state }}</span>
         </div>
         <dl class="props">
@@ -48,6 +54,14 @@
           <dd>({{ activeAgent()!.target[0] }}, {{ activeAgent()!.target[1] }})</dd>
           <dt>Speed</dt>
           <dd>{{ activeAgent()!.speed }}</dd>
+          <dt>Malfunction</dt>
+          <dd>
+            @if (isMalfunctioning(activeAgent())) {
+              ! {{ activeAgent()!.malfunction_remaining }} step(s)
+            } @else {
+              –
+            }
+          </dd>
           <dt>Earliest dep.</dt>
           <dd>{{ activeAgent()!.earliest_departure ?? '–' }}</dd>
           <dt>Latest arr.</dt>

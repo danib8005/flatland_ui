@@ -254,6 +254,9 @@
       <g
         class="agent"
         [class.selected]="isSelected(a.handle)"
+        [class.notification-hover]="isNotificationHovered(a.handle)"
+        (mouseenter)="onAgentMouseEnter(a.handle)"
+        (mouseleave)="onAgentMouseLeave()"
         (click)="toggleSelect(a.handle)">
         <circle
           [attr.cx]="agentX(a)"
@@ -271,6 +274,46 @@
           fill="white">
           {{ a.handle }}
         </text>
+        @if (shouldRenderAgentTargetHighlight(a)) {
+          <g
+            class="agent-target-highlight"
+            [class.selected-target]="isSelected(a.handle)"
+            [style.--agent-target-color]="agentTargetHighlightColor(a)">
+            <circle
+              class="agent-target-ring"
+              [attr.cx]="targetX(a)"
+              [attr.cy]="targetY(a)"
+              r="13" />
+            <circle
+              class="agent-target-dot"
+              [attr.cx]="targetX(a)"
+              [attr.cy]="targetY(a)"
+              r="3" />
+            <path
+              class="agent-target-cross"
+              [attr.d]="'M ' + (targetX(a) - 8) + ' ' + targetY(a) +
+                        ' L ' + (targetX(a) + 8) + ' ' + targetY(a) +
+                        ' M ' + targetX(a) + ' ' + (targetY(a) - 8) +
+                        ' L ' + targetX(a) + ' ' + (targetY(a) + 8)" />
+          </g>
+        }
+
+
+        @if (isMalfunctioning(a)) {
+          <circle
+            class="malfunction-badge-bg"
+            [attr.cx]="agentX(a) + 12"
+            [attr.cy]="agentY(a) - 12"
+            r="9.5" />
+          <text
+            class="malfunction-badge-text"
+            [attr.x]="agentX(a) + 12"
+            [attr.y]="agentY(a) - 7"
+            text-anchor="middle">!</text>
+        }
+
+
+
       </g>
     }
   </svg>

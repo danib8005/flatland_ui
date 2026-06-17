@@ -13,6 +13,8 @@ class AgentDTO(BaseModel):
     speed: float
     earliest_departure: Optional[int]
     latest_arrival: Optional[int]
+    malfunction_remaining: int = 0
+    is_malfunctioning: bool = False
 
 
 class ActionRequest(BaseModel):

@@ -30,9 +30,17 @@
                 @if (lbl.tileIndex === cellIdx) {
                   <button class="topo-agent"
                           [class.selected]="isSelected(lbl.handle)"
-                          [style.background]="lbl.color"
+                          [class.notification-hover]="isNotificationHovered(lbl.handle)"
+                          [style.background]="mareyAgentDisplayColor(lbl.handle, lbl.color)"
+                          (mouseenter)="onAgentMouseEnter(lbl.handle)"
+                          (mouseleave)="onAgentMouseLeave()"
                           (click)="onAgentClick(lbl.handle, $event)"
-                          [title]="'Agent ' + lbl.handle">{{ lbl.handle }}</button>
+                          [title]="'Agent ' + lbl.handle">
+                    {{ lbl.handle }}
+                    @if (isAgentMalfunctioning(lbl.handle)) {
+                      <span class="malfunction-indicator topo-malfunction" [title]="agentMalfunctionTitle(lbl.handle)">!</span>
+                    }
+                  </button>
                 }
               }
             }
@@ -134,7 +142,11 @@
          class="marey-svg"
          [attr.viewBox]="viewBox()"
          preserveAspectRatio="none"
-         (wheel)="onWheel($event)"
+         (wheel)="onMareyWheel($event)"
+         (mousedown)="onMareyMouseDown($event)"
+         (mousemove)="onMareyMouseMove($event)"
+         (mouseup)="onMareyMouseUp($event)"
+         (mouseleave)="onMareyMouseUp($event)"
          (mousedown)="onMouseDown($event)"
          (mousemove)="onMouseMove($event)"
          (mouseup)="onMouseUp()"
@@ -199,7 +211,12 @@
 
       <g class="marey-lines">
         @for (line of agentLines(); track line.handle) {
-          <g [class.is-active]="line.isActive">
+          <g [class.is-active]="line.isActive"
+             [class.notification-hover]="isNotificationHovered(line.handle)"
+             [style.--marey-agent-color]="mareyAgentDisplayColor(line.handle, $any(line).color)"
+             [style.--marey-hover-color]="mareyHoverLineColor(line.handle, $any(line).color)"
+             (mouseenter)="onAgentMouseEnter(line.handle)"
+             (mouseleave)="onAgentMouseLeave()">
             @if (line.pastD) {
               <path class="past" [attr.d]="line.pastD" [attr.stroke]="line.color" />
             }
@@ -213,9 +230,10 @@
     <!-- Zoom overlay (above pan-cross) -->
     <!-- Swap-axes overlay: where flatland-map has its opacity slider -->
     <div class="map-swap-overlay">
-      <button title="Swap horizontal/vertical axes" class="nav-btn"
-              [class.active]="axesSwapped()" (click)="swapAxes()">⇄</button>
-    </div>
+        <button title="Center / Reset zoom" class="nav-btn" (click)="resetZoom()">⌂</button>
+        <button title="Swap horizontal/vertical axes" class="nav-btn"
+                [class.active]="axesSwapped()" (click)="swapAxes()">⇄</button>
+      </div>
       </div><!-- /cell-marey -->
 
       <!-- Cell 3×1: empty -->

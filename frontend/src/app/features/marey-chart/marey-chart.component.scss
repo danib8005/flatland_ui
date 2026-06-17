@@ -60,7 +60,7 @@
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--sbb-color-cloud, #d2d2d2);
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--sbb-color-charcoal, #212121);
   user-select: none;
   z-index: 10;
@@ -143,7 +143,7 @@
     vector-effect: non-scaling-stroke;
   }
   text {
-    font-size: 11px;
+    font-size: 13px;
     fill: #c5341e;
     font-weight: 600;
   }
@@ -293,7 +293,7 @@
   border-radius: 50%;
   background: #888;
   color: white;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -362,7 +362,7 @@
 }
 
 .placeholder {
-  font-size: 11px;
+  font-size: 13px;
   color: #888;
   font-family: ui-monospace, monospace;
 }
@@ -395,7 +395,7 @@
   position: absolute;
   right: 4px;
   transform: translateY(-50%);
-  font-size: 11px;
+  font-size: 13px;
   color: #555;
   white-space: nowrap;
   pointer-events: none;
@@ -603,3 +603,366 @@
 .cell-topology .topo-tile {
   opacity: 0.25;
 }
+
+
+
+
+
+
+.topo-malfunction {
+  position: absolute;
+  right: -9px;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+
+@keyframes malfunction-html-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.16);
+    opacity: 0.82;
+  }
+}
+
+
+
+.topo-agent.notification-hover {
+  border-color: #0079c7;
+  border-width: 3px;
+  box-shadow: 0 0 0 2px rgba(0, 121, 199, 0.35), 0 0 8px rgba(0, 121, 199, 0.65);
+  transform: scale(1.08);
+}
+
+
+.marey-lines g.notification-hover {
+  path.past {
+    stroke-width: 5;
+    opacity: 1;
+    filter: drop-shadow(0 0 4px rgba(0, 121, 199, 0.55));
+  }
+
+  path.future {
+    stroke-width: 5;
+    opacity: 0.8;
+    stroke-dasharray: none;
+    filter: drop-shadow(0 0 4px rgba(0, 121, 199, 0.45));
+  }
+}
+
+/* app interaction color concept overrides - start */
+/* Selected topology agent marker. */
+.topo-agent.selected {
+  border-color: var(--app-select-color, #f939e9) !important;
+  border-width: 3px !important;
+  box-shadow:
+    0 0 0 2px var(--app-select-ring, rgba(249, 57, 233, 0.40)),
+    0 0 9px var(--app-select-glow, rgba(249, 57, 233, 0.65)) !important;
+  transform: scale(1.08);
+}
+
+/* Notification hover / linked hover: neutral grey. */
+.topo-agent.notification-hover {
+  border-color: var(--app-hover-border-dark, #686868) !important;
+  border-width: 3px !important;
+  box-shadow:
+    0 0 0 2px var(--app-hover-ring, rgba(104, 104, 104, 0.28)),
+    0 0 8px var(--app-hover-glow, rgba(104, 104, 104, 0.55)) !important;
+  transform: scale(1.08);
+}
+
+/* Selected wins over notification hover. */
+.topo-agent.selected.notification-hover {
+  border-color: var(--app-select-color, #f939e9) !important;
+  box-shadow:
+    0 0 0 2px var(--app-select-ring, rgba(249, 57, 233, 0.40)),
+    0 0 9px var(--app-select-glow, rgba(249, 57, 233, 0.65)) !important;
+}
+
+/* Selected/active Marey line: magenta edit color. */
+.marey-lines g.is-active path.past,
+.marey-lines g.is-active path.future {
+  stroke: var(--app-select-color, #f939e9) !important;
+  stroke-width: 5 !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 0 4px var(--app-select-glow, rgba(249, 57, 233, 0.65))) !important;
+}
+
+/* Notification hover line: neutral grey. */
+.marey-lines g.notification-hover path.past {
+  stroke-width: 5 !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 0 4px var(--app-hover-glow, rgba(104, 104, 104, 0.55))) !important;
+}
+
+.marey-lines g.notification-hover path.future {
+  stroke-width: 5 !important;
+  opacity: 0.8 !important;
+  stroke-dasharray: none !important;
+  filter: drop-shadow(0 0 4px var(--app-hover-ring, rgba(104, 104, 104, 0.28))) !important;
+}
+
+/* Selected line wins over hover. */
+.marey-lines g.is-active.notification-hover path.past,
+.marey-lines g.is-active.notification-hover path.future {
+  stroke: var(--app-select-color, #f939e9) !important;
+}
+
+/* Malfunction indicator remains red. */
+.topo-malfunction.malfunction-indicator {
+  background: #eb0000 !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+/* app interaction color concept overrides - end */
+
+
+/* Make Marey line groups usable as hover targets for cross-view highlighting. */
+.marey-lines g {
+  pointer-events: visibleStroke;
+  cursor: pointer;
+}
+
+
+/* malfunction badge hover stability */
+.malfunction-badge-bg,
+.malfunction-badge-text,
+.agent-malfunction,
+.topo-malfunction,
+.line-malfunction,
+.header-malfunction {
+  pointer-events: none;
+}
+
+
+/* marey explicit selection only visual override */
+.topo-agent.selected {
+  border-color: var(--app-select-color, #f939e9) !important;
+  border-width: 3px !important;
+  box-shadow:
+    0 0 0 2px var(--app-select-ring, rgba(249, 57, 233, 0.40)),
+    0 0 9px var(--app-select-glow, rgba(249, 57, 233, 0.65)) !important;
+}
+
+.marey-lines g.is-active path.past,
+.marey-lines g.is-active path.future {
+  stroke: var(--app-select-color, #f939e9) !important;
+  stroke-width: 5 !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 0 4px var(--app-select-glow, rgba(249, 57, 233, 0.65))) !important;
+}
+
+
+
+/* marey hover-only line highlight override
+   - No permanent line emphasis just because agent is selected/default.
+   - Hover/cross-hover uses agent color, or edit magenta if selected. */
+.marey-lines g.is-active:not(.notification-hover) path.past,
+.marey-lines g.is-active:not(.notification-hover) path.future {
+  stroke: var(--marey-agent-color, currentColor) !important;
+  stroke-width: 2.5 !important;
+  filter: none !important;
+}
+
+.marey-lines g.notification-hover path.past,
+.marey-lines g.notification-hover path.future {
+  stroke: var(--marey-hover-color, currentColor) !important;
+  stroke-width: 5 !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.35)) !important;
+}
+
+.marey-lines g.is-active.notification-hover path.past,
+.marey-lines g.is-active.notification-hover path.future {
+  stroke: var(--marey-hover-color, #f939e9) !important;
+}
+
+
+/* marey explicit selected edit color final override
+   Only explicitly clicked agents get COLOR_Edit.
+   Non-selected/default agents keep their normal agent color. */
+.topo-agent.selected {
+  background: var(--app-select-color, #f939e9) !important;
+  border-color: var(--app-select-color, #f939e9) !important;
+  border-width: 3px !important;
+  box-shadow:
+    0 0 0 2px var(--app-select-ring, rgba(249, 57, 233, 0.40)),
+    0 0 9px var(--app-select-glow, rgba(249, 57, 233, 0.65)) !important;
+}
+
+/* Non-selected markers keep inline agent color. */
+.topo-agent:not(.selected) {
+  border-color: rgba(255, 255, 255, 0.85);
+}
+
+/* If selected and hovered, selected/edit color wins for marker. */
+.topo-agent.selected.notification-hover {
+  background: var(--app-select-color, #f939e9) !important;
+  border-color: var(--app-select-color, #f939e9) !important;
+}
+
+
+/* dwell same-cell run overlay
+   Shows compressed same-cell time intervals: step -> endStep. */
+.marey-lines path.dwell {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.42;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.25));
+}
+
+/* On hover/cross-highlight, make dwell segment clearer. */
+.marey-lines g.notification-hover path.dwell {
+  stroke: var(--marey-hover-color, currentColor) !important;
+  stroke-width: 8;
+  opacity: 0.72;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.35));
+}
+
+/* If selected and hovered, edit color wins via --marey-hover-color. */
+.marey-lines g.is-active.notification-hover path.dwell {
+  stroke: var(--marey-hover-color, #f939e9) !important;
+}
+
+
+/* marey selected-only line muting - start
+   No selected train: all lines have equal visual weight.
+   Selected train: only non-selected trains are muted. */
+.marey-lines:not(.has-selected-agent) g {
+  opacity: 1 !important;
+}
+
+.marey-lines:not(.has-selected-agent) g path.past,
+.marey-lines:not(.has-selected-agent) g path.future,
+.marey-lines:not(.has-selected-agent) g path.dwell {
+  opacity: 1 !important;
+}
+
+/* Only when a train is explicitly selected do we mute the others. */
+.marey-lines.has-selected-agent g:not(.is-selected-agent):not(.notification-hover) {
+  opacity: 0.32 !important;
+}
+
+.marey-lines.has-selected-agent g.is-selected-agent,
+.marey-lines.has-selected-agent g.notification-hover {
+  opacity: 1 !important;
+}
+
+/* Selected train line remains visually strong. */
+.marey-lines.has-selected-agent g.is-selected-agent path.past,
+.marey-lines.has-selected-agent g.is-selected-agent path.future,
+.marey-lines.has-selected-agent g.is-selected-agent path.dwell {
+  opacity: 1 !important;
+}
+/* marey selected-only line muting - end */
+
+
+/* marey no line muting final override - start
+   Simpler rule: Marey lines are never muted.
+   Hover/selection may still affect color/stroke, but not opacity of other trains. */
+.marey-lines g,
+.marey-lines g.is-active,
+.marey-lines g.notification-hover {
+  opacity: 1 !important;
+}
+
+.marey-lines g path.past,
+.marey-lines g path.future,
+.marey-lines g path.dwell {
+  opacity: 1 !important;
+}
+/* marey no line muting final override - end */
+
+
+/* marey swap-home horizontal override - start
+   In the small swap overlay, buttons must sit next to each other.
+   The global .nav-btn width/height:100% is for map navigation grids and
+   would stack these two buttons vertically. */
+.map-swap-overlay {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.map-swap-overlay .nav-btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px;
+  min-height: 32px;
+  flex: 0 0 32px;
+  line-height: 1;
+}
+/* marey swap-home horizontal override - end */
+
+
+/* marey swap-home horizontal override - start
+   Home/reset left, swap right, both next to each other.
+   Keep the group 16px away from the real chart edge. */
+.map-swap-overlay {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  z-index: 20;
+}
+
+.map-swap-overlay .nav-btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px;
+  min-height: 32px;
+  flex: 0 0 32px;
+  line-height: 1;
+}
+/* marey swap-home horizontal override - end */
+
+
+/* marey swap-home horizontal override - start
+   Align Marey reset/swap controls like the Flatland map overlays:
+   bottom-right, 16px from the real chart edge, horizontal row.
+   Button order: [home/reset] [swap axes]. */
+.map-swap-overlay {
+  position: absolute !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  top: auto !important;
+  left: auto !important;
+
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.map-swap-overlay .nav-btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px;
+  min-height: 32px;
+  flex: 0 0 32px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  line-height: 1;
+  padding: 0;
+}
+/* marey swap-home horizontal override - end */

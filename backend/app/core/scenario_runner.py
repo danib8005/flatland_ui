@@ -42,6 +42,8 @@ from flatland.envs.persistence import RailEnvPersister
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_action import RailEnvActions
 
+STOP_MOVING_ACTION_VALUE = int(RailEnvActions.STOP_MOVING.value)
+
 from app.core.conflict_detector import Conflict, ConflictDetectionCallbacks
 from app.policies.base import Policy
 from app.policies.override_policy import OverridePolicy
@@ -171,6 +173,16 @@ class TrajectoryBranchRunner:
         from app.core.override_manager import override_manager
 
         overrides = overrides or {}
+
+        # Manual STOP override semantics:
+        # STOP_MOVING is persistent in forecasts as well. If user stops a train,
+        # the predicted branch must keep issuing STOP until the forecast horizon,
+        # because no future release step is known.
+        persistent_stop_overrides = {
+            int(h): RailEnvActions.STOP_MOVING
+            for h, a in overrides.items()
+            if int(a.value if hasattr(a, "value") else a) == STOP_MOVING_ACTION_VALUE
+        }
         env = self._fork_env()
 
         policy, session_id = self._make_override_policy(env, overrides)
