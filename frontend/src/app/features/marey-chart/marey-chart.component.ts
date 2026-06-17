@@ -43,6 +43,8 @@ interface AgentLine {
   color: string;
   pastD: string;
   futureD: string;
+  /** Overlay segments for compressed same-cell dwell intervals. */
+  dwellD: string;
   isActive: boolean;
 }
 
@@ -411,7 +413,57 @@ export class MareyChartComponent implements AfterViewInit {
     return all.find(s => s.isBaseline) ?? all[0];
   });
 
-  readonly mergedTrajectories = computed<Record<string, Array<{ step: number; row: number; col: number; dir: number }>>>(() => {
+
+  compressMareyTrajectoryRuns<T extends {
+    step: number;
+    endStep?: number;
+    durationSteps?: number;
+    dwellSteps?: number;
+    row: number;
+    col: number;
+    dir: number;
+    state?: string;
+  }>(points: T[]): T[] {
+    const sorted = [...points].sort((a, b) => a.step - b.step);
+    const out: T[] = [];
+
+    for (const p of sorted) {
+      const last = out[out.length - 1];
+
+      // Consecutive compression: only compare with immediate previous run.
+      // Same cell later after another cell remains a new run.
+      if (last && last.row === p.row && last.col === p.col) {
+        const endStep = Math.max(last.endStep ?? last.step, p.endStep ?? p.step);
+        const durationSteps = Math.max(1, endStep - last.step + 1);
+
+        out[out.length - 1] = {
+          ...last,
+          endStep,
+          durationSteps,
+          dwellSteps: durationSteps,
+          // Keep latest metadata for the run.
+          dir: p.dir,
+          state: p.state ?? last.state,
+        };
+      } else {
+        const endStep = p.endStep ?? p.step;
+        const durationSteps = p.durationSteps
+          ?? p.dwellSteps
+          ?? Math.max(1, endStep - p.step + 1);
+
+        out.push({
+          ...p,
+          endStep,
+          durationSteps,
+          dwellSteps: p.dwellSteps ?? durationSteps,
+        });
+      }
+    }
+
+    return out;
+  }
+
+  readonly mergedTrajectories = computed<Record<string, Array<{ step: number; endStep?: number; durationSteps?: number; dwellSteps?: number; row: number; col: number; dir: number; state?: string }>>>(() => {
     const sc = this.forecastScenario();
     const now = this.elapsed();
     if (!sc) return {};
@@ -423,23 +475,35 @@ export class MareyChartComponent implements AfterViewInit {
       ...Array.from(history.keys()).map((h) => String(h)),
     ]);
 
-    const out: Record<string, Array<{ step: number; row: number; col: number; dir: number }>> = {};
+    const out: Record<string, Array<{ step: number; endStep?: number; durationSteps?: number; dwellSteps?: number; row: number; col: number; dir: number; state?: string }>> = {};
     for (const handleStr of handles) {
       const h = Number(handleStr);
       const hist = (history.get(h) ?? [])
         .filter((p) => p.position != null && p.step <= now)
         .map((p) => ({
           step: p.step,
-          row: Number(p.position![0]),
-          col: Number(p.position![1]),
-          dir: Number(p.direction ?? 0),
+          endStep: p.endStep ?? p.step,
+          durationSteps: p.durationSteps ?? p.dwellSteps ?? Math.max(1, (p.endStep ?? p.step) - p.step + 1),
+          dwellSteps: p.dwellSteps ?? p.durationSteps ?? Math.max(1, (p.endStep ?? p.step) - p.step + 1),
+          row: p.position![0],
+          col: p.position![1],
+          dir: p.direction ?? 0,
+          state: p.state,
         }));
 
       const fut = (forecast[handleStr] ?? [])
         .filter((p) => p.step > now)
-        .map((p) => ({ step: p.step, row: p.row, col: p.col, dir: p.dir }));
+        .map((p) => ({
+          step: p.step,
+          endStep: p.step,
+          durationSteps: 1,
+          dwellSteps: 1,
+          row: p.row,
+          col: p.col,
+          dir: p.dir,
+        }));
 
-      out[handleStr] = [...hist, ...fut];
+      out[handleStr] = this.compressMareyTrajectoryRuns([...hist, ...fut]);
     }
     return out;
   });
@@ -669,6 +733,28 @@ export class MareyChartComponent implements AfterViewInit {
     return null;
   }
 
+
+  mareyRenderTimesForPoint(
+    p: { step: number; endStep?: number },
+    now: number,
+  ): number[] {
+    const start = p.step;
+    const end = p.endStep ?? p.step;
+
+    const times = new Set<number>();
+    times.add(start);
+
+    if (start < now && now < end) {
+      times.add(now);
+    }
+
+    if (end > start) {
+      times.add(end);
+    }
+
+    return Array.from(times).sort((a, b) => a - b);
+  }
+
   readonly agentLines = computed<AgentLine[]>(() => {
     const active = this.activeHandle();
     const idx = this.pathIndex();
@@ -683,6 +769,7 @@ export class MareyChartComponent implements AfterViewInit {
       const isActive = handle === active;
       const past: { x: number; y: number }[] = [];
       const future: { x: number; y: number }[] = [];
+      const dwellSegments: string[] = [];
 
       // For each on-path step, pick the X-index that is CLOSEST to the
       // previous step's chosen index. This makes the active agent monotone
@@ -709,16 +796,42 @@ export class MareyChartComponent implements AfterViewInit {
           }
         }
         prevXIdx = xIdx;
-        const sx = this.axesSwapped() ? this.timeCoord(p.step) : this.pathCoord(xIdx);
-        const sy = this.axesSwapped() ? this.pathCoord(xIdx)   : this.timeCoord(p.step);
-        (p.step <= now ? past : future).push({ x: sx, y: sy });
+        const dwellEnd = p.endStep ?? p.step;
+        if (dwellEnd > p.step) {
+          // Compressed same-cell run:
+          // draw an explicit overlay at the same path index from step -> endStep.
+          const t0 = p.step;
+          const t1 = dwellEnd;
+
+          if (t1 > t0) {
+            const dwellPts = this.axesSwapped()
+              ? [
+                  { x: this.timeCoord(t0), y: this.pathCoord(xIdx) },
+                  { x: this.timeCoord(t1), y: this.pathCoord(xIdx) },
+                ]
+              : [
+                  { x: this.pathCoord(xIdx), y: this.timeCoord(t0) },
+                  { x: this.pathCoord(xIdx), y: this.timeCoord(t1) },
+                ];
+
+            dwellSegments.push(this.toPathD(dwellPts));
+          }
+        }
+
+        for (const t of this.mareyRenderTimesForPoint(p, now)) {
+          const sx = this.axesSwapped() ? this.timeCoord(t) : this.pathCoord(xIdx);
+          const sy = this.axesSwapped() ? this.pathCoord(xIdx) : this.timeCoord(t);
+          (t <= now ? past : future).push({ x: sx, y: sy });
+        }
       }
 
       const pastD = past.length > 1 ? this.toPathD(past) : '';
       const futureD = future.length > 1 ? this.toPathD(future) : '';
+      const dwellD = dwellSegments.join(' ');
       if (!pastD && !futureD) continue;
 
-      lines.push({ handle, color: this.colors.getColorSolid(handle), pastD, futureD, isActive });
+      lines.push({ handle, color: this.colors.getColorSolid(handle), pastD, futureD, dwellD,
+        isActive });
     }
     lines.sort((a, b) => Number(a.isActive) - Number(b.isActive));
     return lines;
@@ -764,7 +877,7 @@ export class MareyChartComponent implements AfterViewInit {
         }
         prevX = xIdx;
         if (firstXIdx < 0) firstXIdx = xIdx;
-        if (p.step <= now) currentXIdx = xIdx;
+        if (p.step <= now && (p.endStep ?? p.step) >= now) currentXIdx = xIdx;
         const sx = this.axesSwapped() ? this.timeCoord(p.step) : this.pathCoord(xIdx);
         const sy = this.axesSwapped() ? this.pathCoord(xIdx)   : this.timeCoord(p.step);
         pts.push({ x: sx, y: sy });

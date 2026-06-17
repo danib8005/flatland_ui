@@ -804,3 +804,29 @@
   background: var(--app-select-color, #f939e9) !important;
   border-color: var(--app-select-color, #f939e9) !important;
 }
+
+
+/* dwell same-cell run overlay
+   Shows compressed same-cell time intervals: step -> endStep. */
+.marey-lines path.dwell {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.42;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.25));
+}
+
+/* On hover/cross-highlight, make dwell segment clearer. */
+.marey-lines g.notification-hover path.dwell {
+  stroke: var(--marey-hover-color, currentColor) !important;
+  stroke-width: 8;
+  opacity: 0.72;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.35));
+}
+
+/* If selected and hovered, edit color wins via --marey-hover-color. */
+.marey-lines g.is-active.notification-hover path.dwell {
+  stroke: var(--marey-hover-color, #f939e9) !important;
+}

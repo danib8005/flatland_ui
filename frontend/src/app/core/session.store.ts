@@ -11,7 +11,14 @@ import { WebSocketService } from './websocket.service';
 import { AgentDTO, PolicyInfo, PolicyName, RailTile, SessionInfo, SessionState } from './models';
 
 export interface TrajectoryPoint {
+  /** First simulation step at this compressed trajectory cell/run. */
   step: number;
+  /** Last simulation step still at this same cell/run. */
+  endStep?: number;
+  /** Number of raw time steps represented by this compressed point. */
+  durationSteps?: number;
+  /** Backwards-compatible alias used by some UI code. */
+  dwellSteps?: number;
   position: [number, number] | null;
   direction: number | null;
   state: string;
@@ -213,6 +220,25 @@ export class SessionStore {
     const newMap = new Map(map);
     let changed = false;
 
+    const normalizeRun = (
+      pt: TrajectoryPoint,
+      endStep: number,
+      direction: number | null,
+      agentState: string,
+    ): TrajectoryPoint => {
+      const safeEnd = Math.max(pt.endStep ?? pt.step, endStep);
+      const duration = Math.max(1, safeEnd - pt.step + 1);
+
+      return {
+        ...pt,
+        endStep: safeEnd,
+        durationSteps: duration,
+        dwellSteps: duration,
+        direction,
+        state: agentState,
+      };
+    };
+
     for (const a of state.agents) {
       const list = newMap.get(a.handle) ?? [];
       const lastPt = list.length > 0 ? list[list.length - 1] : null;
@@ -224,53 +250,56 @@ export class SessionStore {
       }
 
       // Same backend step can arrive more than once via polling/ws.
-      // Replace metadata for that step instead of appending.
-      if (lastPt && lastPt.step === state.elapsed_steps) {
+      // Update the last run metadata for this exact step instead of appending.
+      if (lastPt && state.elapsed_steps <= (lastPt.endStep ?? lastPt.step)) {
+        const updated = normalizeRun(lastPt, state.elapsed_steps, a.direction, a.state);
+
         if (
           !this._sameTrajectoryPosition(lastPt.position, pos) ||
-          lastPt.direction !== a.direction ||
-          lastPt.state !== a.state
+          lastPt.direction !== updated.direction ||
+          lastPt.state !== updated.state ||
+          lastPt.endStep !== updated.endStep ||
+          lastPt.durationSteps !== updated.durationSteps ||
+          lastPt.dwellSteps !== updated.dwellSteps
         ) {
-          newMap.set(a.handle, [
-            ...list.slice(0, -1),
-            {
-              step: state.elapsed_steps,
-              position: pos,
-              direction: a.direction,
-              state: a.state,
-            },
-          ]);
+          newMap.set(a.handle, [...list.slice(0, -1), { ...updated, position: pos }]);
           changed = true;
         }
         continue;
       }
 
-      // Critical Marey fix:
-      // If the train did not move to a new cell, do not append another
-      // path point. This prevents repeated cells in the time-distance
-      // topology when READY_TO_DEPART, STOPPED, waiting, or malfunctioning.
+      // Consecutive compression:
+      // If agent stays in the same cell because of speed < 1, STOPPED,
+      // MALFUNCTION, MALFUNCTION_OFF_MAP, etc., keep exactly one trajectory
+      // cell and extend its endStep/duration.
+      //
+      // Important:
+      // Later returning to the same cell creates a NEW run because only the
+      // immediately previous point is compared.
       if (lastPt && this._sameTrajectoryPosition(lastPt.position, pos)) {
-        // Keep newest metadata, but keep the original step so the path
-        // topology remains one cell instead of many duplicates.
-        if (lastPt.direction !== a.direction || lastPt.state !== a.state) {
-          newMap.set(a.handle, [
-            ...list.slice(0, -1),
-            {
-              step: lastPt.step,
-              position: pos,
-              direction: a.direction,
-              state: a.state,
-            },
-          ]);
+        const updated = normalizeRun(lastPt, state.elapsed_steps, a.direction, a.state);
+
+        if (
+          lastPt.direction !== updated.direction ||
+          lastPt.state !== updated.state ||
+          lastPt.endStep !== updated.endStep ||
+          lastPt.durationSteps !== updated.durationSteps ||
+          lastPt.dwellSteps !== updated.dwellSteps
+        ) {
+          newMap.set(a.handle, [...list.slice(0, -1), updated]);
           changed = true;
         }
         continue;
       }
 
+      // New cell/run starts here.
       newMap.set(a.handle, [
         ...list,
         {
           step: state.elapsed_steps,
+          endStep: state.elapsed_steps,
+          durationSteps: 1,
+          dwellSteps: 1,
           position: pos,
           direction: a.direction,
           state: a.state,
@@ -283,6 +312,7 @@ export class SessionStore {
       this.trajectories.set(newMap);
     }
   }
+
 
   private _resetTrajectories() {
     this.trajectories.set(new Map());

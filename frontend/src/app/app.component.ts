@@ -372,30 +372,31 @@ export class AppComponent implements OnInit {
   }
   @HostListener('window:keydown.escape', ['$event'])
   onEscapeDeselectAgent(event: KeyboardEvent): void {
-    let handled = false;
+    // ESC priority:
+    // 1) close open settings dialogs/panels
+    // 2) only if no dialog/panel was open, deselect selected agent
 
-    // ESC deselects selected agent.
-    if (this.store.selectedHandle() != null) {
-      this.store.selectedHandle.set(null);
-      handled = true;
-    }
-
-    // Preserve previous ESC behavior for open settings panels, if present.
     if (this.settingsMode()) {
       this.cancelSettings();
-      handled = true;
+      event.preventDefault();
+      event.stopPropagation();
+      return;
     }
 
     if (this.scenarioPolicyMode()) {
       this.cancelScenarioPolicySettings();
-      handled = true;
+      event.preventDefault();
+      event.stopPropagation();
+      return;
     }
 
-    if (handled) {
+    if (this.store.selectedHandle() != null) {
+      this.store.selectedHandle.set(null);
       event.preventDefault();
       event.stopPropagation();
     }
   }
+
 
   ngOnInit(): void {
     this.store.loadPolicies();
