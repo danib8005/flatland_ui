@@ -602,27 +602,59 @@ export class SessionStore {
     this.decisionVisible.set(new Set());
   }
 
+  private _setLocalOverride(handle: number, action: number | null): void {
+    this.state.update((st) => {
+      if (!st) return st;
+
+      return {
+        ...st,
+        agents: st.agents.map((a) =>
+          a.handle === handle
+            ? { ...a, override_action: action as any }
+            : a,
+        ),
+      };
+    });
+  }
+
   setOverride(handle: number, action: number) {
     const s = this.session();
     if (!s) return;
+
+    // Optimistic UI update: button reacts immediately.
+    this._setLocalOverride(handle, action);
+
     this.api.setOverride(s.id, handle, action as any).subscribe({
       next: () => {
+        // Backend remains source of truth, but do not wait for it to make
+        // the button look active.
         this.refreshState();
         this.refreshForecasts();
       },
-      error: (e: any) => this.error.set('Override failed: ' + e.message),
+      error: (e) => {
+        this.error.set(`Set override failed: ${e.message}`);
+        // Re-sync from backend if request failed.
+        this.refreshState();
+      },
     });
   }
 
   clearOverride(handle: number) {
     const s = this.session();
     if (!s) return;
+
+    // Optimistic UI update: release/clear reacts immediately.
+    this._setLocalOverride(handle, null);
+
     this.api.clearOverride(s.id, handle).subscribe({
       next: () => {
         this.refreshState();
         this.refreshForecasts();
       },
-      error: (e: any) => this.error.set('Clear override failed: ' + e.message),
+      error: (e) => {
+        this.error.set(`Clear override failed: ${e.message}`);
+        this.refreshState();
+      },
     });
   }
 

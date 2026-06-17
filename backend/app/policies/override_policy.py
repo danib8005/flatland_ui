@@ -12,6 +12,8 @@ from flatland.core.env_observation_builder import ObservationBuilder
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_action import RailEnvActions
 
+STOP_MOVING_ACTION_VALUE = int(RailEnvActions.STOP_MOVING.value)
+
 from app.core.cell_classifier import classify_cell_at as classify_cell
 from app.core.override_manager import override_manager
 from app.policies.base import Policy
@@ -47,25 +49,48 @@ class OverridePolicy(Policy):
     def build_predictor(self):
         return self._default.build_predictor()
 
-    def _one_shot_override_for(self, handle: int):
-        env = self._env
-        if env is None:
-            return None
+    def _one_shot_override_for(self, handle):
+        """Return override for handle.
 
-        override = override_manager.get(self._session_id, handle)
+        UX semantics:
+        - STOP_MOVING is persistent and applies immediately on every step
+          until the user explicitly clears/releases it.
+        - LEFT/FORWARD/RIGHT are decision overrides:
+          they are parked until the agent reaches SWITCH/MERGING, then
+          applied once and cleared.
+        """
+        h = int(handle)
+        override = override_manager.get(self._session_id, h)
         if override is None:
             return None
 
-        agent = env.agents[handle]
-        if agent.position is None:
+        override_int = int(override.value if hasattr(override, "value") else override)
+
+        # Manual STOP is sticky/persistent and applies anywhere.
+        if override_int == STOP_MOVING_ACTION_VALUE:
+            return RailEnvActions.STOP_MOVING
+
+        # Non-stop overrides are only consumed at decision cells.
+        env = getattr(self, "_env", None) or getattr(self, "env", None)
+        if env is None:
             return None
 
-        cell_kind = classify_cell(env, agent.position, agent.direction)
-        if cell_kind not in ("SWITCH", "MERGING"):
+        try:
+            agent = env.agents[h]
+        except Exception:
             return None
 
-        override_manager.clear(self._session_id, handle)
-        return RailEnvActions(int(override))
+        if agent.position is None or agent.direction is None:
+            return None
+
+        kind = classify_cell(env, agent.position, agent.direction)
+        if kind not in ("SWITCH", "MERGING"):
+            # Park override until decision cell.
+            return None
+
+        # Consume one-shot decision override.
+        override_manager.clear(self._session_id, h)
+        return RailEnvActions(override_int)
 
     def act_many(self, handles, observations, **kwargs):
         actions = self._default.act_many(handles, observations, **kwargs)
