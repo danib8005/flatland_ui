@@ -34,7 +34,7 @@
 
     <!-- Selected-agent trajectory: cell background overlay in agent color,
          darker for past, lighter for forecast (same semantics as Marey). -->
-    @if (selectedTrajectoryCells().length > 0) {
+    @if (false && selectedTrajectoryCells().length > 0) {
       @for (cell of selectedTrajectoryCells(); track cell.id) {
         <defs>
           <mask [attr.id]="'traj-mask-' + cell.id" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" mask-type="alpha">
@@ -73,6 +73,27 @@
         class="rail-tile" />
     }
 
+      <!-- Segment-exact future trajectory overlay.
+           Rendered above rail tiles so switch branches can be highlighted
+           without tinting the whole switch tile. -->
+      @if (selectedTrajectoryFutureSegments().length > 0) {
+        <g class="trajectory-future-segments" pointer-events="none">
+          @for (seg of selectedTrajectoryFutureSegments(); track seg.id) {
+            <path
+              [attr.d]="seg.d"
+              class="trajectory-future-segment-casing"
+              fill="none"
+              pointer-events="none" />
+            <path
+              [attr.d]="seg.d"
+              [attr.stroke]="seg.color"
+              [attr.opacity]="seg.opacity"
+              class="trajectory-future-segment"
+              fill="none"
+              pointer-events="none" />
+          }
+        </g>
+      }
     <!-- Targets (always visible) -->
     @for (a of agents(); track trackByAgent($index, a)) {
       <rect

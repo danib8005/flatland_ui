@@ -53,6 +53,19 @@ interface TrajectoryOverlayCell {
   opacity: number;
 }
 
+interface TrajectoryPastPath {
+  id: string;
+  d: string;
+  color: string;
+}
+
+interface TrajectoryOverlaySegment {
+  id: string;
+  d: string;
+  color: string;
+  opacity: number;
+}
+
 @Component({
   selector: 'app-flatland-map',
   standalone: true,
@@ -169,14 +182,151 @@ export class FlatlandMapComponent {
 
   readonly tiles = computed(() => this.store.railTiles());
 
-  readonly selectedTrajectoryCells = computed<TrajectoryOverlayCell[]>(() => {
-    if (!this.store.layerVisibility().agentTrajectory) return [];
+  // Local map hover for trajectory preview. Selection wins over hover.
+  private hoveredTrajectoryHandle = signal<number | null>(null);
 
-    const handle = this.store.selectedHandle();
-    if (handle == null) return [];
+  readonly focusedTrajectoryHandle = computed<number | null>(() => {
+    if (!this.store.layerVisibility().agentTrajectory) return null;
+
+    const selected = this.store.selectedHandle();
+    if (selected != null) return selected;
+
+    return this.hoveredTrajectoryHandle();
+  });
+
+  readonly focusedTrajectoryColor = computed(() => {
+    const handle = this.focusedTrajectoryHandle();
+    if (handle == null) return '#f939e9';
+
+    // Explicit selected agent uses the global selected/edit color.
+    if (this.store.selectedHandle() === handle) {
+      return '#f939e9';
+    }
+
+    // Hover-only trajectory uses the agent's normal color.
+    return this.agentColors.getColorSolid(handle);
+  });
+
+
+  readonly selectedTrajectoryPastPath = computed<TrajectoryPastPath | null>(() => {
+    const handle = this.focusedTrajectoryHandle();
+    if (handle == null) return null;
 
     const now = this.store.elapsedSteps();
     const history = this.store.trajectories().get(handle) ?? [];
+    const color = this.focusedTrajectoryColor();
+
+    const points = history
+      .filter((p) => p.position != null && p.step <= now)
+      .sort((a, b) => a.step - b.step)
+      .map((p) => ({
+        x: Number(p.position![1]) * this.cellSize + this.cellSize / 2,
+        y: Number(p.position![0]) * this.cellSize + this.cellSize / 2,
+      }));
+
+    if (points.length === 0) return null;
+
+    // With only one sample, draw a tiny segment so SVG has visible geometry.
+    if (points.length === 1) {
+      const p = points[0];
+      return {
+        id: `traj_past_${handle}`,
+        d: `M ${p.x} ${p.y} l 0.01 0.01`,
+        color,
+      };
+    }
+
+    const d = points
+      .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
+      .join(' ');
+
+    return {
+      id: `traj_past_${handle}`,
+      d,
+      color,
+    };
+  });
+
+
+  readonly selectedTrajectoryFutureSegments = computed<TrajectoryOverlaySegment[]>(() => {
+    const handle = this.focusedTrajectoryHandle();
+    if (handle == null) return [];
+
+    const now = this.store.elapsedSteps();
+    const scenarios = this.store.scenarios();
+    const previewId = this.store.previewScenarioId();
+    const forecastScenario = previewId
+      ? scenarios.find((s) => s.id === previewId)
+      : null;
+    const activeScenario = forecastScenario ?? scenarios.find((s) => s.isBaseline) ?? scenarios[0] ?? null;
+    const forecast = activeScenario?.trajectories?.[String(handle)] ?? [];
+    if (forecast.length === 0) return [];
+
+    const agent = this.store.agents().find((a) => a.handle === handle);
+    const pathCells: Array<{ row: number; col: number }> = [];
+
+    // Start at the current physical agent position, so the route is continuous
+    // from the train to the future forecast.
+    if (agent?.position) {
+      this._pushTrajectoryPathCell(
+        pathCells,
+        Number(agent.position[0]),
+        Number(agent.position[1]),
+      );
+    }
+
+    const orderedFuture = forecast
+      .filter((p) => p.step > now)
+      .sort((a, b) => a.step - b.step)
+      .map((p) => ({
+        row: Number(p.row),
+        col: Number(p.col),
+      }));
+
+    for (const pt of orderedFuture) {
+      const prev = pathCells[pathCells.length - 1] ?? null;
+
+      if (prev) {
+        this._appendInterpolatedTrajectoryPathCells(pathCells, prev.row, prev.col, pt.row, pt.col);
+      } else {
+        this._pushTrajectoryPathCell(pathCells, pt.row, pt.col);
+      }
+    }
+
+    if (pathCells.length < 2) return [];
+
+    const railCells = new Set(this.tiles().map((t) => `${t.r}_${t.c}`));
+    const color = this.focusedTrajectoryColor();
+    const selected = this.store.selectedHandle() === handle;
+
+    const segments: TrajectoryOverlaySegment[] = [];
+
+    for (let i = 0; i < pathCells.length; i++) {
+      const curr = pathCells[i];
+      if (!railCells.has(`${curr.row}_${curr.col}`)) continue;
+
+      const prev = i > 0 ? pathCells[i - 1] : null;
+      const next = i < pathCells.length - 1 ? pathCells[i + 1] : null;
+
+      const d = this._trajectorySegmentPathD(curr, prev, next);
+      if (!d) continue;
+
+      segments.push({
+        id: `traj_future_seg_${handle}_${i}_${curr.row}_${curr.col}`,
+        d,
+        color,
+        opacity: selected ? 1.0 : 0.9,
+      });
+    }
+
+    return segments;
+  });
+
+  readonly selectedTrajectoryCells = computed<TrajectoryOverlayCell[]>(() => {
+    const handle = this.focusedTrajectoryHandle();
+    if (handle == null) return [];
+
+    const now = this.store.elapsedSteps();
     const scenarios = this.store.scenarios();
     const previewId = this.store.previewScenarioId();
     const forecastScenario = previewId
@@ -185,62 +335,276 @@ export class FlatlandMapComponent {
     const activeScenario = forecastScenario ?? scenarios.find((s) => s.isBaseline) ?? scenarios[0] ?? null;
     const forecast = activeScenario?.trajectories?.[String(handle)] ?? [];
 
-    const byCell = new Map<string, { row: number; col: number; isPast: boolean }>();
+    // Future only: colour the rails/cells from the current agent state
+    // towards the target. Past is rendered separately as a dashed path.
+    //
+    // Important: scenario trajectories can be sparse/compressed, so two
+    // consecutive forecast points may skip intermediate grid cells. Fill
+    // those gaps so the highlighted route has no visual holes.
+    const byCell = new Map<string, { row: number; col: number }>();
 
-    // Past: build by step first (one snapshot per elapsed step), then
-    // interpolate gaps between sampled points so visited cells are not missing.
-    const pastByStep = new Map<number, { step: number; row: number; col: number }>();
-    for (const p of history) {
-      if (p.position == null || p.step > now) continue;
-      pastByStep.set(p.step, {
-        step: p.step,
-        row: Number(p.position[0]),
-        col: Number(p.position[1]),
-      });
-    }
-    // Optional gap-fill source: some scenarios include full absolute steps,
-    // including <= now. Use only where local history has no sample.
-    for (const p of forecast) {
-      if (p.step > now || pastByStep.has(p.step)) continue;
-      pastByStep.set(p.step, { step: p.step, row: p.row, col: p.col });
+    const agent = this.store.agents().find((a) => a.handle === handle);
+    let prev: { row: number; col: number } | null = agent?.position
+      ? { row: Number(agent.position[0]), col: Number(agent.position[1]) }
+      : null;
+
+    if (prev) {
+      this._markTrajectoryCell(byCell, prev.row, prev.col);
     }
 
-    const orderedPast = Array.from(pastByStep.values()).sort((a, b) => a.step - b.step);
-    let prev: { row: number; col: number } | null = null;
-    for (const pt of orderedPast) {
-      this._markPastCell(byCell, pt.row, pt.col);
+    const orderedFuture = forecast
+      .filter((p) => p.step > now)
+      .sort((a, b) => a.step - b.step)
+      .map((p) => ({
+        row: Number(p.row),
+        col: Number(p.col),
+      }));
+
+    for (const pt of orderedFuture) {
       if (prev) {
-        this._interpolatePastCells(byCell, prev.row, prev.col, pt.row, pt.col);
+        this._interpolateTrajectoryCells(byCell, prev.row, prev.col, pt.row, pt.col);
       }
-      prev = { row: pt.row, col: pt.col };
-    }
 
-    for (const p of forecast) {
-      if (p.step <= now) continue;
-      const key = `${p.row}_${p.col}`;
-      if (byCell.has(key)) continue;
-      byCell.set(key, { row: p.row, col: p.col, isPast: false });
+      this._markTrajectoryCell(byCell, pt.row, pt.col);
+      prev = pt;
     }
 
     const tilesByKey = new Map(this.tiles().map((t) => [`${t.r}_${t.c}`, t] as const));
-    const color = this.agentColors.getColorSolid(handle);
+    const color = this.focusedTrajectoryColor();
+
     return Array.from(byCell.values())
       .map((cell) => {
         const tile = tilesByKey.get(`${cell.row}_${cell.col}`);
         if (!tile) return null;
+
         return {
-          id: `traj_${handle}_${cell.row}_${cell.col}`,
+          id: `traj_future_${handle}_${cell.row}_${cell.col}`,
           x: cell.col * this.cellSize,
           y: cell.row * this.cellSize,
           href: this.tileHref(tile),
           transform: this.tileTransform(tile),
           color,
-          // Same visual separation as Marey: darker past, lighter forecast.
-          opacity: cell.isPast ? 0.55 : 0.25,
+          opacity: this.store.selectedHandle() === handle ? 0.42 : 0.34,
         };
       })
       .filter((cell): cell is TrajectoryOverlayCell => cell != null);
   });
+
+
+
+
+
+  private _pushTrajectoryPathCell(
+    out: Array<{ row: number; col: number }>,
+    row: number,
+    col: number,
+  ): void {
+    const last = out[out.length - 1];
+    if (last && last.row === row && last.col === col) return;
+    out.push({ row, col });
+  }
+
+  private _appendInterpolatedTrajectoryPathCells(
+    out: Array<{ row: number; col: number }>,
+    fromRow: number,
+    fromCol: number,
+    toRow: number,
+    toCol: number,
+  ): void {
+    const dr = toRow - fromRow;
+    const dc = toCol - fromCol;
+
+    if (dr === 0 && dc === 0) {
+      this._pushTrajectoryPathCell(out, toRow, toCol);
+      return;
+    }
+
+    const stepR = Math.sign(dr);
+    const stepC = Math.sign(dc);
+
+    // Normal case: forecast points are adjacent or axis-aligned.
+    if (dr === 0 || dc === 0) {
+      let r = fromRow;
+      let c = fromCol;
+
+      while (r !== toRow || c !== toCol) {
+        if (r !== toRow) r += stepR;
+        if (c !== toCol) c += stepC;
+        this._pushTrajectoryPathCell(out, r, c);
+      }
+
+      return;
+    }
+
+    // Sparse turn fallback: fill an L-shape. This is only a visual gap-filler
+    // for compressed/sparse trajectories.
+    let r = fromRow;
+    let c = fromCol;
+
+    while (r !== toRow) {
+      r += stepR;
+      this._pushTrajectoryPathCell(out, r, c);
+    }
+
+    while (c !== toCol) {
+      c += stepC;
+      this._pushTrajectoryPathCell(out, r, c);
+    }
+  }
+
+  /**
+   * Direction from `from` cell to adjacent `to` cell.
+   * Flatland direction encoding: 0=N, 1=E, 2=S, 3=W.
+   */
+  private _dirToNeighbor(
+    from: { row: number; col: number },
+    to: { row: number; col: number } | null,
+  ): number | null {
+    if (!to) return null;
+
+    const dr = to.row - from.row;
+    const dc = to.col - from.col;
+
+    if (dr === -1 && dc === 0) return 0; // N
+    if (dr === 0 && dc === 1) return 1;  // E
+    if (dr === 1 && dc === 0) return 2;  // S
+    if (dr === 0 && dc === -1) return 3; // W
+
+    return null;
+  }
+
+  private _cellCenter(cell: { row: number; col: number }): { x: number; y: number } {
+    return {
+      x: cell.col * this.cellSize + this.cellSize / 2,
+      y: cell.row * this.cellSize + this.cellSize / 2,
+    };
+  }
+
+  private _cellEdgePoint(
+    cell: { row: number; col: number },
+    dir: number,
+  ): { x: number; y: number } {
+    const x0 = cell.col * this.cellSize;
+    const y0 = cell.row * this.cellSize;
+    const h = this.cellSize / 2;
+
+    switch (dir) {
+      case 0: return { x: x0 + h, y: y0 };                 // N edge
+      case 1: return { x: x0 + this.cellSize, y: y0 + h }; // E edge
+      case 2: return { x: x0 + h, y: y0 + this.cellSize }; // S edge
+      case 3: return { x: x0, y: y0 + h };                 // W edge
+      default: return { x: x0 + h, y: y0 + h };
+    }
+  }
+
+  private _areOppositeDirs(a: number, b: number): boolean {
+    return Math.abs(a - b) === 2;
+  }
+
+  /**
+   * Build the actual driven rail branch inside one cell.
+   *
+   * For switch cells this is the important part:
+   * - prev/current/next defines entry and exit.
+   * - We draw only entry->exit, not the whole switch tile.
+   *
+   * Examples:
+   * - W -> E: straight line through the cell.
+   * - E -> S: quadratic curve via the cell centre.
+   * - start cell: centre -> exit edge.
+   * - end cell: entry edge -> centre.
+   */
+  private _trajectorySegmentPathD(
+    curr: { row: number; col: number },
+    prev: { row: number; col: number } | null,
+    next: { row: number; col: number } | null,
+  ): string | null {
+    const entryDir = this._dirToNeighbor(curr, prev);
+    const exitDir = this._dirToNeighbor(curr, next);
+    const center = this._cellCenter(curr);
+
+    if (entryDir == null && exitDir == null) return null;
+
+    // Start of visible future path: from train centre to next edge.
+    if (entryDir == null && exitDir != null) {
+      const out = this._cellEdgePoint(curr, exitDir);
+      return `M ${center.x} ${center.y} L ${out.x} ${out.y}`;
+    }
+
+    // End of route/forecast: from previous edge to cell centre.
+    if (entryDir != null && exitDir == null) {
+      const inn = this._cellEdgePoint(curr, entryDir);
+      return `M ${inn.x} ${inn.y} L ${center.x} ${center.y}`;
+    }
+
+    if (entryDir == null || exitDir == null) return null;
+
+    const inn = this._cellEdgePoint(curr, entryDir);
+    const out = this._cellEdgePoint(curr, exitDir);
+
+    // Straight-through branch.
+    if (this._areOppositeDirs(entryDir, exitDir)) {
+      return `M ${inn.x} ${inn.y} L ${out.x} ${out.y}`;
+    }
+
+    // Turn branch. This is what solves the switch problem:
+    // e.g. E -> S colours only the C-B curve, not the A-C branch.
+    return `M ${inn.x} ${inn.y} Q ${center.x} ${center.y} ${out.x} ${out.y}`;
+  }
+
+  private _markTrajectoryCell(
+    map: Map<string, { row: number; col: number }>,
+    row: number,
+    col: number,
+  ): void {
+    const key = `${row}_${col}`;
+    if (!map.has(key)) {
+      map.set(key, { row, col });
+    }
+  }
+
+  private _interpolateTrajectoryCells(
+    map: Map<string, { row: number; col: number }>,
+    fromRow: number,
+    fromCol: number,
+    toRow: number,
+    toCol: number,
+  ): void {
+    const dr = toRow - fromRow;
+    const dc = toCol - fromCol;
+    if (dr === 0 && dc === 0) return;
+
+    const stepR = Math.sign(dr);
+    const stepC = Math.sign(dc);
+
+    // Standard case: axis-aligned movement in grid space.
+    if (dr === 0 || dc === 0) {
+      let r = fromRow;
+      let c = fromCol;
+
+      while (r !== toRow || c !== toCol) {
+        if (r !== toRow) r += stepR;
+        if (c !== toCol) c += stepC;
+        this._markTrajectoryCell(map, r, c);
+      }
+
+      return;
+    }
+
+    // Fallback for sparse samples around turns: fill an L-shape.
+    let r = fromRow;
+    let c = fromCol;
+
+    while (r !== toRow) {
+      r += stepR;
+      this._markTrajectoryCell(map, r, c);
+    }
+
+    while (c !== toCol) {
+      c += stepC;
+      this._markTrajectoryCell(map, r, c);
+    }
+  }
 
   private _markPastCell(
     map: Map<string, { row: number; col: number; isPast: boolean }>,
@@ -780,10 +1144,12 @@ export class FlatlandMapComponent {
 
 
   onAgentMouseEnter(handle: number): void {
+    this.hoveredTrajectoryHandle.set(handle);
     this.store.setAgentHoverAgent(handle);
   }
 
   onAgentMouseLeave(): void {
+    this.hoveredTrajectoryHandle.set(null);
     this.store.clearAgentHoverAgents();
   }
 
