@@ -830,3 +830,52 @@
 .marey-lines g.is-active.notification-hover path.dwell {
   stroke: var(--marey-hover-color, #f939e9) !important;
 }
+
+
+/* marey selected-only line muting - start
+   No selected train: all lines have equal visual weight.
+   Selected train: only non-selected trains are muted. */
+.marey-lines:not(.has-selected-agent) g {
+  opacity: 1 !important;
+}
+
+.marey-lines:not(.has-selected-agent) g path.past,
+.marey-lines:not(.has-selected-agent) g path.future,
+.marey-lines:not(.has-selected-agent) g path.dwell {
+  opacity: 1 !important;
+}
+
+/* Only when a train is explicitly selected do we mute the others. */
+.marey-lines.has-selected-agent g:not(.is-selected-agent):not(.notification-hover) {
+  opacity: 0.32 !important;
+}
+
+.marey-lines.has-selected-agent g.is-selected-agent,
+.marey-lines.has-selected-agent g.notification-hover {
+  opacity: 1 !important;
+}
+
+/* Selected train line remains visually strong. */
+.marey-lines.has-selected-agent g.is-selected-agent path.past,
+.marey-lines.has-selected-agent g.is-selected-agent path.future,
+.marey-lines.has-selected-agent g.is-selected-agent path.dwell {
+  opacity: 1 !important;
+}
+/* marey selected-only line muting - end */
+
+
+/* marey no line muting final override - start
+   Simpler rule: Marey lines are never muted.
+   Hover/selection may still affect color/stroke, but not opacity of other trains. */
+.marey-lines g,
+.marey-lines g.is-active,
+.marey-lines g.notification-hover {
+  opacity: 1 !important;
+}
+
+.marey-lines g path.past,
+.marey-lines g path.future,
+.marey-lines g path.dwell {
+  opacity: 1 !important;
+}
+/* marey no line muting final override - end */

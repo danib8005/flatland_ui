@@ -821,7 +821,15 @@ export class MareyChartComponent implements AfterViewInit {
         for (const t of this.mareyRenderTimesForPoint(p, now)) {
           const sx = this.axesSwapped() ? this.timeCoord(t) : this.pathCoord(xIdx);
           const sy = this.axesSwapped() ? this.pathCoord(xIdx) : this.timeCoord(t);
-          (t <= now ? past : future).push({ x: sx, y: sy });
+          const pt = { x: sx, y: sy };
+
+          if (t <= now) {
+            past.push(pt);
+          }
+
+          if (t >= now) {
+            future.push(pt);
+          }
         }
       }
 
@@ -1075,6 +1083,7 @@ export class MareyChartComponent implements AfterViewInit {
   }
 
   // ── agent selection (mirrors flatland-map) ───────────────────
+
   isSelected(handle: number): boolean {
     // Explicit click only. Default/context agent must not look selected.
     return this.store.selectedHandle() === handle;
