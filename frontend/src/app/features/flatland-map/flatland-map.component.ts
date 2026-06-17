@@ -188,10 +188,13 @@ export class FlatlandMapComponent {
   readonly focusedTrajectoryHandle = computed<number | null>(() => {
     if (!this.store.layerVisibility().agentTrajectory) return null;
 
-    const selected = this.store.selectedHandle();
-    if (selected != null) return selected;
+    // In the Flatland map, hover is an immediate spatial inspection action.
+    // Therefore hover temporarily wins over an existing selection.
+    // When hover ends, the selected agent's trajectory is shown again.
+    const hovered = this.hoveredTrajectoryHandle();
+    if (hovered != null) return hovered;
 
-    return this.hoveredTrajectoryHandle();
+    return this.store.selectedHandle();
   });
 
   readonly focusedTrajectoryColor = computed(() => {
@@ -206,6 +209,40 @@ export class FlatlandMapComponent {
     // Hover-only trajectory uses the agent's normal color.
     return this.agentColors.getColorSolid(handle);
   });
+
+  readonly visibleTrajectoryHandles = computed<number[]>(() => {
+    if (!this.store.layerVisibility().agentTrajectory) return [];
+
+    const handles: number[] = [];
+
+    // Selection is persistent: selected agent trajectory is always visible
+    // while the trajectory layer is enabled.
+    const selected = this.store.selectedHandle();
+    if (selected != null) {
+      handles.push(selected);
+    }
+
+    // Hover is additive: when hovering another agent in the Flatland map,
+    // show that trajectory too instead of replacing the selected one.
+    const hovered = this.hoveredTrajectoryHandle();
+    if (hovered != null && !handles.includes(hovered)) {
+      handles.push(hovered);
+    }
+
+    return handles;
+  });
+
+  private _trajectoryColorForHandle(handle: number): string {
+    // Explicit selected agent uses the global selected/edit colour.
+    if (this.store.selectedHandle() === handle) {
+      return '#f939e9';
+    }
+
+    // Hover-only/additional trajectory uses the agent's normal colour.
+    return this.agentColors.getColorSolid(handle);
+  }
+
+
 
 
   readonly selectedTrajectoryPastPath = computed<TrajectoryPastPath | null>(() => {
@@ -249,8 +286,8 @@ export class FlatlandMapComponent {
 
 
   readonly selectedTrajectoryFutureSegments = computed<TrajectoryOverlaySegment[]>(() => {
-    const handle = this.focusedTrajectoryHandle();
-    if (handle == null) return [];
+    const handles = this.visibleTrajectoryHandles();
+    if (handles.length === 0) return [];
 
     const now = this.store.elapsedSteps();
     const scenarios = this.store.scenarios();
@@ -259,64 +296,67 @@ export class FlatlandMapComponent {
       ? scenarios.find((s) => s.id === previewId)
       : null;
     const activeScenario = forecastScenario ?? scenarios.find((s) => s.isBaseline) ?? scenarios[0] ?? null;
-    const forecast = activeScenario?.trajectories?.[String(handle)] ?? [];
-    if (forecast.length === 0) return [];
-
-    const agent = this.store.agents().find((a) => a.handle === handle);
-    const pathCells: Array<{ row: number; col: number }> = [];
-
-    // Start at the current physical agent position, so the route is continuous
-    // from the train to the future forecast.
-    if (agent?.position) {
-      this._pushTrajectoryPathCell(
-        pathCells,
-        Number(agent.position[0]),
-        Number(agent.position[1]),
-      );
-    }
-
-    const orderedFuture = forecast
-      .filter((p) => p.step > now)
-      .sort((a, b) => a.step - b.step)
-      .map((p) => ({
-        row: Number(p.row),
-        col: Number(p.col),
-      }));
-
-    for (const pt of orderedFuture) {
-      const prev = pathCells[pathCells.length - 1] ?? null;
-
-      if (prev) {
-        this._appendInterpolatedTrajectoryPathCells(pathCells, prev.row, prev.col, pt.row, pt.col);
-      } else {
-        this._pushTrajectoryPathCell(pathCells, pt.row, pt.col);
-      }
-    }
-
-    if (pathCells.length < 2) return [];
+    if (!activeScenario) return [];
 
     const railCells = new Set(this.tiles().map((t) => `${t.r}_${t.c}`));
-    const color = this.focusedTrajectoryColor();
-    const selected = this.store.selectedHandle() === handle;
-
     const segments: TrajectoryOverlaySegment[] = [];
 
-    for (let i = 0; i < pathCells.length; i++) {
-      const curr = pathCells[i];
-      if (!railCells.has(`${curr.row}_${curr.col}`)) continue;
+    for (const handle of handles) {
+      const forecast = activeScenario.trajectories?.[String(handle)] ?? [];
+      if (forecast.length === 0) continue;
 
-      const prev = i > 0 ? pathCells[i - 1] : null;
-      const next = i < pathCells.length - 1 ? pathCells[i + 1] : null;
+      const agent = this.store.agents().find((a) => a.handle === handle);
+      const pathCells: Array<{ row: number; col: number }> = [];
 
-      const d = this._trajectorySegmentPathD(curr, prev, next);
-      if (!d) continue;
+      // Start at the current physical agent position, so the route is continuous
+      // from the train to the future forecast.
+      if (agent?.position) {
+        this._pushTrajectoryPathCell(
+          pathCells,
+          Number(agent.position[0]),
+          Number(agent.position[1]),
+        );
+      }
 
-      segments.push({
-        id: `traj_future_seg_${handle}_${i}_${curr.row}_${curr.col}`,
-        d,
-        color,
-        opacity: selected ? 1.0 : 0.9,
-      });
+      const orderedFuture = forecast
+        .filter((pt) => pt.step > now)
+        .sort((a, b) => a.step - b.step)
+        .map((pt) => ({
+          row: Number(pt.row),
+          col: Number(pt.col),
+        }));
+
+      for (const pt of orderedFuture) {
+        const prev = pathCells[pathCells.length - 1] ?? null;
+
+        if (prev) {
+          this._appendInterpolatedTrajectoryPathCells(pathCells, prev.row, prev.col, pt.row, pt.col);
+        } else {
+          this._pushTrajectoryPathCell(pathCells, pt.row, pt.col);
+        }
+      }
+
+      if (pathCells.length < 2) continue;
+
+      const color = this._trajectoryColorForHandle(handle);
+
+      for (let i = 0; i < pathCells.length; i++) {
+        const curr = pathCells[i];
+        if (!railCells.has(`${curr.row}_${curr.col}`)) continue;
+
+        const prev = i > 0 ? pathCells[i - 1] : null;
+        const next = i < pathCells.length - 1 ? pathCells[i + 1] : null;
+
+        const d = this._trajectorySegmentPathD(curr, prev, next);
+        if (!d) continue;
+
+        segments.push({
+          id: `traj_future_seg_${handle}_${i}_${curr.row}_${curr.col}`,
+          d,
+          color,
+          opacity: 0.5,
+        });
+      }
     }
 
     return segments;
