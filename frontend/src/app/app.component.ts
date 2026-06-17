@@ -1,3 +1,4 @@
+import '@sbb-esta/lyne-elements/toggle-check.js';
 import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, HostListener, effect, inject, signal } from '@angular/core';
 import { ToolbarComponent } from './features/toolbar/toolbar.component';
 import { AgentInspectorComponent } from './features/agent-inspector/agent-inspector.component';
@@ -63,8 +64,10 @@ export class AppComponent implements OnInit {
   draftMaxRailPairsInCity = signal(2);
   draftLineLength = signal(4);
   draftScenarioPolicyIds = signal<string[]>([]);
+  draftControlPolicyIds = signal<string[]>([]);
 
   welcomeScenarioPolicyIds = signal<string[]>([]);
+  welcomeControlPolicyIds = signal<string[]>([]);
   pendingScenarioPolicyIds = signal<string[] | null>(null);
   pendingScenarioPreviousSessionId = signal<string | null>(null);
 
@@ -72,7 +75,10 @@ export class AppComponent implements OnInit {
     effect(() => {
       const available = this.store.availablePolicies();
       if (available.length > 0 && this.welcomeScenarioPolicyIds().length === 0) {
-        this.welcomeScenarioPolicyIds.set(available.map((p) => p.id));
+        this.welcomeScenarioPolicyIds.set(available.filter((p) => p.supports_scenarios).map((p) => p.id));
+      }
+      if (available.length > 0 && this.welcomeControlPolicyIds().length === 0) {
+        this.welcomeControlPolicyIds.set(available.filter((p) => p.show_in_ui).map((p) => p.id));
       }
     });
 
@@ -112,6 +118,7 @@ export class AppComponent implements OnInit {
       speedProfile: this.newSpeedProfile(),
       lineLength: this.newLineLength(),
       scenarioPolicyIds: this.welcomeScenarioPolicyIds(),
+      policyControlIds: this.welcomeControlPolicyIds(),
     });
   }
 
@@ -165,6 +172,7 @@ export class AppComponent implements OnInit {
 
   openScenarioPolicySettings() {
     this.draftScenarioPolicyIds.set([...this.welcomeScenarioPolicyIds()]);
+    this.draftControlPolicyIds.set([...this.welcomeControlPolicyIds()]);
     this.settingsMode.set(false);
     this.scenarioPolicyMode.set(true);
     this.blurActiveElement();
@@ -176,12 +184,14 @@ export class AppComponent implements OnInit {
   }
 
   applyScenarioPolicySettings() {
-    const enabledPolicies = [...this.draftScenarioPolicyIds()];
-    this.welcomeScenarioPolicyIds.set(enabledPolicies);
+    const enabledScenarios = [...this.draftScenarioPolicyIds()];
+    const enabledControls = [...this.draftControlPolicyIds()];
 
-    // Update local UI immediately: Scenario Panel + Toolbar dropdown must
-    // drop disabled policies without waiting for a reset.
-    this.store.setEnabledScenarioPolicyIds(enabledPolicies);
+    this.welcomeScenarioPolicyIds.set(enabledScenarios);
+    this.welcomeControlPolicyIds.set(enabledControls);
+
+    this.store.setEnabledScenarioPolicyIds(enabledScenarios);
+    this.store.setEnabledControlPolicyIds(enabledControls);
     this.store.previewScenarioId.set(null);
     this.scenarioPolicyMode.set(false);
     this.blurActiveElement();
@@ -191,19 +201,18 @@ export class AppComponent implements OnInit {
 
     const active = this.store.activePolicy();
     const fallbackPolicy =
-      this.store.availablePolicies().find((p) => p.is_default && enabledPolicies.includes(p.id))?.id ??
-      this.store.availablePolicies().find((p) => enabledPolicies.includes(p.id))?.id ??
-      enabledPolicies[0];
+      this.store.availablePolicies().find((p) => p.is_default && enabledControls.includes(p.id))?.id ??
+      this.store.availablePolicies().find((p) => enabledControls.includes(p.id))?.id ??
+      enabledControls[0];
 
-    const activeWasRemoved = !enabledPolicies.includes(active);
+    const activeWasRemoved = !enabledControls.includes(active);
     const nextPolicy = activeWasRemoved ? fallbackPolicy : active;
 
-    // Update local active policy immediately to avoid toolbar signal ping-pong.
     if (activeWasRemoved && nextPolicy) {
       this.store.setActivePolicy(nextPolicy as any);
     }
 
-    this.api.setScenarioPolicies(sid, enabledPolicies).subscribe({
+    this.api.setScenarioPolicies(sid, enabledScenarios, enabledControls).subscribe({
       next: () => {
         if (activeWasRemoved && nextPolicy) {
           this.api.setPolicy(sid, nextPolicy as any).subscribe({
@@ -251,6 +260,19 @@ export class AppComponent implements OnInit {
       : current.filter((id) => id !== policyId);
     if (next.length === 0) return;
     this.draftScenarioPolicyIds.set(next);
+  }
+
+  isDraftControlPolicyEnabled(policyId: string): boolean {
+    return this.draftControlPolicyIds().includes(policyId);
+  }
+
+  toggleDraftControlPolicy(policyId: string, enabled: boolean) {
+    const current = this.draftControlPolicyIds();
+    const next = enabled
+      ? Array.from(new Set([...current, policyId]))
+      : current.filter((id) => id !== policyId);
+    if (next.length === 0) return;
+    this.draftControlPolicyIds.set(next);
   }
 
   @HostListener('document:keydown.escape', ['$event'])

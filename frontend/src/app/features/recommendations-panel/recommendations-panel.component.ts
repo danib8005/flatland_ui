@@ -96,6 +96,24 @@ export class RecommendationsPanelComponent implements OnDestroy {
     return Math.round(r.confidence * 100);
   }
 
+  policyIdForRecommendation(r: Recommendation): PolicyName | null {
+    if (!r.scenarioId || !r.scenarioId.startsWith('scn_')) return null;
+    return r.scenarioId.slice(4) as PolicyName;
+  }
+
+  isAutoDispatchPolicyEnabled(policyId: string): boolean {
+    const enabled = this.store.enabledControlPolicyIds();
+    // If config is not loaded yet, keep existing behaviour.
+    if (enabled.length === 0) return true;
+    return enabled.includes(policyId);
+  }
+
+  canAcceptRecommendation(r: Recommendation): boolean {
+    const policyId = this.policyIdForRecommendation(r);
+    if (!policyId) return true;
+    return this.isAutoDispatchPolicyEnabled(policyId);
+  }
+
   thumbsUp(r: Recommendation) {
     this.bus.emit({ type: 'RECOMMENDATION_FEEDBACK', recId: r.id, thumbsUp: true });
     // visual mark: dismiss
@@ -127,6 +145,8 @@ export class RecommendationsPanelComponent implements OnDestroy {
     }
 
     const policyId = r.scenarioId.slice(4) as PolicyName;
+    if (!this.isAutoDispatchPolicyEnabled(policyId)) return;
+
     this.api.setPolicy(sess.id, policyId).subscribe({
       next: () => {
         this.store.setActivePolicy(policyId);

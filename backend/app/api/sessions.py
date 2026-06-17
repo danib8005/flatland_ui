@@ -18,7 +18,7 @@ from app.models.session import (
 )
 from app.models.agent import ActionRequest
 from app.policies.override_policy import OverridePolicy
-from app.policies.registry import create_runtime_policy, scenario_policy_factories
+from app.policies.registry import create_runtime_policy, scenario_policy_factories, policy_specs
 
 _perf_log = logging.getLogger("flatland.perf")
 _perf_log.setLevel(logging.INFO)
@@ -106,6 +106,7 @@ def create_session(req: SessionCreateRequest):
         latest_departure_max=req.latest_departure_max,
         speed_profile=req.speed_profile,
         line_length=req.line_length,
+        enabled_policy_ids=req.enabled_policy_ids,
         enabled_scenario_policy_ids=req.enabled_scenario_policy_ids,
     )
     return SessionInfo(
@@ -151,7 +152,7 @@ async def step(session_id: str, req: StepRequest):
             "message": "Episode finished. Use 'Reset' to start again.",
         }
 
-    enabled = set(getattr(session, "enabled_scenario_policies", set()))
+    enabled = set(getattr(session, "enabled_policy_ids", set()))
     if req.policy not in enabled:
         raise HTTPException(400, f"Policy '{req.policy}' is not enabled for this session")
 
@@ -268,7 +269,9 @@ class PolicyChangeRequest(BaseModel):
 
 
 class ScenarioPoliciesUpdateRequest(BaseModel):
-    enabled_ids: list[str]
+    # Backwards-compatible: enabled_ids means scenario policies.
+    enabled_ids: list[str] | None = None
+    enabled_policy_ids: list[str] | None = None
 
 
 @router.post("/{session_id}/policy")
@@ -278,7 +281,7 @@ def set_session_policy(session_id: str, req: PolicyChangeRequest):
     session = session_manager.get(session_id)
     if not session:
         raise HTTPException(404, f"Session {session_id} not found")
-    enabled = set(getattr(session, "enabled_scenario_policies", set()))
+    enabled = set(getattr(session, "enabled_policy_ids", set()))
     if req.policy not in enabled:
         raise HTTPException(400, f"Policy '{req.policy}' is not enabled for this session")
     session.policy = req.policy
@@ -298,12 +301,18 @@ def get_scenario_policies(session_id: str):
     if not session:
         raise HTTPException(404, f"Session {session_id} not found")
 
-    specs = scenario_policy_factories()
-    enabled = getattr(session, "enabled_scenario_policies", set(specs.keys()))
+    scenario_available = set(scenario_policy_factories().keys())
+    policy_available = {spec.id for spec in policy_specs(include_hidden=True) if spec.show_in_ui}
+
+    scenario_enabled = getattr(session, "enabled_scenario_policies", scenario_available)
+    policy_enabled = getattr(session, "enabled_policy_ids", policy_available)
+
     return {
         "session_id": session_id,
-        "enabled_ids": sorted(pid for pid in enabled if pid in specs),
-        "available_ids": sorted(specs.keys()),
+        "enabled_ids": sorted(pid for pid in scenario_enabled if pid in scenario_available),
+        "available_ids": sorted(scenario_available),
+        "enabled_policy_ids": sorted(pid for pid in policy_enabled if pid in policy_available),
+        "available_policy_ids": sorted(policy_available),
     }
 
 
@@ -313,18 +322,32 @@ def set_scenario_policies(session_id: str, req: ScenarioPoliciesUpdateRequest):
     if not session:
         raise HTTPException(404, f"Session {session_id} not found")
 
-    available = set(scenario_policy_factories().keys())
-    requested = set(req.enabled_ids or [])
-    unknown = sorted(requested - available)
-    if unknown:
-        raise HTTPException(400, f"Unknown scenario policy ids: {unknown}")
+    scenario_available = set(scenario_policy_factories().keys())
+    policy_available = {spec.id for spec in policy_specs(include_hidden=True) if spec.show_in_ui}
 
-    if not requested:
+    requested_scenarios = set(req.enabled_ids or [])
+    requested_policies = set(req.enabled_policy_ids or [])
+
+    unknown_scenarios = sorted(requested_scenarios - scenario_available)
+    if unknown_scenarios:
+        raise HTTPException(400, f"Unknown scenario policy ids: {unknown_scenarios}")
+
+    unknown_policies = sorted(requested_policies - policy_available)
+    if unknown_policies:
+        raise HTTPException(400, f"Unknown policy-control ids: {unknown_policies}")
+
+    if not requested_scenarios:
         raise HTTPException(400, "At least one scenario policy must remain enabled")
 
-    session.enabled_scenario_policies = set(requested)
-    if session.policy not in session.enabled_scenario_policies:
-        session.policy = sorted(session.enabled_scenario_policies)[0]
+    if not requested_policies:
+        raise HTTPException(400, "At least one policy-control policy must remain enabled")
+
+    session.enabled_scenario_policies = set(requested_scenarios)
+    session.enabled_policy_ids = set(requested_policies)
+
+    if session.policy not in session.enabled_policy_ids:
+        default_id = next((spec.id for spec in policy_specs(include_hidden=True) if spec.is_default and spec.id in session.enabled_policy_ids), None)
+        session.policy = default_id or sorted(session.enabled_policy_ids)[0]
 
     try:
         from app.core.scenario_cache import scenario_cache
@@ -335,6 +358,9 @@ def set_scenario_policies(session_id: str, req: ScenarioPoliciesUpdateRequest):
     return {
         "session_id": session_id,
         "enabled_ids": sorted(session.enabled_scenario_policies),
-        "available_ids": sorted(available),
+        "available_ids": sorted(scenario_available),
+        "enabled_policy_ids": sorted(session.enabled_policy_ids),
+        "available_policy_ids": sorted(policy_available),
     }
+
 

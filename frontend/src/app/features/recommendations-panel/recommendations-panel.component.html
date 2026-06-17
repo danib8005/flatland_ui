@@ -25,9 +25,15 @@
             <button class="btn btn-feedback" (click)="thumbsDown(r)" title="Reject">
               👎
             </button>
-            <button class="btn btn-accept" (click)="accept(r)">
-              Accept
-            </button>
+            @if (canAcceptRecommendation(r)) {
+              <button class="btn btn-accept" (click)="accept(r)">
+                Accept
+              </button>
+            } @else {
+              <span class="auto-dispatch-disabled">
+                Deaktiviert für Auto-Dispo
+              </span>
+            }
             <button class="btn btn-feedback" (click)="thumbsUp(r)" title="Approve">
               👍
             </button>

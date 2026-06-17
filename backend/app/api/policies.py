@@ -12,11 +12,13 @@ class PolicyInfo(BaseModel):
     label: str
     description: str
     is_default: bool = False
+    show_in_ui: bool = False
+    supports_scenarios: bool = False
 
 
 @router.get("/policies", response_model=list[PolicyInfo])
 def list_policies() -> list[PolicyInfo]:
-    specs = policy_specs(include_hidden=False)
+    specs = policy_specs(include_hidden=True)
     if not specs:
         return []
 
@@ -28,6 +30,8 @@ def list_policies() -> list[PolicyInfo]:
             label=spec.label,
             description=spec.description,
             is_default=(spec.id == default_id),
+            show_in_ui=spec.show_in_ui,
+            supports_scenarios=spec.supports_scenarios,
         )
         for spec in specs
     ]

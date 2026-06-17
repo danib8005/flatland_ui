@@ -46,7 +46,7 @@ export class ToolbarComponent {
     });
 
     effect(() => {
-      const ids = this.store.enabledScenarioPolicyIds();
+      const ids = this.store.enabledControlPolicyIds();
       if (ids.length > 0) {
         this.enabledPolicyIds.set(ids);
         if (!ids.includes(this.policy()) && ids.length > 0) {
@@ -63,10 +63,12 @@ export class ToolbarComponent {
       }
       this.api.getScenarioPolicies(sid).subscribe({
         next: (cfg) => {
-          this.enabledPolicyIds.set(cfg.enabled_ids);
+          const controlIds = cfg.enabled_policy_ids ?? cfg.enabled_ids;
+          this.enabledPolicyIds.set(controlIds);
           this.store.setEnabledScenarioPolicyIds(cfg.enabled_ids);
-          if (!cfg.enabled_ids.includes(this.policy()) && cfg.enabled_ids.length > 0) {
-            this.policy.set(cfg.enabled_ids[0] as PolicyName);
+          this.store.setEnabledControlPolicyIds(controlIds);
+          if (!controlIds.includes(this.policy()) && controlIds.length > 0) {
+            this.policy.set(controlIds[0] as PolicyName);
           }
         },
         error: () => this.enabledPolicyIds.set([]),

@@ -10,12 +10,18 @@ export interface PolicyInfo {
   label: string;
   description: string;
   is_default: boolean;
+  show_in_ui: boolean;
+  supports_scenarios: boolean;
 }
 
 export interface ScenarioPoliciesConfig {
   session_id: string;
+  // Scenario policies
   enabled_ids: string[];
   available_ids: string[];
+  // Runtime / toolbar policy control
+  enabled_policy_ids?: string[];
+  available_policy_ids?: string[];
 }
 
 export type CellType = 'OUTSIDE' | 'FORWARD_ONLY' | 'MERGING' | 'SWITCH' | 'DONE' | 'UNKNOWN';

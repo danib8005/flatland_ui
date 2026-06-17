@@ -247,18 +247,49 @@
       </div>
 
       <section class="settings-section">
-        <h3>Scenario Policies</h3>
-        <div class="settings-policy-list">
-          @for (p of store.availablePolicies(); track p.id) {
-            <label class="welcome-policy-row" [title]="p.description">
-              <input
-                type="checkbox"
-                [checked]="isDraftScenarioPolicyEnabled(p.id)"
-                [disabled]="isDraftScenarioPolicyEnabled(p.id) && draftScenarioPolicyIds().length === 1"
-                (change)="toggleDraftScenarioPolicy(p.id, $any($event.target).checked)" />
-              <span>{{ p.label }}</span>
-            </label>
-          }
+        <h3>Policies</h3>
+        <div class="policy-columns">
+          <div class="policy-column">
+            <h4>Policy Control</h4>
+            <p class="policy-column-desc">Policies available in the dispatcher toolbar.</p>
+            <div class="vertical-toggle-list">
+              @for (p of store.availablePolicies(); track p.id) {
+                @if (p.show_in_ui) {
+                  <sbb-toggle-check
+                    size="m"
+                    name="policy-control"
+                    [value]="p.id"
+                    [title]="p.description"
+                    [checked]="isDraftControlPolicyEnabled(p.id)"
+                    [disabled]="isDraftControlPolicyEnabled(p.id) && draftControlPolicyIds().length === 1"
+                    (change)="toggleDraftControlPolicy(p.id, $any($event.target).checked)">
+                    {{ p.label }}
+                  </sbb-toggle-check>
+                }
+              }
+            </div>
+          </div>
+
+          <div class="policy-column">
+            <h4>Scenario Policies</h4>
+            <p class="policy-column-desc">Policies used to generate scenario alternatives.</p>
+            <div class="vertical-toggle-list">
+              @for (p of store.availablePolicies(); track p.id) {
+                @if (p.supports_scenarios) {
+                  <sbb-toggle-check
+                    size="m"
+                    name="scenario-policy-selection"
+                    [value]="p.id"
+                    [title]="p.description"
+                    [checked]="isDraftScenarioPolicyEnabled(p.id)"
+                    [disabled]="isDraftScenarioPolicyEnabled(p.id) && draftScenarioPolicyIds().length === 1"
+                    (change)="toggleDraftScenarioPolicy(p.id, $any($event.target).checked)">
+                    {{ p.label }}
+                  </sbb-toggle-check>
+                }
+              }
+            </div>
+          </div>
         </div>
       </section>
 

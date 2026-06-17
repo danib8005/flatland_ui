@@ -14,6 +14,7 @@ class SessionCreateRequest(BaseModel):
     latest_departure_max: int | None = Field(default=20, ge=0, le=10000)
     speed_profile: str = Field(default="uniform_1_0", description="uniform_1_0 | uniform_0_5 | uniform_0_33 | uniform_0_25 | mixed")
     line_length: int = Field(default=4, ge=1, le=50)
+    enabled_policy_ids: list[str] | None = None
     enabled_scenario_policy_ids: list[str] | None = None
 
 
