@@ -142,7 +142,11 @@
          class="marey-svg"
          [attr.viewBox]="viewBox()"
          preserveAspectRatio="none"
-         (wheel)="onWheel($event)"
+         (wheel)="onMareyWheel($event)"
+         (mousedown)="onMareyMouseDown($event)"
+         (mousemove)="onMareyMouseMove($event)"
+         (mouseup)="onMareyMouseUp($event)"
+         (mouseleave)="onMareyMouseUp($event)"
          (mousedown)="onMouseDown($event)"
          (mousemove)="onMouseMove($event)"
          (mouseup)="onMouseUp()"
@@ -226,9 +230,10 @@
     <!-- Zoom overlay (above pan-cross) -->
     <!-- Swap-axes overlay: where flatland-map has its opacity slider -->
     <div class="map-swap-overlay">
-      <button title="Swap horizontal/vertical axes" class="nav-btn"
-              [class.active]="axesSwapped()" (click)="swapAxes()">⇄</button>
-    </div>
+        <button title="Center / Reset zoom" class="nav-btn" (click)="resetZoom()">⌂</button>
+        <button title="Swap horizontal/vertical axes" class="nav-btn"
+                [class.active]="axesSwapped()" (click)="swapAxes()">⇄</button>
+      </div>
       </div><!-- /cell-marey -->
 
       <!-- Cell 3×1: empty -->

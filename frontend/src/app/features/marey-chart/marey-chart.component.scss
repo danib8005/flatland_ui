@@ -879,3 +879,90 @@
   opacity: 1 !important;
 }
 /* marey no line muting final override - end */
+
+
+/* marey swap-home horizontal override - start
+   In the small swap overlay, buttons must sit next to each other.
+   The global .nav-btn width/height:100% is for map navigation grids and
+   would stack these two buttons vertically. */
+.map-swap-overlay {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.map-swap-overlay .nav-btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px;
+  min-height: 32px;
+  flex: 0 0 32px;
+  line-height: 1;
+}
+/* marey swap-home horizontal override - end */
+
+
+/* marey swap-home horizontal override - start
+   Home/reset left, swap right, both next to each other.
+   Keep the group 16px away from the real chart edge. */
+.map-swap-overlay {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  z-index: 20;
+}
+
+.map-swap-overlay .nav-btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px;
+  min-height: 32px;
+  flex: 0 0 32px;
+  line-height: 1;
+}
+/* marey swap-home horizontal override - end */
+
+
+/* marey swap-home horizontal override - start
+   Align Marey reset/swap controls like the Flatland map overlays:
+   bottom-right, 16px from the real chart edge, horizontal row.
+   Button order: [home/reset] [swap axes]. */
+.map-swap-overlay {
+  position: absolute !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  top: auto !important;
+  left: auto !important;
+
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.map-swap-overlay .nav-btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px;
+  min-height: 32px;
+  flex: 0 0 32px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  line-height: 1;
+  padding: 0;
+}
+/* marey swap-home horizontal override - end */

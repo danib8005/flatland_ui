@@ -957,6 +957,214 @@ export class MareyChartComponent implements AfterViewInit {
     const inner = this.W - this.PAD.left - this.PAD.right;
     return this.PAD.left + t * inner;
   }
+
+
+  private mareyTimePanDrag: {
+    axisCoord: number;
+    range: { start: number; end: number };
+  } | null = null;
+
+  private mareyTimeAxisCoordFromEvent(ev: MouseEvent | WheelEvent, svg: SVGSVGElement): number {
+    const rect = svg.getBoundingClientRect();
+
+    if (!rect || rect.width <= 0 || rect.height <= 0) {
+      return 0;
+    }
+
+    // Convert browser pixels to SVG/viewBox coordinates.
+    const svgX = ((ev.clientX - rect.left) / rect.width) * this.W;
+    const svgY = ((ev.clientY - rect.top) / rect.height) * this.H;
+
+    // Time axis is vertical normally, horizontal when axes are swapped.
+    return this.axesSwapped() ? svgX : svgY;
+  }
+
+  private clampTimeRange(start: number, end: number): { start: number; end: number } {
+    const fullStart = 0;
+    const fullEnd = Math.max(1, this.maxSteps());
+    const span = Math.max(1, end - start);
+
+    let ns = start;
+    let ne = end;
+
+    if (ns < fullStart) {
+      ns = fullStart;
+      ne = ns + span;
+    }
+
+    if (ne > fullEnd) {
+      ne = fullEnd;
+      ns = ne - span;
+    }
+
+    ns = Math.max(fullStart, ns);
+    ne = Math.min(fullEnd, ne);
+
+    return { start: ns, end: ne };
+  }
+
+  onMareyMouseDown(ev: MouseEvent): void {
+    // Left mouse button only.
+    if (ev.button !== 0) return;
+
+    const fullStart = 0;
+    const fullEnd = Math.max(1, this.maxSteps());
+    const r = this.yRange();
+    const span = r.end - r.start;
+    const fullSpan = fullEnd - fullStart;
+
+    // Panning only makes sense when zoomed.
+    if (span >= fullSpan - 1e-6) {
+      this.mareyTimePanDrag = null;
+      return;
+    }
+
+    const svg = ev.currentTarget as SVGSVGElement | null;
+    if (!svg) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    this.mareyTimePanDrag = {
+      axisCoord: this.mareyTimeAxisCoordFromEvent(ev, svg),
+      range: { start: r.start, end: r.end },
+    };
+  }
+
+  onMareyMouseMove(ev: MouseEvent): void {
+    const drag = this.mareyTimePanDrag;
+    if (!drag) return;
+
+    const svg = ev.currentTarget as SVGSVGElement | null;
+    if (!svg) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const axisStart = this.axesSwapped() ? this.PAD.left : this.PAD.top;
+    const axisEnd = this.axesSwapped()
+      ? this.W - this.PAD.right
+      : this.H - this.PAD.bottom;
+
+    const axisSpanPx = Math.max(1, axisEnd - axisStart);
+    const rangeSpan = Math.max(1, drag.range.end - drag.range.start);
+
+    const currentAxisCoord = this.mareyTimeAxisCoordFromEvent(ev, svg);
+    const deltaPx = currentAxisCoord - drag.axisCoord;
+    const deltaSteps = (deltaPx / axisSpanPx) * rangeSpan;
+
+    // Natural "grab chart" behaviour:
+    // dragging down/right moves the visible content down/right,
+    // therefore the time range shifts backwards.
+    const next = this.clampTimeRange(
+      drag.range.start - deltaSteps,
+      drag.range.end - deltaSteps,
+    );
+
+    this.yRange.set(next);
+  }
+
+  onMareyMouseUp(ev?: MouseEvent): void {
+    if (!this.mareyTimePanDrag) return;
+
+    ev?.preventDefault();
+    ev?.stopPropagation();
+
+    this.mareyTimePanDrag = null;
+  }
+
+
+  resetZoom(): void {
+    // Reset Marey view to full time horizon and default pan/zoom.
+    const m = Math.max(1, this.maxSteps());
+
+    this.yRange.set({ start: 0, end: m });
+
+    this.zoomX.set(1);
+    this.zoomY.set(1);
+    this.panX.set(0);
+    this.panY.set(0);
+
+    this.mareyTimePanDrag = null;
+  }
+
+  onMareyWheel(ev: WheelEvent): void {
+    // Wheel zooms the TIME axis only.
+    // The time value under the cursor remains stable after zoom.
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const svg = ev.currentTarget as SVGSVGElement | null;
+    const rect = svg?.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return;
+
+    // Convert browser pixels to SVG/viewBox coordinates.
+    // This is important when the SVG is rendered scaled.
+    const svgX = ((ev.clientX - rect.left) / rect.width) * this.W;
+    const svgY = ((ev.clientY - rect.top) / rect.height) * this.H;
+
+    // Time axis is vertical normally, horizontal when axes are swapped.
+    const axisCoord = this.axesSwapped() ? svgX : svgY;
+
+    const axisStart = this.axesSwapped() ? this.PAD.left : this.PAD.top;
+    const axisEnd = this.axesSwapped()
+      ? this.W - this.PAD.right
+      : this.H - this.PAD.bottom;
+
+    const axisSpanPx = Math.max(1, axisEnd - axisStart);
+
+    // Cursor ratio on the time axis.
+    // Clamp so wheel slightly outside the plot still behaves predictably.
+    const ratio = Math.max(0, Math.min(1, (axisCoord - axisStart) / axisSpanPx));
+
+    const fullStart = 0;
+    const fullEnd = Math.max(1, this.maxSteps());
+
+    const current = this.yRange();
+    const currentStart = Math.max(fullStart, Math.min(current.start, fullEnd));
+    const currentEnd = Math.max(currentStart + 1, Math.min(current.end, fullEnd));
+    const currentSpan = Math.max(1, currentEnd - currentStart);
+
+    // This is the time currently under the cursor.
+    const focusedTime = currentStart + ratio * currentSpan;
+
+    // deltaY < 0 means wheel up -> zoom in.
+    const zoomFactor = ev.deltaY < 0 ? 0.82 : 1.22;
+
+    const minSpan = Math.min(4, fullEnd - fullStart);
+    const maxSpan = Math.max(minSpan, fullEnd - fullStart);
+
+    let newSpan = currentSpan * zoomFactor;
+    newSpan = Math.max(minSpan, Math.min(maxSpan, newSpan));
+
+    // Keep focusedTime at the same cursor ratio:
+    // focusedTime = newStart + ratio * newSpan
+    let newStart = focusedTime - ratio * newSpan;
+    let newEnd = newStart + newSpan;
+
+    // Clamp to full time horizon while keeping span.
+    if (newStart < fullStart) {
+      newStart = fullStart;
+      newEnd = newStart + newSpan;
+    }
+
+    if (newEnd > fullEnd) {
+      newEnd = fullEnd;
+      newStart = newEnd - newSpan;
+    }
+
+    newStart = Math.max(fullStart, newStart);
+    newEnd = Math.min(fullEnd, newEnd);
+
+    // If effectively zoomed fully out, snap exactly to full range.
+    if (newStart <= fullStart + 1e-6 && newEnd >= fullEnd - 1e-6) {
+      this.yRange.set({ start: fullStart, end: fullEnd });
+      return;
+    }
+
+    this.yRange.set({ start: newStart, end: newEnd });
+  }
+
   /** Map a step to its Y (or X if axes swapped) pixel coord, using yRange. */
   timeCoord(step: number): number {
     const r = this.yRange();
