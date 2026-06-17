@@ -61,11 +61,17 @@
 
           @if (!s.isBaseline) {
             <div class="actions">
-              <button class="btn btn-confirm"
-                      [disabled]="confirming() === s.id"
-                      (click)="confirm(s)">
-                {{ confirming() === s.id ? 'Switching…' : 'Switch to this policy' }}
-              </button>
+              @if (canSwitchToScenarioPolicy(s)) {
+                <button class="btn btn-confirm"
+                        [disabled]="confirming() === s.id"
+                        (click)="confirm(s)">
+                  {{ confirming() === s.id ? 'Switching…' : 'Switch to this policy' }}
+                </button>
+              } @else {
+                <span class="auto-dispatch-disabled">
+                  Deaktiviert für Auto-Dispo
+                </span>
+              }
             </div>
           }
         </div>

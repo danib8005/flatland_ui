@@ -2,11 +2,17 @@ import uuid
 from typing import Dict, Optional
 from flatland.envs.rail_env import RailEnv
 from app.core.env_factory import create_env
-from app.policies.registry import scenario_policy_factories
+from app.policies.registry import scenario_policy_factories, policy_specs
 
 
 class Session:
-    def __init__(self, session_id: str, env: RailEnv):
+    def __init__(
+        self,
+        session_id: str,
+        env: RailEnv,
+        enabled_scenario_policies: set[str] | None = None,
+        enabled_policy_ids: set[str] | None = None,
+    ):
         self.id = session_id
         self.env = env
         self.last_observations = None
@@ -15,7 +21,17 @@ class Session:
         # and applied to every step unless overridden in the step request).
         self.policy: str = "deadlock_avoidance"
         # Session-scoped filter for scenario candidates (UI toggles).
-        self.enabled_scenario_policies: set[str] = set(scenario_policy_factories().keys())
+        scenario_available = set(scenario_policy_factories().keys())
+        scenario_enabled = enabled_scenario_policies or scenario_available
+        self.enabled_scenario_policies: set[str] = set(scenario_enabled) & scenario_available
+        if not self.enabled_scenario_policies:
+            self.enabled_scenario_policies = scenario_available
+
+        policy_available = {spec.id for spec in policy_specs(include_hidden=True) if spec.show_in_ui}
+        policy_enabled = enabled_policy_ids or policy_available
+        self.enabled_policy_ids: set[str] = set(policy_enabled) & policy_available
+        if not self.enabled_policy_ids:
+            self.enabled_policy_ids = policy_available
 
 
 class SessionManager:
@@ -27,8 +43,12 @@ class SessionManager:
         # Pull out max_episode_steps BEFORE create_env (Flatland's reset()
         # would overwrite it otherwise). We re-apply it after reset().
         max_ep_override = env_kwargs.pop("max_episode_steps", None)
+        enabled_scenario_policy_ids = env_kwargs.pop("enabled_scenario_policy_ids", None)
+        enabled_policy_ids = env_kwargs.pop("enabled_policy_ids", None)
+        enabled_scenario_policy_set = set(enabled_scenario_policy_ids or []) if enabled_scenario_policy_ids is not None else None
+        enabled_policy_set = set(enabled_policy_ids or []) if enabled_policy_ids is not None else None
         env = create_env(**env_kwargs)
-        session = Session(sid, env)
+        session = Session(sid, env, enabled_scenario_policy_set, enabled_policy_set)
         # env_factory already reset() the env (inside its retry block, so
         # IndexErrors from timetable_generator are caught). Reuse stashed
         # obs/info instead of resetting again.

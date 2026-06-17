@@ -54,7 +54,7 @@ def test_override_cleared_after_decision_consumption():
     if handle is None:
         pytest.skip("no agent reached a decision cell")
 
-    override_manager.set(sess, handle, int(RailEnvActions.MOVE_LEFT))
+    override_manager.set(sess, handle, RailEnvActions.MOVE_LEFT.value)
     policy = OverridePolicy(DeadLockAvoidancePolicy(), sess)
     policy.reset(env)
 
@@ -62,7 +62,7 @@ def test_override_cleared_after_decision_consumption():
     obs = {h: env for h in handles}
     actions = policy.act_many(handles, obs)
 
-    assert actions[handle] == RailEnvActions(int(RailEnvActions.MOVE_LEFT))
+    assert actions[handle] == RailEnvActions(RailEnvActions.MOVE_LEFT.value)
     assert override_manager.get(sess, handle) is None
     override_manager.clear_all(sess)
 
@@ -72,7 +72,7 @@ def test_override_persists_until_decision_cell_reached():
     override_manager.clear_all(sess)
     env = _make_env()
     handle = 0
-    override_manager.set(sess, handle, int(RailEnvActions.MOVE_RIGHT))
+    override_manager.set(sess, handle, RailEnvActions.MOVE_RIGHT.value)
 
     policy = OverridePolicy(DeadLockAvoidancePolicy(), sess)
     policy.reset(env)
@@ -88,7 +88,7 @@ def test_override_persists_until_decision_cell_reached():
             break
         policy.act_many(handles, obs)
         # Not at a switch → override must still be set.
-        assert override_manager.get(sess, handle) == int(RailEnvActions.MOVE_RIGHT)
+        assert override_manager.get(sess, handle) == RailEnvActions.MOVE_RIGHT.value
         env.step({h: RailEnvActions.MOVE_FORWARD for h in handles})
 
     override_manager.clear_all(sess)
@@ -102,14 +102,14 @@ def test_override_one_shot_next_step_uses_default():
     if handle is None:
         pytest.skip("no agent reached a decision cell")
 
-    override_manager.set(sess, handle, int(RailEnvActions.MOVE_LEFT))
+    override_manager.set(sess, handle, RailEnvActions.MOVE_LEFT.value)
     policy = OverridePolicy(DeadLockAvoidancePolicy(), sess)
     policy.reset(env)
     handles = env.get_agent_handles()
     obs = {h: env for h in handles}
 
     a1 = policy.act_many(handles, obs)
-    assert a1[handle] == RailEnvActions(int(RailEnvActions.MOVE_LEFT))
+    assert a1[handle] == RailEnvActions(RailEnvActions.MOVE_LEFT.value)
     env.step(a1)
 
     policy.act_many(handles, obs)
@@ -125,11 +125,11 @@ def test_act_for_handle_also_clears():
     if handle is None:
         pytest.skip("no agent reached a decision cell")
 
-    override_manager.set(sess, handle, int(RailEnvActions.MOVE_LEFT))
+    override_manager.set(sess, handle, RailEnvActions.MOVE_LEFT.value)
     policy = OverridePolicy(DeadLockAvoidancePolicy(), sess)
     policy.reset(env)
 
     a = policy.act_for_handle(handle)
-    assert a == RailEnvActions(int(RailEnvActions.MOVE_LEFT))
+    assert a == RailEnvActions(RailEnvActions.MOVE_LEFT.value)
     assert override_manager.get(sess, handle) is None
     override_manager.clear_all(sess)

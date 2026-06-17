@@ -102,9 +102,14 @@ export class ApiService {
     return this.http.get<ScenarioPoliciesConfig>(`${API_BASE}/session/${id}/scenario-policies`);
   }
 
-  setScenarioPolicies(id: string, enabled_ids: string[]): Observable<ScenarioPoliciesConfig> {
+  setScenarioPolicies(
+    id: string,
+    enabled_ids: string[],
+    enabled_policy_ids?: string[],
+  ): Observable<ScenarioPoliciesConfig> {
     return this.http.post<ScenarioPoliciesConfig>(`${API_BASE}/session/${id}/scenario-policies`, {
       enabled_ids,
+      enabled_policy_ids,
     });
   }
 }

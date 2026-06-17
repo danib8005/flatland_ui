@@ -34,7 +34,7 @@
   border-radius: 4px;
   padding: 8px 10px;
   position: relative;
-  transition: border-color 0.15s;
+  transition: opacity 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .scenario-card.recommended {
@@ -146,8 +146,34 @@
   opacity: 0.85;
 }
 
-.scenario-card:hover {
-  opacity: 0.5;
+.scenario-card {
+  opacity: 0.88;
+}
+
+.scenario-card:hover,
+.scenario-card:focus-within {
+  opacity: 1;
+  border-color: var(--sbb-color-red, #eb0000);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.20);
+  transform: translateY(-2px);
+}
+
+.scenario-card.recommended:hover,
+.scenario-card.recommended:focus-within {
+  border-color: #008a35;
+  box-shadow: 0 4px 18px rgba(0, 151, 59, 0.36);
+}
+
+.scenario-card.baseline:hover,
+.scenario-card.baseline:focus-within {
+  border-color: #444;
+  box-shadow: 0 4px 18px rgba(104, 104, 104, 0.34);
+}
+
+.scenario-card.avoid:hover,
+.scenario-card.avoid:focus-within {
+  border-color: #c5341e;
+  box-shadow: 0 4px 18px rgba(197, 52, 30, 0.34);
 }
 
 
@@ -300,4 +326,20 @@
   color: #686868;
   font-weight: 400;
   margin-left: 2px;
+}
+
+
+.auto-dispatch-disabled {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  border: 1px dashed var(--sbb-color-cloud, #d2d2d2);
+  border-radius: 3px;
+  background: var(--sbb-color-milk, #f6f6f6);
+  color: var(--sbb-color-granite, #686868);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
 }

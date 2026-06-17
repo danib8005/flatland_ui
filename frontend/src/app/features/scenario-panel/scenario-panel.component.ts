@@ -79,12 +79,28 @@ export class ScenarioPanelComponent {
     });
   }
 
+  policyIdForScenario(s: ScenarioOption): string {
+    return s.id.startsWith('scn_') ? s.id.slice(4) : s.id;
+  }
+
+  isAutoDispatchPolicyEnabled(policyId: string): boolean {
+    const enabled = this.store.enabledControlPolicyIds();
+    // If config is not loaded yet, keep existing behaviour.
+    if (enabled.length === 0) return true;
+    return enabled.includes(policyId);
+  }
+
+  canSwitchToScenarioPolicy(s: ScenarioOption): boolean {
+    return this.isAutoDispatchPolicyEnabled(this.policyIdForScenario(s));
+  }
+
   /** Switch the session-wide policy via POST /policy. */
   confirm(s: ScenarioOption) {
     const sess = this.store.session();
     if (!sess) return;
     // Derive policy id from "scn_<policy_id>"
-    const policyId = s.id.startsWith('scn_') ? s.id.slice(4) : s.id;
+    const policyId = this.policyIdForScenario(s);
+    if (!this.isAutoDispatchPolicyEnabled(policyId)) return;
     this.confirming.set(s.id);
     this.api.setPolicy(sess.id, policyId as PolicyName).subscribe({
       next: () => {
