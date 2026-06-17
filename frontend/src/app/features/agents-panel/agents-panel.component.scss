@@ -7,3 +7,57 @@
   overflow-y: auto;
   min-height: 0;
 }
+
+
+.agent-malfunction {
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+.agent-header {
+  overflow: visible;
+}
+
+.agent-card.notification-hover {
+  opacity: 1;
+  border-color: #0079c7;
+  box-shadow: 0 0 0 2px rgba(0, 121, 199, 0.35), 0 6px 18px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px);
+  background: #eef7fd;
+}
+
+/* app interaction color concept overrides - start */
+.agent-card.selected {
+  border-color: var(--app-select-color, #f939e9) !important;
+  box-shadow:
+    0 0 0 2px var(--app-select-ring, rgba(249, 57, 233, 0.40)),
+    0 6px 18px rgba(0, 0, 0, 0.18) !important;
+  background: var(--app-select-bg, #fff0fe) !important;
+}
+
+.agent-card.selected .agent-name {
+  color: var(--app-select-color-dark, #c900bf) !important;
+  font-weight: 800 !important;
+}
+
+.agent-card.notification-hover {
+  opacity: 1 !important;
+  border-color: var(--app-hover-border, #8d8d8d) !important;
+  box-shadow:
+    0 0 0 2px var(--app-hover-ring, rgba(104, 104, 104, 0.28)),
+    0 6px 18px rgba(0, 0, 0, 0.16) !important;
+  transform: translateY(-2px);
+  background: var(--app-hover-bg, #f8f8f8) !important;
+}
+
+.agent-card.selected.notification-hover {
+  border-color: var(--app-select-color, #f939e9) !important;
+  background: var(--app-select-bg, #fff0fe) !important;
+}
+
+.agent-malfunction.malfunction-indicator {
+  background: #eb0000 !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+/* app interaction color concept overrides - end */

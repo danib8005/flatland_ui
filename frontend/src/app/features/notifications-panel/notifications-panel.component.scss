@@ -114,3 +114,82 @@
   background: var(--sbb-color-cloud, #d2d2d2);
   color: var(--sbb-color-charcoal, #212121);
 }
+
+
+.notif-malfunction {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+
+
+.notif.agent-related {
+  cursor: pointer;
+}
+
+
+.notif.agent-related:hover {
+  transform: translateX(2px);
+  box-shadow: 0 0 0 2px rgba(0, 121, 199, 0.18), 0 4px 14px rgba(0, 0, 0, 0.16);
+  border-left-color: #0079c7;
+  background: #eef7fd;
+}
+
+/* app interaction color concept overrides - start */
+.notif.agent-related {
+  cursor: pointer;
+}
+
+.notif.agent-related:hover {
+  transform: translateX(2px);
+  box-shadow:
+    0 0 0 2px var(--app-hover-ring-soft, rgba(104, 104, 104, 0.18)),
+    0 4px 14px rgba(0, 0, 0, 0.16) !important;
+  border-left-color: var(--app-hover-border-dark, #686868) !important;
+  background: var(--app-hover-bg, #f8f8f8) !important;
+}
+/* app interaction color concept overrides - end */
+
+
+/* Notification belongs to explicitly selected agent.
+   Uses COLOR_Edit, not warning/error color. */
+.notif.selected-agent-related {
+  border-left-color: var(--app-select-color, #f939e9) !important;
+  background: var(--app-select-bg, #fff0fe) !important;
+  box-shadow:
+    0 0 0 2px var(--app-select-ring, rgba(249, 57, 233, 0.40)),
+    0 4px 14px rgba(0, 0, 0, 0.14) !important;
+}
+
+.notif.selected-agent-related .title {
+  color: var(--app-select-color-dark, #c900bf) !important;
+  font-weight: 800;
+}
+
+.notif.selected-agent-related .related {
+  color: var(--app-select-color-dark, #c900bf) !important;
+}
+
+/* Selected-agent relation wins over neutral hover. */
+.notif.selected-agent-related:hover {
+  border-left-color: var(--app-select-color, #f939e9) !important;
+  background: var(--app-select-bg, #fff0fe) !important;
+  box-shadow:
+    0 0 0 2px var(--app-select-ring, rgba(249, 57, 233, 0.40)),
+    0 4px 14px rgba(0, 0, 0, 0.16) !important;
+}
+
+
+/* Notification belongs to currently hovered/cross-highlighted agent.
+   Neutral grey; selected-agent relation still wins with COLOR_Edit. */
+.notif.hovered-agent-related:not(.selected-agent-related) {
+  border-left-color: var(--app-hover-border-dark, #686868) !important;
+  background: var(--app-hover-bg, #f8f8f8) !important;
+  box-shadow:
+    0 0 0 2px var(--app-hover-ring-soft, rgba(104, 104, 104, 0.18)),
+    0 4px 14px rgba(0, 0, 0, 0.12) !important;
+}
+
+.notif.hovered-agent-related:not(.selected-agent-related) .title {
+  font-weight: 750;
+}

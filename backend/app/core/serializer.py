@@ -23,6 +23,60 @@ def _safe_pos(v):
         return None
 
 
+def _malfunction_remaining(agent) -> int:
+    """Return remaining malfunction steps across Flatland versions.
+
+    Important: in newer Flatland versions `agent.malfunction_data`
+    is a deprecated property which raises ValueError on access.
+    Therefore every getattr must be protected.
+    """
+    def safe_get(obj, attr):
+        try:
+            return getattr(obj, attr, None)
+        except Exception:
+            return None
+
+    def read_counter(data) -> int | None:
+        if data is None:
+            return None
+
+        # dict-like
+        if isinstance(data, dict):
+            for key in ("malfunction", "malfunction_down_counter", "num_broken_steps"):
+                try:
+                    v = data.get(key)
+                    if v is not None:
+                        return max(0, int(v))
+                except Exception:
+                    pass
+
+        # object-like
+        for key in ("malfunction", "malfunction_down_counter", "num_broken_steps"):
+            try:
+                v = getattr(data, key, None)
+                if v is not None:
+                    return max(0, int(v))
+            except Exception:
+                pass
+
+        return None
+
+    # Prefer non-deprecated names first. Keep typo fallback because
+    # Flatland's warning text historically mentions "malfunction_hander".
+    for attr in ("malfunction_handler", "malfunction_hander", "malfunction_data"):
+        value = read_counter(safe_get(agent, attr))
+        if value is not None:
+            return value
+
+    # Last fallback: direct agent attributes.
+    for attr in ("malfunction", "malfunction_down_counter", "num_broken_steps"):
+        value = read_counter({"malfunction": safe_get(agent, attr)})
+        if value is not None:
+            return value
+
+    return 0
+
+
 def serialize_agent(env, agent, override_action=None) -> Dict[str, Any]:
     state_val = agent.state
     if hasattr(state_val, "name"):
@@ -49,6 +103,8 @@ def serialize_agent(env, agent, override_action=None) -> Dict[str, Any]:
         next_decision = lookahead_to_decision(env, agent)
     except Exception:
         next_decision = None
+
+    malfunction_remaining = _malfunction_remaining(agent)
 
     # ── ETA / deadline / visibility ─────────────────────────────────
     elapsed = int(getattr(env, "_elapsed_steps", 0))
@@ -107,6 +163,8 @@ def serialize_agent(env, agent, override_action=None) -> Dict[str, Any]:
         "cell_type": cell_type,
         "next_decision": next_decision,
         "override_action": override_action,
+        "malfunction_remaining": int(malfunction_remaining),
+        "is_malfunctioning": bool(malfunction_remaining > 0 or "MALFUNCTION" in state_str),
     }
 
 

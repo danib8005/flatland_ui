@@ -25,7 +25,7 @@
 .progress-row {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 13px;
   margin-bottom: 4px;
 }
 .step-counter { font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -155,7 +155,7 @@
 
 .action-btn {
   font-family: inherit;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   padding: 4px 10px;
   border-radius: 12px;
@@ -228,7 +228,7 @@
   border: 1px solid #f5b5b5;
   padding: 1px 6px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -236,7 +236,7 @@
 .due-step {
   margin-left: auto;
   color: #888;
-  font-size: 11px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -249,7 +249,7 @@
 .empty-state-mini {
   padding: 12px 8px;
   color: #888;
-  font-size: 12px;
+  font-size: 13px;
   font-style: italic;
 }
 
@@ -257,7 +257,7 @@
 
 .agent-schedule {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: 13px;
   color: #555;
 }
 .agent-schedule .schedule-item {
@@ -271,7 +271,7 @@
 }
 .agent-schedule .eta-hint {
   color: #888;
-  font-size: 11px;
+  font-size: 13px;
 }
 .agent-schedule .arrived {
   color: #2a8a3a;
@@ -307,7 +307,7 @@
   background: #f3f4f6;
   border-left: 3px solid transparent;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.05em;
   color: #4b5563;
@@ -351,7 +351,7 @@
   margin-left: auto;
   padding: 1px 7px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -364,7 +364,7 @@
   margin-left: auto;
   padding: 1px 7px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   background: #e5e7eb;
@@ -377,7 +377,7 @@
   margin-left: auto;
   padding: 1px 7px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   background: #dff2e0;
   color: #2a8a3a;
@@ -387,13 +387,13 @@
 .empty-mini {
   padding: 8px 10px;
   color: #9ca3af;
-  font-size: 12px;
+  font-size: 13px;
   font-style: italic;
 }
 
 /* Middle column in the agent header row: arr/dep time, plain text */
 .agent-mid {
-  font-size: 12px;
+  font-size: 13px;
   color: #6b7280;
   font-variant-numeric: tabular-nums;
   margin-left: 4px;
@@ -422,4 +422,100 @@
 .agent-card.selected:focus-within {
   border-color: var(--sbb-color-red, #eb0000);
   box-shadow: 0 4px 18px rgba(235, 0, 0, 0.28);
+}
+
+
+
+
+
+
+
+@keyframes malfunction-html-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.82;
+  }
+}
+
+
+
+
+
+
+
+
+
+.agent-card.notification-hover {
+  opacity: 1;
+  border-color: #0079c7;
+  box-shadow: 0 0 0 2px rgba(0, 121, 199, 0.35), 0 6px 18px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px);
+  background: #eef7fd;
+}
+
+
+.agent-malfunction {
+  margin-left: -2px;
+  margin-right: 4px;
+}
+
+.agent-header {
+  overflow: visible;
+}
+
+/* app interaction color concept overrides - start */
+/* Selected agent card: magenta edit color. */
+.agent-card.selected {
+  border-color: var(--app-select-color, #f939e9) !important;
+  box-shadow:
+    0 0 0 2px var(--app-select-ring, rgba(249, 57, 233, 0.40)),
+    0 6px 18px rgba(0, 0, 0, 0.18) !important;
+  background: var(--app-select-bg, #fff0fe) !important;
+}
+
+.agent-card.selected .agent-name {
+  color: var(--app-select-color-dark, #c900bf) !important;
+  font-weight: 800 !important;
+}
+
+/* Cross-highlight from notification hover: neutral grey. */
+.agent-card.notification-hover {
+  opacity: 1 !important;
+  border-color: var(--app-hover-border, #8d8d8d) !important;
+  box-shadow:
+    0 0 0 2px var(--app-hover-ring, rgba(104, 104, 104, 0.28)),
+    0 6px 18px rgba(0, 0, 0, 0.16) !important;
+  transform: translateY(-2px);
+  background: var(--app-hover-bg, #f8f8f8) !important;
+}
+
+/* Selected wins over notification hover. */
+.agent-card.selected.notification-hover {
+  border-color: var(--app-select-color, #f939e9) !important;
+  background: var(--app-select-bg, #fff0fe) !important;
+}
+
+/* Malfunction badge remains red, independent from selection/hover. */
+.agent-malfunction.malfunction-indicator {
+  background: #eb0000 !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+  margin-left: -2px;
+  margin-right: 4px;
+}
+/* app interaction color concept overrides - end */
+
+
+/* malfunction badge hover stability */
+.malfunction-badge-bg,
+.malfunction-badge-text,
+.agent-malfunction,
+.topo-malfunction,
+.line-malfunction,
+.header-malfunction {
+  pointer-events: none;
 }

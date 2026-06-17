@@ -49,6 +49,10 @@ export class AppComponent implements OnInit {
   newMaxRailsBetweenCities = signal(2);
   newMaxRailPairsInCity = signal(2);
   newLineLength = signal(4);
+  newMalfunctionsEnabled = signal(false);
+  newMalfunctionRate = signal(0.001);
+  newMalfunctionMinDuration = signal(5);
+  newMalfunctionMaxDuration = signal(20);
 
   settingsMode = signal(false);
   scenarioPolicyMode = signal(false);
@@ -63,6 +67,10 @@ export class AppComponent implements OnInit {
   draftMaxRailsBetweenCities = signal(2);
   draftMaxRailPairsInCity = signal(2);
   draftLineLength = signal(4);
+  draftMalfunctionsEnabled = signal(false);
+  draftMalfunctionRate = signal(0.001);
+  draftMalfunctionMinDuration = signal(5);
+  draftMalfunctionMaxDuration = signal(20);
   draftScenarioPolicyIds = signal<string[]>([]);
   draftControlPolicyIds = signal<string[]>([]);
 
@@ -71,7 +79,78 @@ export class AppComponent implements OnInit {
   pendingScenarioPolicyIds = signal<string[] | null>(null);
   pendingScenarioPreviousSessionId = signal<string | null>(null);
 
+  private readonly sessionSettingsStorageKey = 'flatland_ui_session_settings_v1';
+
+  private normalizedMalfunctionMinDuration(): number {
+    return Math.max(1, Math.floor(this.newMalfunctionMinDuration() || 1));
+  }
+
+  private normalizedMalfunctionMaxDuration(): number {
+    return Math.max(
+      this.normalizedMalfunctionMinDuration(),
+      Math.floor(this.newMalfunctionMaxDuration() || this.normalizedMalfunctionMinDuration()),
+    );
+  }
+
+  private effectiveMalfunctionRate(): number {
+    if (!this.newMalfunctionsEnabled()) return 0;
+    const rate = Number(this.newMalfunctionRate() || 0);
+    return Math.max(0, Math.min(1, rate));
+  }
+
+  private persistSessionSettings(): void {
+    try {
+      localStorage.setItem(this.sessionSettingsStorageKey, JSON.stringify({
+        width: this.newWidth(),
+        height: this.newHeight(),
+        agents: this.newAgents(),
+        maxSteps: this.newMaxSteps(),
+        seed: this.newSeed(),
+        latestDepartureMax: this.newLatestDepartureMax(),
+        speedProfile: this.newSpeedProfile(),
+        maxNumCities: this.newMaxNumCities(),
+        maxRailsBetweenCities: this.newMaxRailsBetweenCities(),
+        maxRailPairsInCity: this.newMaxRailPairsInCity(),
+        lineLength: this.newLineLength(),
+        malfunctionsEnabled: this.newMalfunctionsEnabled(),
+        malfunctionRate: this.newMalfunctionRate(),
+        malfunctionMinDuration: this.newMalfunctionMinDuration(),
+        malfunctionMaxDuration: this.newMalfunctionMaxDuration(),
+      }));
+    } catch {
+      // localStorage can be unavailable in tests / private mode.
+    }
+  }
+
+  private loadPersistedSessionSettings(): void {
+    try {
+      const raw = localStorage.getItem(this.sessionSettingsStorageKey);
+      if (!raw) return;
+      const cfg = JSON.parse(raw);
+
+      if (cfg.width != null) this.newWidth.set(Number(cfg.width));
+      if (cfg.height != null) this.newHeight.set(Number(cfg.height));
+      if (cfg.agents != null) this.newAgents.set(Number(cfg.agents));
+      if (cfg.maxSteps != null) this.newMaxSteps.set(Number(cfg.maxSteps));
+      if (cfg.seed != null) this.newSeed.set(Number(cfg.seed));
+      if (cfg.latestDepartureMax != null) this.newLatestDepartureMax.set(Number(cfg.latestDepartureMax));
+      if (cfg.speedProfile != null) this.newSpeedProfile.set(String(cfg.speedProfile));
+      if (cfg.maxNumCities != null) this.newMaxNumCities.set(Number(cfg.maxNumCities));
+      if (cfg.maxRailsBetweenCities != null) this.newMaxRailsBetweenCities.set(Number(cfg.maxRailsBetweenCities));
+      if (cfg.maxRailPairsInCity != null) this.newMaxRailPairsInCity.set(Number(cfg.maxRailPairsInCity));
+      if (cfg.lineLength != null) this.newLineLength.set(Number(cfg.lineLength));
+
+      if (cfg.malfunctionsEnabled != null) this.newMalfunctionsEnabled.set(Boolean(cfg.malfunctionsEnabled));
+      if (cfg.malfunctionRate != null) this.newMalfunctionRate.set(Number(cfg.malfunctionRate));
+      if (cfg.malfunctionMinDuration != null) this.newMalfunctionMinDuration.set(Number(cfg.malfunctionMinDuration));
+      if (cfg.malfunctionMaxDuration != null) this.newMalfunctionMaxDuration.set(Number(cfg.malfunctionMaxDuration));
+    } catch {
+      // Ignore malformed persisted settings.
+    }
+  }
+
   constructor() {
+    this.loadPersistedSessionSettings();
     effect(() => {
       const available = this.store.availablePolicies();
       if (available.length > 0 && this.welcomeScenarioPolicyIds().length === 0) {
@@ -103,6 +182,7 @@ export class AppComponent implements OnInit {
   }
 
   onNewSession() {
+    this.persistSessionSettings();
     this.pendingScenarioPreviousSessionId.set(null);
     this.pendingScenarioPolicyIds.set(null);
     this.store.newSession({
@@ -117,6 +197,9 @@ export class AppComponent implements OnInit {
       latestDepartureMax: this.newLatestDepartureMax(),
       speedProfile: this.newSpeedProfile(),
       lineLength: this.newLineLength(),
+      malfunctionRate: this.effectiveMalfunctionRate(),
+      malfunctionMinDuration: this.normalizedMalfunctionMinDuration(),
+      malfunctionMaxDuration: this.normalizedMalfunctionMaxDuration(),
       scenarioPolicyIds: this.welcomeScenarioPolicyIds(),
       policyControlIds: this.welcomeControlPolicyIds(),
     });
@@ -142,6 +225,10 @@ export class AppComponent implements OnInit {
     this.draftMaxRailsBetweenCities.set(this.newMaxRailsBetweenCities());
     this.draftMaxRailPairsInCity.set(this.newMaxRailPairsInCity());
     this.draftLineLength.set(this.newLineLength());
+    this.draftMalfunctionsEnabled.set(this.newMalfunctionsEnabled());
+    this.draftMalfunctionRate.set(this.newMalfunctionRate());
+    this.draftMalfunctionMinDuration.set(this.newMalfunctionMinDuration());
+    this.draftMalfunctionMaxDuration.set(this.newMalfunctionMaxDuration());
     this.draftScenarioPolicyIds.set([...this.welcomeScenarioPolicyIds()]);
     this.scenarioPolicyMode.set(false);
     this.settingsMode.set(true);
@@ -165,6 +252,11 @@ export class AppComponent implements OnInit {
     this.newMaxRailsBetweenCities.set(this.draftMaxRailsBetweenCities());
     this.newMaxRailPairsInCity.set(this.draftMaxRailPairsInCity());
     this.newLineLength.set(this.draftLineLength());
+    this.newMalfunctionsEnabled.set(this.draftMalfunctionsEnabled());
+    this.newMalfunctionRate.set(this.draftMalfunctionRate());
+    this.newMalfunctionMinDuration.set(Math.max(1, Math.floor(this.draftMalfunctionMinDuration() || 1)));
+    this.newMalfunctionMaxDuration.set(Math.max(this.newMalfunctionMinDuration(), Math.floor(this.draftMalfunctionMaxDuration() || this.newMalfunctionMinDuration())));
+    this.persistSessionSettings();
     this.settingsMode.set(false);
     this.blurActiveElement();
   }
@@ -233,6 +325,10 @@ export class AppComponent implements OnInit {
   resetWithSettings() {
     if (this.settingsMode()) this.applySettings();
     if (this.scenarioPolicyMode()) this.applyScenarioPolicySettings();
+
+    // Important: reset/new session must reuse the currently selected
+    // settings, including malfunction config. Do not fall back to defaults.
+    this.persistSessionSettings();
     this.onNewSession();
   }
 
@@ -274,20 +370,30 @@ export class AppComponent implements OnInit {
     if (next.length === 0) return;
     this.draftControlPolicyIds.set(next);
   }
+  @HostListener('window:keydown.escape', ['$event'])
+  onEscapeDeselectAgent(event: KeyboardEvent): void {
+    let handled = false;
 
-  @HostListener('document:keydown.escape', ['$event'])
-  closeOpenDialog(event: KeyboardEvent) {
-    if (!this.settingsMode() && !this.scenarioPolicyMode()) return;
+    // ESC deselects selected agent.
+    if (this.store.selectedHandle() != null) {
+      this.store.selectedHandle.set(null);
+      handled = true;
+    }
 
-    event.preventDefault();
-    event.stopPropagation();
-
+    // Preserve previous ESC behavior for open settings panels, if present.
     if (this.settingsMode()) {
       this.cancelSettings();
-      return;
+      handled = true;
     }
+
     if (this.scenarioPolicyMode()) {
       this.cancelScenarioPolicySettings();
+      handled = true;
+    }
+
+    if (handled) {
+      event.preventDefault();
+      event.stopPropagation();
     }
   }
 

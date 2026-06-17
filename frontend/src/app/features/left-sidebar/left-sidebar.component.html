@@ -21,7 +21,10 @@
             <div
               class="agent-card"
               [class.selected]="isSelected(a.handle)"
+              [class.notification-hover]="isNotificationHovered(a.handle)"
               [class.overdue]="isOverdue(a)"
+              (mouseenter)="onAgentMouseEnter(a.handle)"
+              (mouseleave)="onAgentMouseLeave()"
               (click)="toggleSelect(a.handle)">
 
               <div class="agent-header">
@@ -96,10 +99,17 @@
               <div
                 class="agent-card"
                 [class.selected]="isSelected(a.handle)"
-                (click)="toggleSelect(a.handle)">
+                [class.notification-hover]="isNotificationHovered(a.handle)"
+                (mouseenter)="onAgentMouseEnter(a.handle)"
+              (mouseleave)="onAgentMouseLeave()"
+              (click)="toggleSelect(a.handle)">
                 <div class="agent-header">
                   <span class="agent-dot" [style.background]="agentColor(a.handle)"></span>
                   <span class="agent-name">Train {{ a.handle }}</span>
+                  @if (isMalfunctioning(a)) {
+                    <span class="malfunction-indicator agent-malfunction"
+                          title="Malfunction: {{ a.malfunction_remaining }} step(s) remaining">!</span>
+                  }
                   <span class="agent-mid" title="Earliest departure">
                     dep {{ a.earliest_departure ?? '–' }}
                   </span>
@@ -132,10 +142,17 @@
               <div
                 class="agent-card"
                 [class.selected]="isSelected(a.handle)"
-                (click)="toggleSelect(a.handle)">
+                [class.notification-hover]="isNotificationHovered(a.handle)"
+                (mouseenter)="onAgentMouseEnter(a.handle)"
+              (mouseleave)="onAgentMouseLeave()"
+              (click)="toggleSelect(a.handle)">
                 <div class="agent-header">
                   <span class="agent-dot" [style.background]="agentColor(a.handle)"></span>
                   <span class="agent-name">Train {{ a.handle }}</span>
+                  @if (isMalfunctioning(a)) {
+                    <span class="malfunction-indicator agent-malfunction"
+                          title="Malfunction: {{ a.malfunction_remaining }} step(s) remaining">!</span>
+                  }
                   <span class="agent-mid" title="Latest arrival target">
                     arr {{ a.latest_arrival ?? '–' }}
                   </span>

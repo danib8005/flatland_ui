@@ -629,3 +629,18 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+.settings-check-label input[type='checkbox'] {
+  width: auto;
+  min-width: auto;
+  height: 18px;
+  align-self: flex-start;
+  accent-color: var(--sbb-color-red, #eb0000);
+}
+
+.settings-grid input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--sbb-color-milk, #f6f6f6);
+}

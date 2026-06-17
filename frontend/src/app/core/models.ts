@@ -62,6 +62,8 @@ export interface AgentDTO {
   cell_type: CellType;
   next_decision: NextDecision | null;
   override_action: ActionInt | null;
+  malfunction_remaining: number;
+  is_malfunctioning: boolean;
 }
 
 export interface RailTile {

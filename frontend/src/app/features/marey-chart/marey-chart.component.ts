@@ -320,6 +320,78 @@ export class MareyChartComponent implements AfterViewInit {
     this.svgEl = this.svgRef()?.nativeElement ?? null;
   }
 
+  isNotificationHovered(handle: number): boolean {
+    return this.store.notificationHoverHandles().has(handle);
+  }
+  mareyAgentLineColor(handle: number, fallbackColor?: string | null): string {
+    if (fallbackColor && String(fallbackColor).trim().length > 0) {
+      return String(fallbackColor);
+    }
+
+    const anyThis = this as any;
+    if (anyThis.agentColors?.getColor) {
+      try {
+        return anyThis.agentColors.getColor(handle, 'default');
+      } catch {
+        // fall through
+      }
+    }
+
+    const palette = [
+      '#0079c7', '#00973b', '#ff9800', '#6f42c1',
+      '#00a1de', '#2e7d32', '#ad1457', '#795548',
+    ];
+    return palette[Math.abs(handle) % palette.length];
+  }
+
+  mareyHoverLineColor(handle: number, fallbackColor?: string | null): string {
+    // Line highlighting in Marey is hover/cross-hover only.
+    // If explicitly selected, hover highlight uses edit magenta.
+    // Otherwise it uses the agent's own line color.
+    if (this.store.selectedHandle() === handle) return '#f939e9';
+    return this.mareyAgentLineColor(handle, fallbackColor);
+  }
+  mareyAgentDisplayColor(handle: number, fallbackColor?: string | null): string {
+    // Only explicit user click gets edit color.
+    // Do NOT use activeHandle(): activeHandle may be default/fallback.
+    if (this.store.selectedHandle() === handle) return '#f939e9';
+
+    if (fallbackColor && String(fallbackColor).trim().length > 0) {
+      return String(fallbackColor);
+    }
+
+    return this.mareyAgentLineColor(handle, fallbackColor);
+  }
+
+
+
+  onAgentMouseEnter(handle: number): void {
+    this.store.setAgentHoverAgent(handle);
+  }
+
+  onAgentMouseLeave(): void {
+    this.store.clearAgentHoverAgents();
+  }
+
+  isAgentMalfunctioning(handle: number): boolean {
+    return this.store.agents().some((a) =>
+      a.handle === handle
+      && (
+        !!a.is_malfunctioning
+        || (a.malfunction_remaining ?? 0) > 0
+        || String(a.state ?? '').includes('MALFUNCTION')
+      )
+    );
+  }
+
+  agentMalfunctionTitle(handle: number): string {
+    const a = this.store.agents().find((x) => x.handle === handle);
+    const remaining = a?.malfunction_remaining ?? 0;
+    return remaining > 0
+      ? `Malfunction: ${remaining} step(s) remaining`
+      : 'Malfunction';
+  }
+
   // ── data: scenario + path + agent lines ──────────────────────
   readonly forecastScenario = computed(() => {
     // Priority: hover-preview from a scenario card → local override
@@ -891,6 +963,7 @@ export class MareyChartComponent implements AfterViewInit {
 
   // ── agent selection (mirrors flatland-map) ───────────────────
   isSelected(handle: number): boolean {
+    // Explicit click only. Default/context agent must not look selected.
     return this.store.selectedHandle() === handle;
   }
   onAgentClick(handle: number, ev: MouseEvent): void {

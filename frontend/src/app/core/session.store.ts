@@ -37,6 +37,37 @@ export class SessionStore {
     const h = this.selectedHandle();
     return h == null ? new Set<number>() : new Set([h]);
   });
+
+  /** Agent handles highlighted because the user hovers an agent-related
+   *  notification. This is intentionally separate from selection. */
+  readonly notificationHoverHandles = signal<Set<number>>(new Set<number>());
+
+  setNotificationHoverAgents(handles: number[]): void {
+    const clean = handles
+      .map((h) => Number(h))
+      .filter((h) => Number.isFinite(h));
+    this.notificationHoverHandles.set(new Set(clean));
+  }
+
+  clearNotificationHoverAgents(): void {
+    this.notificationHoverHandles.set(new Set<number>());
+  }
+
+  /** Cross-view agent hover, used by map/panel/Marey agent hover.
+   *  It intentionally shares the same highlight set as notification hover:
+   *  hover source differs, visual linked-agent highlight is the same.
+   */
+  setAgentHoverAgents(handles: number[]): void {
+    this.setNotificationHoverAgents(handles);
+  }
+
+  setAgentHoverAgent(handle: number): void {
+    this.setNotificationHoverAgents([handle]);
+  }
+
+  clearAgentHoverAgents(): void {
+    this.clearNotificationHoverAgents();
+  }
   // 'Active' = explicit selection; when Marey is visible, fall back to
   // the first agent so the inspector can show a default context.
   readonly activeHandle = computed<number | null>(() => {
@@ -156,6 +187,27 @@ export class SessionStore {
     });
   }
 
+  private _trajectoryPosition(a: AgentDTO): [number, number] | null {
+    // Actual in-map position wins.
+    if (a.position != null) return a.position;
+
+    // READY_TO_DEPART has no position yet, but visually belongs to its
+    // initial position. Duplicate suppression records it at most once.
+    if (a.state === 'READY_TO_DEPART') return a.initial_position;
+
+    // WAITING/DONE-without-position/etc. must not create artificial
+    // repeated cells in the Marey topology.
+    return null;
+  }
+
+  private _sameTrajectoryPosition(
+    a: [number, number] | null,
+    b: [number, number] | null,
+  ): boolean {
+    if (a == null || b == null) return a == null && b == null;
+    return a[0] === b[0] && a[1] === b[1];
+  }
+
   private _recordTrajectory(state: SessionState) {
     const map = this.trajectories();
     const newMap = new Map(map);
@@ -164,31 +216,66 @@ export class SessionStore {
     for (const a of state.agents) {
       const list = newMap.get(a.handle) ?? [];
       const lastPt = list.length > 0 ? list[list.length - 1] : null;
+      const pos = this._trajectoryPosition(a);
+
+      // No meaningful position: do not append synthetic path cells.
+      if (pos == null) {
+        continue;
+      }
+
+      // Same backend step can arrive more than once via polling/ws.
+      // Replace metadata for that step instead of appending.
       if (lastPt && lastPt.step === state.elapsed_steps) {
-        // Same step can arrive more than once (polling/ws timing). Keep
-        // the newer snapshot if it contains a position while the old one
-        // did not; otherwise update metadata and leave path intact.
-        const shouldReplace = lastPt.position == null && a.position != null;
-        if (shouldReplace || lastPt.direction !== a.direction || lastPt.state !== a.state) {
-          const updatedLast = {
-            step: state.elapsed_steps,
-            position: a.position ?? a.initial_position,
-            direction: a.direction,
-            state: a.state,
-          };
-          const updated = [...list.slice(0, -1), updatedLast];
-          newMap.set(a.handle, updated);
+        if (
+          !this._sameTrajectoryPosition(lastPt.position, pos) ||
+          lastPt.direction !== a.direction ||
+          lastPt.state !== a.state
+        ) {
+          newMap.set(a.handle, [
+            ...list.slice(0, -1),
+            {
+              step: state.elapsed_steps,
+              position: pos,
+              direction: a.direction,
+              state: a.state,
+            },
+          ]);
           changed = true;
         }
         continue;
       }
-      const updated = [...list, {
-        step: state.elapsed_steps,
-        position: a.position ?? a.initial_position,
-        direction: a.direction,
-        state: a.state,
-      }];
-      newMap.set(a.handle, updated);
+
+      // Critical Marey fix:
+      // If the train did not move to a new cell, do not append another
+      // path point. This prevents repeated cells in the time-distance
+      // topology when READY_TO_DEPART, STOPPED, waiting, or malfunctioning.
+      if (lastPt && this._sameTrajectoryPosition(lastPt.position, pos)) {
+        // Keep newest metadata, but keep the original step so the path
+        // topology remains one cell instead of many duplicates.
+        if (lastPt.direction !== a.direction || lastPt.state !== a.state) {
+          newMap.set(a.handle, [
+            ...list.slice(0, -1),
+            {
+              step: lastPt.step,
+              position: pos,
+              direction: a.direction,
+              state: a.state,
+            },
+          ]);
+          changed = true;
+        }
+        continue;
+      }
+
+      newMap.set(a.handle, [
+        ...list,
+        {
+          step: state.elapsed_steps,
+          position: pos,
+          direction: a.direction,
+          state: a.state,
+        },
+      ]);
       changed = true;
     }
 
@@ -260,7 +347,7 @@ export class SessionStore {
     run();
   }
 
-  newSession(opts: { width?: number; height?: number; agents?: number; maxSteps?: number; seed?: number; maxNumCities?: number; maxRailsBetweenCities?: number; maxRailPairsInCity?: number; latestDepartureMax?: number; speedProfile?: string; lineLength?: number; scenarioPolicyIds?: string[]; policyControlIds?: string[] } = {}) {
+  newSession(opts: { width?: number; height?: number; agents?: number; maxSteps?: number; seed?: number; maxNumCities?: number; maxRailsBetweenCities?: number; maxRailPairsInCity?: number; latestDepartureMax?: number; speedProfile?: string; lineLength?: number; malfunctionRate?: number; malfunctionMinDuration?: number; malfunctionMaxDuration?: number; scenarioPolicyIds?: string[]; policyControlIds?: string[] } = {}) {
     this.loading.set(true);
     this.error.set(null);
     this.message.set(null);
@@ -278,6 +365,9 @@ export class SessionStore {
     if (opts.latestDepartureMax != null) payload.latest_departure_max = opts.latestDepartureMax;
     if (opts.speedProfile != null) payload.speed_profile = opts.speedProfile;
     if (opts.lineLength != null) payload.line_length = opts.lineLength;
+    if (opts.malfunctionRate != null) payload.malfunction_rate = opts.malfunctionRate;
+    if (opts.malfunctionMinDuration != null) payload.malfunction_min_duration = opts.malfunctionMinDuration;
+    if (opts.malfunctionMaxDuration != null) payload.malfunction_max_duration = opts.malfunctionMaxDuration;
     if (opts.scenarioPolicyIds != null) payload.enabled_scenario_policy_ids = opts.scenarioPolicyIds;
     if (opts.policyControlIds != null) payload.enabled_policy_ids = opts.policyControlIds;
     this.api.createSession(payload).subscribe({

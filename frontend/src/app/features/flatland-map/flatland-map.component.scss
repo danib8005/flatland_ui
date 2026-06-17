@@ -294,7 +294,7 @@
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--sbb-color-cloud, #d2d2d2);
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 14px;
   color: var(--sbb-color-charcoal, #212121);
   user-select: none;
   z-index: 10;
@@ -394,4 +394,208 @@
 @keyframes switch-exit-flow {
   from { stroke-dashoffset: 4; }
   to   { stroke-dashoffset: 0; }
+}
+
+
+.malfunction-bolt {
+  font-size: 14px;
+  font-weight: 900;
+  fill: #ffaa00;
+  stroke: #212121;
+  stroke-width: 0.45px;
+  paint-order: stroke;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+
+
+.malfunction-badge-map {
+  pointer-events: none;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+  animation: malfunction-pulse 1.2s ease-in-out infinite;
+}
+
+.malfunction-badge-bg {
+  fill: #eb0000;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+}
+
+.malfunction-badge-text {
+  fill: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  font-family: Arial, Helvetica, sans-serif;
+  pointer-events: none;
+}
+
+@keyframes malfunction-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.78;
+    transform: scale(1.18);
+  }
+}
+
+
+
+.agent.notification-hover circle {
+  stroke: #0079c7;
+  stroke-width: 5;
+  filter: drop-shadow(0 0 6px rgba(0, 121, 199, 0.75));
+}
+
+.agent.notification-hover text {
+  font-weight: 900;
+}
+
+/* Do not recolor malfunction badge during notification hover. */
+.agent.notification-hover .malfunction-badge-bg {
+  fill: #eb0000;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+}
+
+.agent.notification-hover .malfunction-badge-text {
+  fill: #ffffff;
+}
+
+.agent.notification-hover text {
+  font-weight: 900;
+}
+
+/* app interaction color concept overrides - start */
+/* Selected train/agent: magenta edit color, not warning orange. */
+.agent.selected circle {
+  stroke: var(--app-select-color, #f939e9) !important;
+  stroke-width: 5 !important;
+  filter: drop-shadow(0 0 7px var(--app-select-glow, rgba(249, 57, 233, 0.65))) !important;
+}
+
+.agent.selected text {
+  font-weight: 900 !important;
+}
+
+/* Notification hover / cross-panel focus: neutral grey. */
+.agent.notification-hover circle {
+  stroke: var(--app-hover-border-dark, #686868) !important;
+  stroke-width: 5 !important;
+  filter: drop-shadow(0 0 6px var(--app-hover-glow, rgba(104, 104, 104, 0.55))) !important;
+}
+
+.agent.notification-hover text {
+  font-weight: 900 !important;
+}
+
+/* If selected and notification-hover at same time, selected wins. */
+.agent.selected.notification-hover circle {
+  stroke: var(--app-select-color, #f939e9) !important;
+  filter: drop-shadow(0 0 7px var(--app-select-glow, rgba(249, 57, 233, 0.65))) !important;
+}
+
+/* Malfunction badge is semantic error/störung and remains red. */
+.malfunction-badge-bg,
+.agent.selected .malfunction-badge-bg,
+.agent.notification-hover .malfunction-badge-bg {
+  fill: #eb0000 !important;
+  stroke: #ffffff !important;
+  stroke-width: 1.5 !important;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55)) !important;
+}
+
+.malfunction-badge-text,
+.agent.selected .malfunction-badge-text,
+.agent.notification-hover .malfunction-badge-text {
+  fill: #ffffff !important;
+  font-weight: 900 !important;
+}
+/* app interaction color concept overrides - end */
+
+
+/* malfunction badge hover stability */
+.malfunction-badge-bg,
+.malfunction-badge-text,
+.agent-malfunction,
+.topo-malfunction,
+.line-malfunction,
+.header-malfunction {
+  pointer-events: none;
+}
+
+
+/* agent target highlight overlay
+   Hover/cross-highlight = neutral grey.
+   Explicit selected agent = edit magenta. */
+.agent-target-highlight {
+  pointer-events: none;
+}
+
+.agent-target-ring {
+  fill: rgba(248, 248, 248, 0.38);
+  stroke: var(--app-hover-border-dark, #686868);
+  stroke-width: 2.5;
+  stroke-dasharray: 4 3;
+  filter: drop-shadow(0 0 4px var(--app-hover-glow, rgba(104, 104, 104, 0.55)));
+}
+
+.agent-target-dot {
+  fill: var(--app-hover-border-dark, #686868);
+  stroke: #ffffff;
+  stroke-width: 1.2;
+}
+
+.agent-target-cross {
+  stroke: var(--app-hover-border-dark, #686868);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.agent-target-highlight.selected-target .agent-target-ring {
+  fill: rgba(255, 240, 254, 0.45);
+  stroke: var(--app-select-color, #f939e9);
+  filter: drop-shadow(0 0 5px var(--app-select-glow, rgba(249, 57, 233, 0.65)));
+}
+
+.agent-target-highlight.selected-target .agent-target-dot {
+  fill: var(--app-select-color, #f939e9);
+}
+
+.agent-target-highlight.selected-target .agent-target-cross {
+  stroke: var(--app-select-color, #f939e9);
+}
+
+
+
+/* target uses agent color override
+   Same-target overlaps are deduped in TS. */
+.agent-target-ring {
+  fill: rgba(255, 255, 255, 0.28) !important;
+  stroke: var(--agent-target-color, #686868) !important;
+  stroke-width: 2.5 !important;
+  stroke-dasharray: 4 3;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.35)) !important;
+}
+
+.agent-target-dot {
+  fill: var(--agent-target-color, #686868) !important;
+  stroke: #ffffff !important;
+  stroke-width: 1.2 !important;
+}
+
+.agent-target-cross {
+  stroke: var(--agent-target-color, #686868) !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+
+.agent-target-highlight.selected-target {
+  --agent-target-color: var(--app-select-color, #f939e9);
 }

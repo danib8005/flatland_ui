@@ -30,9 +30,17 @@
                 @if (lbl.tileIndex === cellIdx) {
                   <button class="topo-agent"
                           [class.selected]="isSelected(lbl.handle)"
-                          [style.background]="lbl.color"
+                          [class.notification-hover]="isNotificationHovered(lbl.handle)"
+                          [style.background]="mareyAgentDisplayColor(lbl.handle, lbl.color)"
+                          (mouseenter)="onAgentMouseEnter(lbl.handle)"
+                          (mouseleave)="onAgentMouseLeave()"
                           (click)="onAgentClick(lbl.handle, $event)"
-                          [title]="'Agent ' + lbl.handle">{{ lbl.handle }}</button>
+                          [title]="'Agent ' + lbl.handle">
+                    {{ lbl.handle }}
+                    @if (isAgentMalfunctioning(lbl.handle)) {
+                      <span class="malfunction-indicator topo-malfunction" [title]="agentMalfunctionTitle(lbl.handle)">!</span>
+                    }
+                  </button>
                 }
               }
             }
@@ -199,7 +207,12 @@
 
       <g class="marey-lines">
         @for (line of agentLines(); track line.handle) {
-          <g [class.is-active]="line.isActive">
+          <g [class.is-active]="line.isActive"
+             [class.notification-hover]="isNotificationHovered(line.handle)"
+             [style.--marey-agent-color]="mareyAgentDisplayColor(line.handle, $any(line).color)"
+             [style.--marey-hover-color]="mareyHoverLineColor(line.handle, $any(line).color)"
+             (mouseenter)="onAgentMouseEnter(line.handle)"
+             (mouseleave)="onAgentMouseLeave()">
             @if (line.pastD) {
               <path class="past" [attr.d]="line.pastD" [attr.stroke]="line.color" />
             }
