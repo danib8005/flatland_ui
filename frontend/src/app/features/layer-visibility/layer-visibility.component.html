@@ -31,5 +31,11 @@
              (change)="toggle('signals')">
       <span>All Signals</span>
     </label>
+    <label class="layer-item">
+      <input type="checkbox"
+             [checked]="store.layerVisibility().trajectoryCellInfo"
+             (change)="toggle('trajectoryCellInfo')">
+      <span>Trajectory cell info</span>
+    </label>
   </div>
 </div>

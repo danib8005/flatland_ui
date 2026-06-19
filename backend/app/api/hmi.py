@@ -214,7 +214,7 @@ def get_scenarios(
         )
         return mock_generate_scenarios(session_id, _step_for(session_id))
 
-    options = scenarios_to_options(scenarios)
+    options = scenarios_to_options(scenarios, env=env)
     # Cache BOTH shapes from this single compute run, so a subsequent
     # /hmi/recommendations call for the same step can reuse the
     # Scenario objects without re-running ScenarioBuilder.
@@ -308,7 +308,7 @@ def get_recommendations(session_id: str):
         )
         # Populate cache so the next /hmi/scenarios pull is also free.
         try:
-            options = scenarios_to_options(scenarios)
+            options = scenarios_to_options(scenarios, env=env)
             scenario_cache.put_full(session_id, cache_key_str, scenarios, options)
         except Exception:
             pass  # Best-effort: if serialization fails, still return recs.
@@ -335,6 +335,8 @@ def get_marey_data(session_id: str):
     """
     from app.core.scenario_cache import scenario_cache
     from app.core.override_manager import override_manager
+    from app.core.marey_topology import classify_marey_point
+    from app.core.tile_resolver import resolve_tile
 
     sess = session_manager.get(session_id)
     if not sess:
@@ -373,7 +375,7 @@ def get_marey_data(session_id: str):
         # Cache miss — return minimal data; Frontend will call /hmi/scenarios to populate
         return {"agents": {}, "cached": False}
     
-    options = scenarios_to_options(scenarios)
+    options = scenarios_to_options(scenarios, env=env)
     baseline_opt = next((s for s in options if s.isBaseline), options[0] if options else None)
     if not baseline_opt:
         return {"agents": {}, "cached": False}
@@ -384,16 +386,136 @@ def get_marey_data(session_id: str):
     for handle_str, traj_points in (baseline_opt.trajectories or {}).items():
         handle = int(handle_str)
         
-        # Extract position (row, col) from each point if available
-        forecast = [
-            {
-                "step": p.get("step") if isinstance(p, dict) else p.step,
-                "row": p.get("row") if isinstance(p, dict) else p.row,
-                "col": p.get("col") if isinstance(p, dict) else p.col,
-                "direction": p.get("dir") if isinstance(p, dict) else p.dir,
-            }
-            for p in traj_points
-        ] if traj_points else []
+        def _point_value(point, name, default=None):
+            if isinstance(point, dict):
+                return point.get(name, default)
+            return getattr(point, name, default)
+
+        def _taken_out_dir(current_point, next_point):
+            """Derive the actual outgoing direction from the next position."""
+            if next_point is None:
+                return None
+            try:
+                r0 = int(_point_value(current_point, "row"))
+                c0 = int(_point_value(current_point, "col"))
+                r1 = int(_point_value(next_point, "row"))
+                c1 = int(_point_value(next_point, "col"))
+            except (TypeError, ValueError):
+                return None
+
+            dr = r1 - r0
+            dc = c1 - c0
+            if dr == -1 and dc == 0:
+                return 0
+            if dr == 0 and dc == 1:
+                return 1
+            if dr == 1 and dc == 0:
+                return 2
+            if dr == 0 and dc == -1:
+                return 3
+            return None
+
+        def _marey_svg_for_cell(row, col):
+            """
+            Resolve the SVG file name for a rail cell using the same tile
+            resolver as the Flatland map serialization.
+            """
+            try:
+                value = int(env.rail.grid[int(row), int(col)])
+            except Exception:
+                return None
+
+            if value == 0:
+                return None
+
+            try:
+                resolved = resolve_tile(value)
+            except Exception:
+                return None
+
+            if resolved is None:
+                # Keep the same fallback as build_rail_tiles().
+                return "Gleis_horizontal.svg"
+
+            svg, _rot = resolved
+            return svg
+
+        def _enrich_forecast_points(points, handle):
+            enriched = []
+            points = list(points or [])
+            for idx, point in enumerate(points):
+                step = _point_value(point, "step")
+                row = _point_value(point, "row")
+                col = _point_value(point, "col")
+                direction = _point_value(point, "dir", _point_value(point, "direction"))
+
+                if row is None or col is None or direction is None:
+                    continue
+
+                try:
+                    step_i = int(step) if step is not None else None
+                    row_i = int(row)
+                    col_i = int(col)
+                    dir_i = int(direction)
+                except (TypeError, ValueError):
+                    continue
+
+                next_point = points[idx + 1] if idx + 1 < len(points) else None
+                taken_out_dir = _taken_out_dir(point, next_point)
+                marey_svg = _marey_svg_for_cell(row_i, col_i)
+
+                base = {
+                    "step": step_i,
+                    "row": row_i,
+                    "col": col_i,
+                    "dir": dir_i,
+                    "direction": dir_i,
+                    "handle": int(handle),
+                    "agent_id": int(handle),
+                }
+
+                try:
+                    base.update(
+                        classify_marey_point(
+                            env,
+                            row_i,
+                            col_i,
+                            dir_i,
+                            step=step_i,
+                            handle=int(handle),
+                            taken_out_dir=taken_out_dir,
+                            marey_svg=marey_svg,
+                        )
+                    )
+                except Exception as exc:
+                    # Keep /hmi/marey-data backwards compatible even if topology
+                    # enrichment fails for a Flatland edge case.
+                    base.update(
+                        {
+                            "marey_topology": "unknown",
+                            "marey_svg": marey_svg,
+                            "marey_debug": {
+                                "pos": [row_i, col_i],
+                                "dir": dir_i,
+                                "step": step_i,
+                                "handle": int(handle),
+                                "transition_bits": None,
+                                "possible_out_dirs": [],
+                                "possible_transitions": [],
+                                "backward_transitions": {},
+                                "possible_in_dirs_for_out": {},
+                                "classification_reason": f"topology enrichment failed: {type(exc).__name__}: {exc}",
+                            },
+                            "marey_switch": None,
+                            "marey_merge": None,
+                        }
+                    )
+
+                enriched.append(base)
+            return enriched
+
+        # Extract and enrich position (row, col, direction) from each point.
+        forecast = _enrich_forecast_points(traj_points, handle)
         
         agents_data[handle] = {
             "handle": handle,
