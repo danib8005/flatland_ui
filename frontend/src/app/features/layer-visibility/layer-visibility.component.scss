@@ -142,3 +142,23 @@
   line-height: 1.2;
   white-space: nowrap;
 }
+
+/* Minimal UI cleanup:
+   Do not show a trailing separator after the last Layer Visibility option
+   e.g. after "Trajectory cell info". */
+.layer-row:last-child,
+.layer-item:last-child,
+.visibility-row:last-child,
+.layer-toggle:last-child,
+.layers-list > *:last-child {
+  border-bottom: 0 !important;
+  margin-bottom: 0;
+}
+
+/* No trailing line after the final layer option. */
+:host,
+.layer-visibility,
+.layers,
+.layer-item:last-child {
+  border-bottom: 0 !important;
+}

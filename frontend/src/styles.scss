@@ -401,3 +401,14 @@ app-agents-panel .sidebar-content {
   opacity: 1;
   filter: none;
 }
+
+/* UI cleanup:
+   Layer Visibility should not show a trailing separator after the last option
+   ("Trajectory cell info"). The visible line comes from the panel/host border,
+   not from the last checkbox row. */
+app-layer-visibility,
+.left-pane app-layer-visibility,
+app-layer-visibility .layer-visibility,
+.left-pane app-layer-visibility .layer-visibility {
+  border-bottom: 0 !important;
+}
