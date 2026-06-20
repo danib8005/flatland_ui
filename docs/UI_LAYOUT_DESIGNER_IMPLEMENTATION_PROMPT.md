@@ -1,3 +1,44 @@
+# Deutsche Zusammenfassung — UI Layout Designer / Plugin Panel Framework
+
+Ziel dieses Vorhabens ist der Aufbau eines flexiblen, dynamischen UI‑Layout‑Systems für die Flatland UI. Die bestehende Applikation funktioniert aktuell gut und darf durch diesen Umbau nicht beschädigt werden. Deshalb soll das neue Layout‑Framework zunächst parallel zur bestehenden Oberfläche entstehen und erst später kontrolliert aktiviert werden.
+
+Das neue System soll Layouts mit einer, zwei oder drei Spalten unterstützen. Jede Spalte soll frei konfigurierbare Panels enthalten können. Diese Panels sollen sich wie Plugins verhalten: Sie besitzen eine gemeinsame Panel‑Hülle, können verschoben, in der Grösse verändert, gespeichert, geladen, exportiert und importiert werden. Die konkrete Panel‑Funktionalität soll dabei zunächst nicht neu geschrieben werden. Bestehende Panels werden später lediglich in die neue Panel‑Shell eingebettet.
+
+Die aktuell zwingend zu unterstützenden Panels sind:
+
+1. Notifications Panel
+2. Layer Visibility Panel
+3. KPI Filter Panel
+4. Scenario Panel
+5. Recommendations Panel
+6. Agents Panel
+7. Agent Inspector Panel
+8. Flatland Map
+9. Marey Chart / Graphic Timetable
+
+Die wichtigste Anforderung ist, dass die bestehende Funktionalität dieser Panels erhalten bleibt. Bestehende Logik in `SessionStore`, Map, Marey Chart, Forecast, Layer Visibility, Agent Selection, Hover‑Verknüpfung und Action Overrides darf nicht entfernt oder ersetzt werden. Der Umbau muss schrittweise und rückbaubar erfolgen.
+
+Die Kommunikation zwischen den Panels soll langfristig über einen zentralen Informationsbus laufen. Dieser besteht aus zwei Teilen:
+
+- einem `EventBus` für kurzfristige Ereignisse, zum Beispiel Agent ausgewählt, Agent gehovered, Zelle gehovered, Szenario‑Preview ausgewählt oder Layer Visibility geändert;
+- einem `SharedState` für dauerhaften globalen UI‑Zustand, zum Beispiel aktuell selektierter Agent, gehoverte Zelle, aktives Szenario, sichtbare Layer oder aktives Layout.
+
+Wichtig ist: EventBus und SharedState sollen anfangs nur ergänzend eingeführt werden. Bestehende direkte Store‑Zugriffe werden nicht sofort entfernt. Stattdessen werden Ereignisse und Zustände zunächst gespiegelt, damit das bestehende Verhalten stabil bleibt.
+
+Die Umsetzung soll in kleinen, klar getrennten Schritten erfolgen. Jeder Schritt soll als kleines Python‑Update‑Skript geliefert werden, das direkt aus dem Repository‑Root ausgeführt werden kann. Jedes Skript soll genau einen verständlichen Zweck haben, zum Beispiel Datenmodelle anlegen, EventBus hinzufügen, SharedState hinzufügen, PanelRegistry erstellen, LayoutStore einführen, PanelShell erstellen, LayoutRenderer erstellen oder Designer‑Route ergänzen.
+
+Der erste technische Schritt ist eine nicht invasive Foundation‑Phase. Dabei werden nur neue Dateien unter `frontend/src/app/core/layout/` und `frontend/src/app/features/layout/` erstellt. Die bestehende UI wird dabei nicht ersetzt und nicht aktiv umgebaut. Erst wenn diese Grundlage kompiliert und committed ist, wird eine Sandbox‑Route für den Layout Designer ergänzt. Danach können echte Panel‑Adapter gebaut werden, die die bestehenden Komponenten nur einbetten, nicht neu implementieren.
+
+Der UI‑Designer soll später ermöglichen, Panels visuell zu platzieren, zwischen Spalten zu verschieben und in der Grösse zu verändern. Layouts sollen im LocalStorage gespeichert und zusätzlich als JSON‑Datei exportiert bzw. importiert werden können. Auf einer späteren Startseite soll eine Liste gespeicherter Designs erscheinen, aus der ein Design ausgewählt oder ein neues Design erstellt werden kann.
+
+Die visuelle Richtung lautet: weniger ist mehr. Das UI soll einfacher, ruhiger und klarer werden, mit weniger visueller Unruhe, konsistenten Panels, konsistentem Spacing, neutralen Statusanzeigen und möglichst SBB/Lyne‑naher Gestaltung. Funktionale Stabilität ist aber wichtiger als optische Änderungen.
+
+Nach jedem Umsetzungsschritt müssen Build und Tests geprüft werden. Frontend‑Budget‑Warnings sind akzeptabel, solange der Build erfolgreich abgeschlossen wird. Änderungen sollen in kleinen, sinnvollen Commits gesichert werden.
+
+Diese Datei dient als Übergabe‑Prompt. Ein zukünftiger AI‑Assistent soll zuerst prüfen, ob die Foundation‑Phase bereits existiert. Falls nicht, soll er mit kleinen Python‑Skripten für Phase 1 beginnen. Falls Phase 1 bereits vorhanden ist, soll er mit der Designer‑Sandbox‑Route weitermachen. Die bestehende Applikation darf niemals in einem grossen Schritt ersetzt werden.
+
+---
+
 # UI Layout Designer / Plugin Panel Framework — Implementation Plan
 
 ## Purpose
