@@ -53,3 +53,92 @@
   border-radius: 50%;
   display: inline-block;
 }
+
+/* Keep Layer Visibility usable when more toggles are shown. */
+.layer-visibility {
+  padding-right: 4px;
+}
+
+.layers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  line-height: 1.2;
+  white-space: normal;
+}
+
+.layer-item input {
+  flex: 0 0 auto;
+}
+
+.layer-item span {
+  overflow-wrap: anywhere;
+}
+
+.layer-visibility::-webkit-scrollbar {
+  width: 6px;
+}
+
+.layer-visibility::-webkit-scrollbar-thumb {
+  background: #c7c7c7;
+  border-radius: 999px;
+}
+
+/* Layer Visibility: show all toggles without internal scrolling. */
+.layer-visibility {
+  padding-right: 0;
+}
+
+.layers {
+  gap: 6px;
+}
+
+.layer-item {
+  min-height: 24px;
+}
+
+/* Dynamic Layer Visibility height: grow with all toggles, no internal clipping. */
+:host {
+  display: block;
+  flex: 0 0 auto;
+  width: 100%;
+  height: auto;
+  min-height: max-content;
+  overflow: visible;
+}
+
+.layer-visibility {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: max-content;
+  max-height: none;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.layers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: auto;
+  min-height: max-content;
+  overflow: visible;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  flex: 0 0 auto;
+  line-height: 1.2;
+  white-space: nowrap;
+}
