@@ -52,10 +52,9 @@
 @if (store.session()) {
   <div class="three-col">
     <aside class="left-pane">
+      <app-situation-summary></app-situation-summary>
       <app-notifications-panel></app-notifications-panel>
-      <div class="left-kpi-filter">
-        <app-kpi-filter></app-kpi-filter>
-      </div>
+      <app-agents-panel></app-agents-panel>
     </aside>
 
     <section class="center-pane">
@@ -85,6 +84,7 @@
         @if (store.showMap()) {
           <section class="map-section">
             <app-track-layout></app-track-layout>
+            <app-agent-inspector></app-agent-inspector>
           </section>
         }
 
@@ -95,7 +95,7 @@
         }
       </div>
 
-      
+
     </section>
 
     <aside class="right-pane">
@@ -103,11 +103,12 @@
       @if (store.optionPresentation() === 'recommended') {
         <app-recommendations-panel></app-recommendations-panel>
       }
+      <div class="right-kpi-filter">
+        <app-kpi-filter></app-kpi-filter>
+      </div>
       @if (store.isCoLearning() && store.episodeDone()) {
         <app-co-learning-reflection></app-co-learning-reflection>
       }
-      <app-agents-panel></app-agents-panel>
-      <app-agent-inspector></app-agent-inspector>
     </aside>
   </div>
 } @else {

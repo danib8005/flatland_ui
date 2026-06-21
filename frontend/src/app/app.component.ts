@@ -12,6 +12,7 @@ import { ScenarioPanelComponent } from './features/scenario-panel/scenario-panel
 import { KpiFilterComponent } from './features/kpi-filter/kpi-filter.component';
 import { RecommendationsPanelComponent } from './features/recommendations-panel/recommendations-panel.component';
 import { CoLearningReflectionComponent } from './features/co-learning-reflection/co-learning-reflection.component';
+import { SituationSummaryComponent } from './features/situation-summary/situation-summary.component';
 import { ApiService } from './core/api.service';
 import { SessionStore } from './core/session.store';
 import { InteractionMode } from './core/events/event-types';
@@ -29,6 +30,7 @@ import { InteractionMode } from './core/events/event-types';
     KpiFilterComponent,
     RecommendationsPanelComponent,
     CoLearningReflectionComponent,
+    SituationSummaryComponent,
     AgentInspectorComponent,
     AgentsPanelComponent,
     ViewToggleComponent,

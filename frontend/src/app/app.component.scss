@@ -167,8 +167,20 @@
   border-left: 1px solid var(--sbb-color-cloud, #d2d2d2);
 }
 
-.left-kpi-filter {
+.right-kpi-filter {
   flex-shrink: 0;
+}
+
+/* Left column rhythm: situation summary fixed on top, then Event Feed and
+   Agents share the remaining height evenly (each scrolls on its own). */
+.left-pane > app-situation-summary {
+  flex: 0 0 auto;
+}
+.left-pane > app-notifications-panel,
+.left-pane > app-agents-panel {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .center-pane {
@@ -257,6 +269,7 @@
 
 .map-section {
   border-bottom: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  position: relative;
 }
 
 .views.only-map .map-section,

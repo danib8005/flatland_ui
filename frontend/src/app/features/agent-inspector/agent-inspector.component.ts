@@ -46,4 +46,18 @@ export class AgentInspectorComponent {
   clearSelection() {
     this.store.clearSelection();
   }
+
+  /** Apply or clear a per-agent override from the overlay action buttons. */
+  onActionClick(handle: number, action: number, isOverride: boolean): void {
+    if (isOverride) {
+      this.store.clearOverride(handle);
+    } else {
+      this.store.setOverride(handle, action);
+    }
+  }
+
+  isOverrideOption(handle: number, action: number): boolean {
+    const a = this.store.agents().find((x) => x.handle === handle);
+    return a?.override_action === action;
+  }
 }

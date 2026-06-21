@@ -1,62 +1,41 @@
-<div class="agent-details">
-  <div class="ad-head">
-    <h3 class="panel-title">Agent Details</h3>
-    @if (activeAgent()) {
-      <button class="ad-clear" type="button" (click)="clearSelection()">Clear</button>
+@if (activeAgent(); as a) {
+  <div class="agent-overlay">
+    <div class="ao-head">
+      <span class="ao-dot" [style.background]="agentColor(a.handle)"></span>
+      <span class="ao-title">Train {{ a.handle }}</span>
+      @if (isMalfunctioning(a)) {
+        <span class="ao-malf" title="Malfunction: {{ a.malfunction_remaining }} step(s) remaining">!</span>
+      }
+      <span class="ao-state state-{{ a.state }}">{{ a.state }}</span>
+      <button class="ao-close" type="button" aria-label="Clear selection" (click)="clearSelection()">×</button>
+    </div>
+
+    <div class="ao-facts">
+      <span class="ao-fact">
+        @if (a.position) { @ ({{ a.position[0] }}, {{ a.position[1] }}) } @else { off-map }
+      </span>
+      <span class="ao-fact">→ ({{ a.target[0] }}, {{ a.target[1] }})</span>
+      @if ((a.delay ?? 0) > 0) {
+        <span class="ao-fact warn">+{{ a.delay }} delay</span>
+      } @else {
+        <span class="ao-fact ok">on time</span>
+      }
+    </div>
+
+    @if (a.next_decision; as nd) {
+      <div class="ao-actions">
+        <span class="ao-actions-label">Next ({{ nd.cell_type }})</span>
+        <div class="ao-buttons">
+          @for (opt of nd.options; track opt.action) {
+            <button
+              class="ao-btn"
+              [class.override]="isOverrideOption(a.handle, opt.action)"
+              (click)="onActionClick(a.handle, opt.action, isOverrideOption(a.handle, opt.action))">
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
     }
   </div>
-
-  @if (activeAgent(); as a) {
-    <div class="ad-card">
-      <div class="ad-card-head">
-        <span class="ad-dot" [style.background]="agentColor(a.handle)"></span>
-        <span class="ad-title">Train {{ a.handle }}</span>
-        @if (isMalfunctioning(a)) {
-          <span class="ad-malf" title="Malfunction: {{ a.malfunction_remaining }} step(s) remaining">!</span>
-        }
-        <span class="ad-state state-{{ a.state }}">{{ a.state }}</span>
-      </div>
-
-      <div class="ad-grid">
-        <div class="ad-cell">
-          <span class="ad-k">Position</span>
-          <span class="ad-v">@if (a.position) { ({{ a.position[0] }}, {{ a.position[1] }}) } @else { – }</span>
-        </div>
-        <div class="ad-cell">
-          <span class="ad-k">Direction</span>
-          <span class="ad-v">{{ a.direction ?? '–' }}</span>
-        </div>
-        <div class="ad-cell">
-          <span class="ad-k">Target</span>
-          <span class="ad-v">({{ a.target[0] }}, {{ a.target[1] }})</span>
-        </div>
-        <div class="ad-cell">
-          <span class="ad-k">Speed</span>
-          <span class="ad-v">{{ a.speed }}</span>
-        </div>
-        <div class="ad-cell">
-          <span class="ad-k">Earliest dep.</span>
-          <span class="ad-v">{{ a.earliest_departure ?? '–' }}</span>
-        </div>
-        <div class="ad-cell">
-          <span class="ad-k">Latest arr.</span>
-          <span class="ad-v">{{ a.latest_arrival ?? '–' }}</span>
-        </div>
-        <div class="ad-cell">
-          <span class="ad-k">Delay</span>
-          <span class="ad-v" [class.warn]="(a.delay ?? 0) > 0">
-            @if ((a.delay ?? 0) > 0) { +{{ a.delay }} } @else { 0 }
-          </span>
-        </div>
-        <div class="ad-cell">
-          <span class="ad-k">Malfunction</span>
-          <span class="ad-v" [class.bad]="isMalfunctioning(a)">
-            @if (isMalfunctioning(a)) { {{ a.malfunction_remaining }} step(s) } @else { – }
-          </span>
-        </div>
-      </div>
-    </div>
-  } @else {
-    <p class="ad-empty">Select an agent on the map or in the list to see its details.</p>
-  }
-</div>
+}
