@@ -59,13 +59,17 @@
 
     <section class="center-pane">
       @if (store.aiInControl()) {
-        <div class="ai-control-banner" role="status">
-          <span class="ai-control-dot"></span>
-          <span class="ai-control-text">
-            <strong>AI in control</strong> — the agent dispatches autonomously.
-            Adjust the <em>KPI filter</em> to steer its priorities; an override counts as a manual intervention.
-          </span>
-        </div>
+        @if (store.playing()) {
+          <div class="ai-control-banner" role="status">
+            <span class="ai-control-dot"></span>
+            <span class="ai-control-text">
+              <strong>AI in control</strong> — the agent dispatches autonomously.
+              Adjust the <em>KPI filter</em> to steer its priorities; an override counts as a manual intervention.
+            </span>
+          </div>
+        } @else if (!store.episodeDone()) {
+          <app-director-directive></app-director-directive>
+        }
       }
 
       <div class="map-controls">
@@ -99,6 +103,9 @@
     </section>
 
     <aside class="right-pane">
+      @if (store.aiInControl()) {
+        <app-goal-achievement></app-goal-achievement>
+      }
       <app-scenario-panel></app-scenario-panel>
       @if (store.optionPresentation() === 'recommended') {
         <app-recommendations-panel></app-recommendations-panel>

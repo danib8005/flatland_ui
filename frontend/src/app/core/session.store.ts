@@ -276,11 +276,11 @@ export class SessionStore {
 
     if (!this.session()) return;
 
-    if (mode === 'director') {
-      if (!this.episodeDone() && !this.playing()) {
-        this.play(this.activePolicy() || this.defaultPolicy());
-      }
-    } else if (prev === 'director' && this.playing()) {
+    // Director (WP 3.4) no longer auto-plays on entering: the human first sets
+    // a high-level directive (KPI weights + policy) and then explicitly starts
+    // the autonomous run via the directive card. Leaving Director hands control
+    // back to the human, so a running autonomous loop is paused.
+    if (prev === 'director' && this.playing()) {
       this.pause();
     }
   }

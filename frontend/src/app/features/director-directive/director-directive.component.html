@@ -1,0 +1,26 @@
+<div class="directive">
+  <div class="dir-text">
+    <div class="dir-title">
+      <span class="dir-icon">▸</span>
+      Director directive
+    </div>
+    <p class="dir-desc">
+      The AI will run all trains autonomously on your high-level directive.
+      Set KPI priorities (Options, right) and the policy, then start.
+    </p>
+
+    <div class="dir-summary">
+      <span class="dir-chip">
+        Policy: <strong>{{ policyLabel() }}</strong>
+      </span>
+      <span class="dir-chip">
+        Priority:
+        <strong>{{ priorities()[0].label }}</strong> {{ pct(priorities()[0].value) }}%
+      </span>
+    </div>
+  </div>
+
+  <button class="dir-start" type="button" (click)="start()">
+    {{ started() ? 'Resume autonomous run' : 'Start autonomous run' }}
+  </button>
+</div>

@@ -13,6 +13,8 @@ import { KpiFilterComponent } from './features/kpi-filter/kpi-filter.component';
 import { RecommendationsPanelComponent } from './features/recommendations-panel/recommendations-panel.component';
 import { CoLearningReflectionComponent } from './features/co-learning-reflection/co-learning-reflection.component';
 import { SituationSummaryComponent } from './features/situation-summary/situation-summary.component';
+import { GoalAchievementComponent } from './features/goal-achievement/goal-achievement.component';
+import { DirectorDirectiveComponent } from './features/director-directive/director-directive.component';
 import { ApiService } from './core/api.service';
 import { SessionStore } from './core/session.store';
 import { InteractionMode } from './core/events/event-types';
@@ -31,6 +33,8 @@ import { InteractionMode } from './core/events/event-types';
     RecommendationsPanelComponent,
     CoLearningReflectionComponent,
     SituationSummaryComponent,
+    GoalAchievementComponent,
+    DirectorDirectiveComponent,
     AgentInspectorComponent,
     AgentsPanelComponent,
     ViewToggleComponent,
