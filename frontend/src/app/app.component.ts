@@ -371,7 +371,7 @@ export class AppComponent implements OnInit {
     this.draftControlPolicyIds.set(next);
   }
   @HostListener('window:keydown.escape', ['$event'])
-  onEscapeDeselectAgent(event: KeyboardEvent): void {
+  onEscapeDeselectAgent(event: Event): void {
     // ESC priority:
     // 1) close open settings dialogs/panels
     // 2) only if no dialog/panel was open, deselect selected agent
