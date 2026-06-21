@@ -1,7 +1,5 @@
 :host {
-  display: block;
-  background: var(--sbb-color-white, #fff);
-  border-bottom: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  display: inline-flex;
   flex-shrink: 0;
 }
 
@@ -9,7 +7,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
 }
 
 .label {

@@ -1,8 +1,21 @@
 <div class="notifications-panel">
-  <h3 class="panel-title">Notifications</h3>
+  <div class="panel-head">
+    <h3 class="panel-title">Event Feed</h3>
+    @if (store.notifications().length > 0) {
+      <span class="feed-counts">
+        @if (errorCount() > 0) {
+          <span class="count count-error" title="Errors">{{ errorCount() }}</span>
+        }
+        @if (warningCount() > 0) {
+          <span class="count count-warning" title="Warnings">{{ warningCount() }}</span>
+        }
+        <span class="count count-total" title="Total events">{{ store.notifications().length }}</span>
+      </span>
+    }
+  </div>
 
   @if (store.notifications().length === 0) {
-    <p class="empty">No notifications</p>
+    <p class="empty">No events</p>
   } @else {
     <ul class="notif-list">
       @for (n of store.notifications(); track n.id) {
@@ -19,7 +32,7 @@
             (mouseenter)="onNotificationMouseEnter(n)"
             (mouseleave)="onNotificationMouseLeave()"
             (click)="onNotificationClick(n)">
-          <span class="icon">{{ iconFor(n.kind) }}</span>
+          <span class="kind-marker" [attr.aria-label]="n.kind"></span>
           <div class="content">
             <span class="title">{{ n.title }}</span>
             <span class="msg">{{ n.message }}</span>

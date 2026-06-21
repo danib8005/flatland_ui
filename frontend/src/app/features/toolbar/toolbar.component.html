@@ -1,12 +1,5 @@
 <div class="toolbar">
   @if (store.session()) {
-    <sbb-secondary-button size="m" (click)="reset()"
-      [attr.disabled]="store.loading() ? '' : null">
-      Reset
-    </sbb-secondary-button>
-
-    <sbb-divider orientation="vertical"></sbb-divider>
-
     @if (store.playing()) {
       <sbb-button size="m" (click)="togglePlay()" icon-name="pause-small">
         Pause
@@ -86,25 +79,4 @@
   @if (store.message(); as msg) {
     <span class="info-msg">{{ msg }}</span>
   }
-  <sbb-toggle-check
-    size="m"
-    name="scenario-policy"
-    value="scenario-policy"
-    iconName="list-small"
-    [checked]="scenarioPolicyActive"
-    (change)="showScenarioPolicy()">
-    Scenarios / Policy
-  </sbb-toggle-check>
-
-
-
-  <sbb-toggle-check
-    size="m"
-    name="check"
-    value="single-checkbox"
-    iconName="gear-small"
-    [checked]="settingsActive"
-    (change)="showSettings()">
-    Settings
-  </sbb-toggle-check>
 </div>

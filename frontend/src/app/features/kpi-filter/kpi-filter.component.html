@@ -6,7 +6,6 @@
     @for (kpi of kpis; track kpi.key) {
       <div class="kpi-row">
         <div class="kpi-head">
-          <span class="kpi-icon">{{ kpi.icon }}</span>
           <span class="kpi-label">{{ kpi.label }}</span>
           <span class="kpi-value">{{ pct(store.kpiPriorities()[kpi.key]) }}</span>
         </div>

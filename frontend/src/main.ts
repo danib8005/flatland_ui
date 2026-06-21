@@ -10,6 +10,8 @@ import '@sbb-esta/lyne-elements/button/transparent-button.js';
 import '@sbb-esta/lyne-elements/button/mini-button.js';
 import '@sbb-esta/lyne-elements/divider.js';
 import '@sbb-esta/lyne-elements/tag.js';
+import '@sbb-esta/lyne-elements/menu.js';
+import '@sbb-esta/lyne-elements/menu/menu-button.js';
 import '@sbb-esta/lyne-elements/loading-indicator.js';
 import '@sbb-esta/lyne-elements/loading-indicator-circle.js';
 

@@ -1,554 +1,132 @@
 :host {
   display: block;
-  padding: 8px 12px;
-  flex-shrink: 0;
   border-top: 1px solid var(--sbb-color-cloud, #d2d2d2);
-  overflow: visible;
-  position: relative;
 }
 
-.inspector {
-  position: relative;
-  display: block;
+.agent-details {
+  padding: 12px 16px;
 }
 
-.inspector-line {
+.ad-head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  min-height: 28px;
-  padding: 4px 8px;
-  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
-  border-radius: 3px;
-  background: var(--sbb-color-white, #fff);
-  font-size: 13px;
-  color: var(--sbb-color-charcoal, #212121);
-  cursor: default;
+  margin-bottom: 8px;
 }
 
-.line-label {
+.panel-title {
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   color: var(--sbb-color-granite, #686868);
+  margin: 0;
 }
 
-.line-train {
-  font-weight: 600;
-}
-
-.line-hint {
-  font-size: 13px;
-  color: var(--sbb-color-granite, #686868);
-}
-
-.line-placeholder {
-  margin-left: auto;
-  font-size: 13px;
-  color: var(--sbb-color-granite, #686868);
-}
-
-.line-clear {
-  margin-left: auto;
-  background: none;
+.ad-clear {
   border: none;
+  background: none;
   color: var(--sbb-color-red, #eb0000);
   cursor: pointer;
-  font-size: 13px;
+  font: inherit;
+  font-size: 12px;
   text-decoration: underline;
   padding: 0;
 }
+.ad-clear:hover { color: #c80000; }
 
-.line-clear:hover {
-  color: #c80000;
+.ad-empty {
+  margin: 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--sbb-color-granite, #686868);
 }
 
-.hover-popover {
-  position: fixed;
-  width: 420px;
-  height: 300px;
+.ad-card {
   background: var(--sbb-color-white, #fff);
   border: 1px solid var(--sbb-color-cloud, #d2d2d2);
   border-radius: 4px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
-  padding: 10px;
-  overflow: auto;
-  z-index: 2000;
+  overflow: hidden;
 }
 
-.section-header {
+.ad-card-head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-
-  h3 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--sbb-color-granite, #686868);
-  }
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--sbb-color-cloud, #d2d2d2);
 }
 
-.btn-clear {
-  background: none;
-  border: none;
-  color: var(--sbb-color-red, #eb0000);
-  cursor: pointer;
-  font-size: 13px;
-  text-decoration: underline;
-
-  &:hover {
-    color: #c80000;
-  }
-}
-
-.empty {
-  color: var(--sbb-color-granite, #686868);
-  font-size: 13px;
-  font-style: italic;
-}
-
-.dot {
+.ad-dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
-  border: 1px solid white;
+  border: 1px solid #fff;
   box-shadow: 0 0 0 1px var(--sbb-color-cloud, #d2d2d2);
 }
 
-.state {
-  font-size: 13px;
-  padding: 2px 6px;
-  border-radius: 2px;
+.ad-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--sbb-color-charcoal, #212121);
+}
+
+.ad-malf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sbb-color-red, #eb0000);
+  color: #fff;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.ad-state {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 9px;
   background: var(--sbb-color-milk, #f6f6f6);
   color: var(--sbb-color-charcoal, #212121);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
+.state-MOVING { background: #00973b; color: #fff; }
+.state-WAITING, .state-READY_TO_DEPART { background: var(--sbb-color-orange, #ffaa00); color: var(--sbb-color-charcoal, #212121); }
+.state-MALFUNCTION, .state-MALFUNCTION_OFF_MAP { background: var(--sbb-color-red, #eb0000); color: #fff; }
+.state-DONE { background: var(--sbb-color-cloud, #d2d2d2); color: var(--sbb-color-charcoal, #212121); }
 
-.state-MOVING {
-  background: #00973b;
-  color: white;
-}
-
-.state-WAITING, .state-READY_TO_DEPART {
-  background: var(--sbb-color-orange, #ffaa00);
-  color: white;
-}
-
-.state-MALFUNCTION, .state-MALFUNCTION_OFF_MAP {
-  background: var(--sbb-color-red, #eb0000);
-  color: white;
-}
-
-.state-DONE {
-  background: var(--sbb-color-cloud, #d2d2d2);
-  color: var(--sbb-color-charcoal, #212121);
-}
-
-.detail-card {
-  background: var(--sbb-color-white, #fff);
-  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
-  border-radius: 2px;
-  padding: 10px;
-  margin-bottom: 0;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--sbb-color-cloud, #d2d2d2);
-
-  .title {
-    font-weight: 600;
-    font-size: 14px;
-  }
-}
-
-.props {
+.ad-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px 12px;
-  margin: 0;
+  gap: 0 16px;
+  padding: 4px 12px 10px;
+}
+
+.ad-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--sbb-color-milk, #f0f0f0);
+}
+
+.ad-k {
+  font-size: 11px;
+  color: var(--sbb-color-granite, #686868);
+}
+
+.ad-v {
   font-size: 13px;
-
-  dt {
-    color: var(--sbb-color-granite, #686868);
-  }
-
-  dd {
-    margin: 0;
-    font-weight: 600;
-    font-family: monospace;
-  }
+  font-weight: 600;
+  color: var(--sbb-color-charcoal, #212121);
+  font-variant-numeric: tabular-nums;
 }
-
-
-
-
-
-
-.line-malfunction,
-.header-malfunction {
-  margin-left: 0;
-}
-
-@keyframes malfunction-html-pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.12);
-    opacity: 0.82;
-  }
-}
-
-
-/* malfunction badge hover stability */
-.malfunction-badge-bg,
-.malfunction-badge-text,
-.agent-malfunction,
-.topo-malfunction,
-.line-malfunction,
-.header-malfunction {
-  pointer-events: none;
-}
-
-/* agent-inspector-one-line-only - start
-   Bottom Agent Info component:
-   - outer inspector/host: 48px
-   - inner line: 32px
-   - vertically centered, so top/bottom spacing is balanced. */
-:host {
-  display: block !important;
-  flex: 0 0 48px !important;
-  height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
-  overflow: hidden !important;
-}
-
-.inspector {
-  height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
-  overflow: hidden !important;
-
-  box-sizing: border-box !important;
-  padding: 0 !important;
-
-  display: flex !important;
-  align-items: center !important;
-}
-
-.inspector-line {
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-  width: 100% !important;
-
-  box-sizing: border-box !important;
-  padding: 0 10px !important;
-  margin: 0 !important;
-
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-
-  overflow: hidden !important;
-  white-space: nowrap !important;
-}
-
-.inspector-line .line-label,
-.inspector-line .line-placeholder {
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-
-  line-height: 32px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-
-  padding: 0 !important;
-  margin: 0 !important;
-
-  overflow: hidden !important;
-  white-space: nowrap !important;
-}
-
-.inspector-line .line-label {
-  flex: 0 0 auto !important;
-}
-
-.inspector-line .line-placeholder {
-  flex: 1 1 auto !important;
-  text-overflow: ellipsis !important;
-}
-
-.inspector-line > * {
-  overflow: hidden !important;
-}
-/* agent-inspector-one-line-only - end */
-
-/* agent-inspector-content-center-only - start
-   Component size is already correct.
-   Only center the content vertically inside the existing inspector box. */
-.inspector {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-sizing: border-box !important;
-}
-
-.inspector-line {
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-
-  box-sizing: border-box !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-
-  line-height: 1.25 !important;
-}
-
-.inspector-line .line-label,
-.inspector-line .line-placeholder {
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-
-  display: inline-flex !important;
-  align-items: center !important;
-
-  line-height: 1.25 !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-/* agent-inspector-content-center-only - end */
-
-/* agent-inspector-exact-32-line - start
-   Host/inspector stays 48px. Inner inspector-line is exactly 32px,
-   vertically centered. All children are centered and cannot enlarge it. */
-:host {
-  display: block !important;
-  flex: 0 0 48px !important;
-  height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
-  overflow: hidden !important;
-}
-
-.inspector {
-  height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
-  overflow: hidden !important;
-
-  box-sizing: border-box !important;
-  padding: 0 !important;
-
-  display: flex !important;
-  align-items: center !important;
-}
-
-.inspector-line {
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-  width: 100% !important;
-
-  box-sizing: border-box !important;
-  padding: 0 10px !important;
-  margin: 0 !important;
-
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-
-  overflow: hidden !important;
-  white-space: nowrap !important;
-}
-
-.inspector-line .line-label,
-.inspector-line .line-placeholder,
-.inspector-line .line-train,
-.inspector-line .line-hint {
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-  line-height: 32px !important;
-
-  display: inline-flex !important;
-  align-items: center !important;
-
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-
-  overflow: hidden !important;
-  white-space: nowrap !important;
-}
-
-.inspector-line .line-label {
-  flex: 0 0 auto !important;
-}
-
-.inspector-line .line-placeholder,
-.inspector-line .line-train {
-  flex: 1 1 auto !important;
-  text-overflow: ellipsis !important;
-}
-
-.inspector-line .line-hint {
-  flex: 0 0 auto !important;
-  opacity: 0.7;
-}
-
-/* Clear button must not make the line taller. */
-.inspector-line .line-clear {
-  flex: 0 0 auto !important;
-
-  height: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
-  line-height: 22px !important;
-
-  box-sizing: border-box !important;
-  padding: 0 8px !important;
-  margin: 0 !important;
-
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-
-  font-size: 11px !important;
-  border-radius: 3px !important;
-}
-
-/* Nothing inside the row may expand vertically. */
-.inspector-line > * {
-  max-height: 32px !important;
-  overflow: hidden !important;
-}
-/* agent-inspector-exact-32-line - end */
-
-/* agent-inspector-line-final-center-32 - start
-   Only the inner Agent Info row:
-   - inspector-line is exactly 32px high
-   - vertically centered inside existing inspector height
-   - children cannot enlarge the row */
-.inspector {
-  display: flex !important;
-  align-items: center !important;
-  box-sizing: border-box !important;
-}
-
-.inspector-line {
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-  width: 100% !important;
-
-  box-sizing: border-box !important;
-  padding: 0 10px !important;
-  margin: 0 !important;
-
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-
-  overflow: hidden !important;
-  white-space: nowrap !important;
-}
-
-.inspector-line .line-label,
-.inspector-line .line-placeholder,
-.inspector-line .line-train,
-.inspector-line .line-hint {
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-  line-height: 32px !important;
-
-  display: inline-flex !important;
-  align-items: center !important;
-
-  box-sizing: border-box !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-
-  overflow: hidden !important;
-  white-space: nowrap !important;
-}
-
-.inspector-line .line-label {
-  flex: 0 0 auto !important;
-}
-
-.inspector-line .line-placeholder,
-.inspector-line .line-train {
-  flex: 1 1 auto !important;
-  text-overflow: ellipsis !important;
-}
-
-.inspector-line .line-hint {
-  flex: 0 0 auto !important;
-  opacity: 0.7;
-}
-
-/* Clear button centered and smaller than the 32px row. */
-.inspector-line .line-clear {
-  flex: 0 0 auto !important;
-
-  height: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
-  line-height: 22px !important;
-
-  box-sizing: border-box !important;
-  padding: 0 8px !important;
-  margin: 0 !important;
-
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-
-  font-size: 11px !important;
-  border-radius: 3px !important;
-}
-
-/* Nothing inside the line may make it taller. */
-.inspector-line > * {
-  max-height: 32px !important;
-  overflow: hidden !important;
-}
-/* agent-inspector-line-final-center-32 - end */
-
-/* agent-inspector-element-exact-32 - start
-   Exact fix for:
-   <div tabindex="0" class="inspector">...</div>
-   Only this element gets fixed to 32px. */
-.inspector {
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-}
-/* agent-inspector-element-exact-32 - end */
+.ad-v.warn { color: var(--sbb-color-orange, #cc8800); }
+.ad-v.bad { color: var(--sbb-color-red, #eb0000); }

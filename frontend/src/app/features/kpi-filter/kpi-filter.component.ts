@@ -5,7 +5,6 @@ import { KpiPriorities } from '../../core/events/event-types';
 
 interface KpiDef {
   key: keyof KpiPriorities;
-  icon: string;
   label: string;
 }
 
@@ -21,10 +20,10 @@ export class KpiFilterComponent {
   bus = inject(EventBusService);
 
   kpis: KpiDef[] = [
-    { key: 'time',            icon: '⏱',  label: 'Time' },
-    { key: 'energy',          icon: '⚡', label: 'Energy' },
-    { key: 'platformRouting', icon: '🚉', label: 'Platform Routing' },
-    { key: 'trainRouting',    icon: '🚂', label: 'Train Routing' },
+    { key: 'time',            label: 'Time' },
+    { key: 'energy',          label: 'Energy' },
+    { key: 'platformRouting', label: 'Platform Routing' },
+    { key: 'trainRouting',    label: 'Train Routing' },
   ];
 
   // Slider hat 11 Schritte: 0, 0.1, 0.2, ..., 1.0

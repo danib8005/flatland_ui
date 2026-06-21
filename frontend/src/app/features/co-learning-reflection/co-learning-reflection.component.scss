@@ -1,0 +1,144 @@
+:host {
+  display: block;
+  border-bottom: 1px solid var(--sbb-color-cloud, #d2d2d2);
+}
+
+.reflection-panel {
+  padding: 12px 16px;
+  background: var(--sbb-color-milk, #f6f6f6);
+  border-left: 3px solid var(--sbb-color-red, #eb0000);
+  border-radius: 4px;
+  margin: 4px;
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--sbb-color-granite, #686868);
+  margin: 0 0 10px 0;
+}
+
+.summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.summary-count {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--sbb-color-charcoal, #212121);
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--sbb-color-granite, #686868);
+}
+
+.intervention-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.intervention {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  background: #fff;
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+
+.iv-step {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--sbb-color-granite, #686868);
+  font-weight: 600;
+}
+
+.iv-body {
+  color: var(--sbb-color-charcoal, #212121);
+}
+
+.iv-ai {
+  display: block;
+  color: var(--sbb-color-granite, #686868);
+  font-style: italic;
+}
+
+.questions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.q-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sbb-color-charcoal, #212121);
+}
+
+.q-radios {
+  display: flex;
+  gap: 6px;
+}
+
+.q-radio {
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  background: #fff;
+  border-radius: 3px;
+  padding: 4px 14px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--sbb-color-charcoal, #212121);
+}
+
+.q-radio:hover {
+  border-color: var(--sbb-color-charcoal, #212121);
+}
+
+.q-radio.selected {
+  background: var(--sbb-color-charcoal, #212121);
+  border-color: var(--sbb-color-charcoal, #212121);
+  color: #fff;
+}
+
+.q-input {
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  border-radius: 3px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12px;
+  resize: vertical;
+  background: #fff;
+  color: var(--sbb-color-charcoal, #212121);
+}
+
+.q-input:focus {
+  outline: none;
+  border-color: var(--sbb-color-charcoal, #212121);
+  box-shadow: 0 0 0 2px rgba(33, 33, 33, 0.1);
+}
+
+.actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}

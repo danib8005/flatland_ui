@@ -1,0 +1,58 @@
+@if (!dismissed()) {
+  <div class="reflection-panel">
+    <h3 class="panel-title">Co-Learning Reflection</h3>
+
+    <div class="summary">
+      <span class="summary-count">{{ store.interventionCount() }}</span>
+      <span class="summary-label">manual intervention{{ store.interventionCount() === 1 ? '' : 's' }} this run</span>
+    </div>
+
+    @if (interventions().length > 0) {
+      <ul class="intervention-list">
+        @for (e of interventions(); track e.timestamp) {
+          <li class="intervention">
+            <span class="iv-step">step {{ e.step }}</span>
+            <span class="iv-body">
+              Train {{ e.handle }} → action {{ e.humanAction }}
+              @if (e.aiSuggestion) {
+                <span class="iv-ai" title="AI recommendation at that moment">vs AI: {{ e.aiSuggestion }}</span>
+              }
+            </span>
+          </li>
+        }
+      </ul>
+    }
+
+    <div class="questions">
+      @for (q of questions; track q.key) {
+        <div class="question">
+          <label class="q-text">{{ q.text }}</label>
+          @if (q.type === 'radio') {
+            <div class="q-radios">
+              @for (opt of q.options; track opt) {
+                <button
+                  type="button"
+                  class="q-radio"
+                  [class.selected]="answers()[q.key] === opt"
+                  (click)="setAnswer(q.key, opt)">
+                  {{ opt }}
+                </button>
+              }
+            </div>
+          } @else {
+            <textarea
+              class="q-input"
+              rows="2"
+              [value]="answers()[q.key] || ''"
+              (input)="setAnswer(q.key, $any($event.target).value)"
+              placeholder="Add your notes…"></textarea>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="actions">
+      <sbb-button size="m" (click)="finish()">Finish reflection</sbb-button>
+    </div>
+  </div>
+}

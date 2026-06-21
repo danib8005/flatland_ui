@@ -11,8 +11,10 @@ import { NotificationsPanelComponent } from './features/notifications-panel/noti
 import { ScenarioPanelComponent } from './features/scenario-panel/scenario-panel.component';
 import { KpiFilterComponent } from './features/kpi-filter/kpi-filter.component';
 import { RecommendationsPanelComponent } from './features/recommendations-panel/recommendations-panel.component';
+import { CoLearningReflectionComponent } from './features/co-learning-reflection/co-learning-reflection.component';
 import { ApiService } from './core/api.service';
 import { SessionStore } from './core/session.store';
+import { InteractionMode } from './core/events/event-types';
 
 @Component({
   selector: 'app-root',
@@ -26,6 +28,7 @@ import { SessionStore } from './core/session.store';
     ScenarioPanelComponent,
     KpiFilterComponent,
     RecommendationsPanelComponent,
+    CoLearningReflectionComponent,
     AgentInspectorComponent,
     AgentsPanelComponent,
     ViewToggleComponent,
@@ -37,6 +40,19 @@ import { SessionStore } from './core/session.store';
 export class AppComponent implements OnInit {
   store = inject(SessionStore);
   private api = inject(ApiService);
+
+  /** Human-AI collaboration modes shown in the header switcher (WP 3.1/3.3/3.4). */
+  readonly interactionModes: { id: InteractionMode; label: string; wp: string; description: string }[] = [
+    { id: 'recommendation', label: 'Recommendation', wp: 'WP 3.1', description: 'AI suggests, you decide.' },
+    { id: 'co-learning', label: 'Co-Learning', wp: 'WP 3.3', description: 'You and the AI adapt to each other.' },
+    { id: 'director', label: 'Director', wp: 'WP 3.4', description: 'AI acts autonomously on your high-level directives.' },
+  ];
+
+  /** Label of the currently active collaboration mode (for the header dropdown). */
+  currentModeLabel(): string {
+    const id = this.store.interactionMode();
+    return this.interactionModes.find((m) => m.id === id)?.label ?? id;
+  }
 
   newWidth = signal(50);
   newHeight = signal(20);

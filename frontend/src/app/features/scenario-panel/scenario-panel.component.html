@@ -1,23 +1,27 @@
 <div class="scenario-panel">
-  <h3 class="panel-title">Scenarios — Policy Comparison</h3>
+  <h3 class="panel-title">
+    {{ showRecommendedFraming() ? 'Scenarios — Policy Comparison' : 'Options — Policy Comparison' }}
+  </h3>
 
   @if (store.scenarios().length === 0) {
     <p class="empty">No scenarios available</p>
   } @else {
     <div class="scenarios">
-      @for (s of store.scenarios(); track s.id) {
+      @for (s of rankedScenarios(); track s.id) {
         <div class="scenario-card"
              [class.baseline]="s.isBaseline"
-             [class.recommended]="s.isRecommended && !s.isBaseline"
-             [class.avoid]="s.tag === 'avoid'" (mouseenter)="store.previewScenarioId.set(s.id)" (mouseleave)="store.previewScenarioId.set(null)">
+             [class.recommended]="showRecommendedFraming() && s.isRecommended && !s.isBaseline"
+             [class.avoid]="showRecommendedFraming() && s.tag === 'avoid'" (mouseenter)="store.previewScenarioId.set(s.id)" (mouseleave)="store.previewScenarioId.set(null)">
 
           <!-- Header row -->
           <div class="card-header">
             <h4 class="title">{{ s.title }}</h4>
-            @if (s.isRecommended && !s.isBaseline) {
-              <span class="badge recommended">Recommended</span>
-            } @else if (s.tag === 'avoid') {
-              <span class="badge avoid">Avoid</span>
+            @if (showRecommendedFraming()) {
+              @if (s.isRecommended && !s.isBaseline) {
+                <span class="badge recommended">Recommended</span>
+              } @else if (s.tag === 'avoid') {
+                <span class="badge avoid">Avoid</span>
+              }
             }
           </div>
 

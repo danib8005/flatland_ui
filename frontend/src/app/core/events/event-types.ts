@@ -13,6 +13,20 @@ export type KpiPriorities = {
   trainRouting: number;
 };
 
+/** Normalised KPI weights (each in [0,1], summing to 1). Derived from the
+ *  raw KpiPriorities sliders. This is the value consumers should read so the
+ *  KPI filter has a single, well-defined effect surface. */
+export type KpiWeights = KpiPriorities;
+
+/**
+ * Human-AI collaboration mode the operator is currently working in.
+ * Maps to the AI4REALNET work packages:
+ *  - 'recommendation' = WP 3.1 (AI suggests, human decides)
+ *  - 'co-learning'    = WP 3.3 (human and AI adapt to each other)
+ *  - 'director'       = WP 3.4 (AI acts autonomously on high-level directives)
+ */
+export type InteractionMode = 'recommendation' | 'co-learning' | 'director';
+
 export type NotificationKind = 'info' | 'warning' | 'error';
 
 export interface AppNotification {

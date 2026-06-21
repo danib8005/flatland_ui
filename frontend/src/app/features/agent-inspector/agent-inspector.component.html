@@ -1,73 +1,62 @@
-<div class="inspector" [class.has-agent]="!!activeAgent()" tabindex="0">
-  <div
-    class="inspector-line"
-    (mouseenter)="onLineMouseEnter($event)"
-    (mousemove)="onLineMouseMove($event)"
-    (mouseleave)="onLineMouseLeave()">
-    <span class="line-label">Agent Info</span>
+<div class="agent-details">
+  <div class="ad-head">
+    <h3 class="panel-title">Agent Details</h3>
     @if (activeAgent()) {
-      <span class="line-train">Agent {{ activeAgent()!.handle }}</span>
-      @if (isMalfunctioning(activeAgent())) {
-        <span class="malfunction-indicator line-malfunction" title="Malfunction: {{ activeAgent()!.malfunction_remaining }} step(s) remaining">!</span>
-      }
-      <span class="line-hint">hover</span>
-      <button class="line-clear" (click)="clearSelection()">Clear</button>
-    } @else {
-      <span class="line-placeholder">Select an agent</span>
+      <button class="ad-clear" type="button" (click)="clearSelection()">Clear</button>
     }
   </div>
 
-  @if (activeAgent() && popoverVisible()) {
-    <div
-      class="hover-popover"
-      [style.left.px]="popoverLeft()"
-      [style.top.px]="popoverTop()"
-      (mouseenter)="onPopoverMouseEnter()"
-      (mouseleave)="onPopoverMouseLeave()">
-      <div class="section-header">
-        <h3>Agent Details</h3>
+  @if (activeAgent(); as a) {
+    <div class="ad-card">
+      <div class="ad-card-head">
+        <span class="ad-dot" [style.background]="agentColor(a.handle)"></span>
+        <span class="ad-title">Train {{ a.handle }}</span>
+        @if (isMalfunctioning(a)) {
+          <span class="ad-malf" title="Malfunction: {{ a.malfunction_remaining }} step(s) remaining">!</span>
+        }
+        <span class="ad-state state-{{ a.state }}">{{ a.state }}</span>
       </div>
 
-      <div class="detail-card">
-        <div class="card-header">
-          <span class="dot" [style.background]="agentColor(activeAgent()!.handle)"></span>
-          <span class="title">Train {{ activeAgent()!.handle }}</span>
-          @if (isMalfunctioning(activeAgent())) {
-            <span class="malfunction-indicator header-malfunction" title="Malfunction: {{ activeAgent()!.malfunction_remaining }} step(s) remaining">!</span>
-          }
-          <span class="state state-{{ activeAgent()!.state }}">{{ activeAgent()!.state }}</span>
+      <div class="ad-grid">
+        <div class="ad-cell">
+          <span class="ad-k">Position</span>
+          <span class="ad-v">@if (a.position) { ({{ a.position[0] }}, {{ a.position[1] }}) } @else { – }</span>
         </div>
-        <dl class="props">
-          <dt>State</dt>
-          <dd>{{ activeAgent()!.state }}</dd>
-          <dt>Position</dt>
-          <dd>
-            @if (activeAgent()!.position) {
-              ({{ activeAgent()!.position![0] }}, {{ activeAgent()!.position![1] }})
-            } @else {
-              –
-            }
-          </dd>
-          <dt>Direction</dt>
-          <dd>{{ activeAgent()!.direction ?? '–' }}</dd>
-          <dt>Target</dt>
-          <dd>({{ activeAgent()!.target[0] }}, {{ activeAgent()!.target[1] }})</dd>
-          <dt>Speed</dt>
-          <dd>{{ activeAgent()!.speed }}</dd>
-          <dt>Malfunction</dt>
-          <dd>
-            @if (isMalfunctioning(activeAgent())) {
-              ! {{ activeAgent()!.malfunction_remaining }} step(s)
-            } @else {
-              –
-            }
-          </dd>
-          <dt>Earliest dep.</dt>
-          <dd>{{ activeAgent()!.earliest_departure ?? '–' }}</dd>
-          <dt>Latest arr.</dt>
-          <dd>{{ activeAgent()!.latest_arrival ?? '–' }}</dd>
-        </dl>
+        <div class="ad-cell">
+          <span class="ad-k">Direction</span>
+          <span class="ad-v">{{ a.direction ?? '–' }}</span>
+        </div>
+        <div class="ad-cell">
+          <span class="ad-k">Target</span>
+          <span class="ad-v">({{ a.target[0] }}, {{ a.target[1] }})</span>
+        </div>
+        <div class="ad-cell">
+          <span class="ad-k">Speed</span>
+          <span class="ad-v">{{ a.speed }}</span>
+        </div>
+        <div class="ad-cell">
+          <span class="ad-k">Earliest dep.</span>
+          <span class="ad-v">{{ a.earliest_departure ?? '–' }}</span>
+        </div>
+        <div class="ad-cell">
+          <span class="ad-k">Latest arr.</span>
+          <span class="ad-v">{{ a.latest_arrival ?? '–' }}</span>
+        </div>
+        <div class="ad-cell">
+          <span class="ad-k">Delay</span>
+          <span class="ad-v" [class.warn]="(a.delay ?? 0) > 0">
+            @if ((a.delay ?? 0) > 0) { +{{ a.delay }} } @else { 0 }
+          </span>
+        </div>
+        <div class="ad-cell">
+          <span class="ad-k">Malfunction</span>
+          <span class="ad-v" [class.bad]="isMalfunctioning(a)">
+            @if (isMalfunctioning(a)) { {{ a.malfunction_remaining }} step(s) } @else { – }
+          </span>
+        </div>
       </div>
     </div>
+  } @else {
+    <p class="ad-empty">Select an agent on the map or in the list to see its details.</p>
   }
 </div>

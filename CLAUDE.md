@@ -1,0 +1,61 @@
+# CLAUDE.md — Flatland Dispatcher (Human-AI Teaming Playground)
+
+## What this repo is
+A modular HMI for interactive railway dispatching experiments, part of
+**AI4REALNET** (EU Horizon). Frontend: Angular (standalone components + signals)
+with SBB Lyne. Backend: FastAPI + Flatland-RL. See `README.md` and
+`docs/architecture.md`.
+
+## Current focus — three human-AI interaction modes
+We are making the three collaboration modes **behaviourally distinct and
+switchable** (they exist in code but currently behave almost identically):
+
+- `recommendation` → WP 3.1 — AI suggests **with** a recommendation, human decides
+- `co-learning` → WP 3.3 — AI offers **neutral** options; human decides, reflects, simulates what-ifs
+- `director` → WP 3.4 — AI runs autonomously on high-level directives; human supervises (**adjustable autonomy**)
+
+### ► Authoritative spec: `docs/interaction-modes-brief.md`
+Read it before touching mode behaviour. It maps each step of the
+consortium-validated interaction flows onto concrete files/signals in this repo
+(`SessionStore.interactionMode`, `recommendations-panel`, `agent-inspector`,
+`co-learning-reflection`, `setOverride`, `conflict_detector`, …), lists what
+exists vs. what's missing, gives the implementation tasks, the "do not touch"
+list, and a suggested order of work. It is grounded in the official **AI4REALNET
+RP2 Part B** report (2nd EU review) — see its §7 for the source quotes.
+
+## Cross-reference the AI4REALNET source code (you have access to the org)
+Before reinventing behaviour, check the consortium reference implementations on
+the **`AI4REALNET` GitHub org** and align naming/semantics with them:
+
+- **Director / token-based directives (T3.4):** `AI4REALNET/Tokener` — the
+  human "director" supplies high-level **token-based inputs**; conflicts handled
+  by a **negotiation proxy** optimising **global** long-term reward. Mirror these
+  concepts for our Director mode (brief §4.2b).
+- **What-if analysis (T3.1, EnliteAI A3S / TraceRL):** override a decision in a
+  trajectory and simulate forward. **Convention: human-influenced steps = blue,
+  AI-simulated steps = yellow.** Reuse for our Co-Learning compare (brief §3.3).
+- **Co-Learning HMI (T3.3, FHNW / Flatland):** the dedicated learning-support
+  HMI — formulate-own vs. AI-recommended solutions, impact comparison, and a
+  post-run **statistical + open-question reflection** module (brief §3.2/§3.3).
+- **CDRTrainer (TUD):** human feedback + action shielding + expert demonstrations
+  (the one WP3 artefact with a DOI) — reference for the "AI learns from human" loop.
+
+If a referenced repo's API or naming differs from this repo, prefer the
+consortium convention and note the divergence in the PR.
+
+## Guardrails (full list in brief §6)
+- Keep mode semantics in the `InteractionMode` union — no parallel flags.
+- Don't change trajectory compression (`session.store.ts _recordTrajectory`) or
+  the scenario-refresh throttling in `scenario-panel`; don't break the
+  `_recoverPolicyAndRetry*` fallbacks.
+- Policy is **global per session** today; per-agent policy is a separate backend
+  change (brief §4.4) — don't assume it exists.
+- Frontend stays Angular standalone + signals + SBB Lyne; backend stays FastAPI +
+  Flatland. Prefer gating presentation in the frontend over reshaping payloads.
+- Keep existing tests green (`backend/tests/`); add coverage for new backend gating.
+
+## Not yet available
+Deliverables **D3.1** (control taxonomy / augment human decision-making) and
+**D3.2** (beta software / agent-as-a-service KPI+event monitoring) would sharpen
+the Director and goal-achievement design. They're public on ai4realnet.eu; pull
+them in if available.

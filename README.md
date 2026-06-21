@@ -7,6 +7,11 @@ Frontend follows the official [SBB Design System](https://digital.sbb.ch/en/) an
 
 [preview.webm](https://github.com/user-attachments/assets/0162eea7-570a-4d50-a979-b0b2b84d3707)
 
+> **Playground branch (`experiment/vibecoding-playground`):** this fork adds the
+> three AI4REALNET collaboration modes (Recommendation / Co-Learning / Director),
+> a wired KPI filter, an SBB-style header with a mode switcher, an event feed, and
+> UI cleanups. See **[PLAYGROUND.md](PLAYGROUND.md)** for a full, review-friendly
+> summary of what changed and why.
 
 ---
 

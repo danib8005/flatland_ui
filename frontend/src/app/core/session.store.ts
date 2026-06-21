@@ -2,13 +2,32 @@ import { Injectable, computed, effect, inject, signal, untracked } from '@angula
 import { ApiService } from './api.service';
 import {
   AppNotification,
+  InteractionMode,
   KpiPriorities,
+  KpiWeights,
   LayerVisibility,
   Recommendation,
   ScenarioOption,
 } from './events/event-types';
 import { WebSocketService } from './websocket.service';
 import { AgentDTO, PolicyInfo, PolicyName, RailTile, SessionInfo, SessionState } from './models';
+
+/**
+ * One human intervention captured while in Co-Learning mode (WP 3.3).
+ * This is the raw material a future feedback/learning loop would consume;
+ * for now it powers the in-session intervention count and the reflection panel.
+ */
+export interface CoLearningEntry {
+  /** Simulation step at which the human intervened. */
+  step: number;
+  /** Agent the human acted on. */
+  handle: number;
+  /** Action the human chose (Flatland action id). */
+  humanAction: number;
+  /** Top AI recommendation title at that moment, if any. */
+  aiSuggestion: string | null;
+  timestamp: number;
+}
 
 export interface TrajectoryPoint {
   /** First simulation step at this compressed trajectory cell/run. */
@@ -167,6 +186,92 @@ export class SessionStore {
     platformRouting: 0.5,
     trainRouting: 0.5,
   });
+
+  /**
+   * Single consumption surface for the KPI filter. Raw slider values are
+   * normalised to weights that sum to 1 (or fall back to an equal split when
+   * every slider is at 0). Any view that wants to reflect KPI priorities
+   * (scenario ranking, Marey emphasis, recommendation scoring) should read
+   * this — NOT kpiPriorities directly. The concrete semantics (how each
+   * weight maps onto backend scoring) are intentionally left open for now;
+   * this just guarantees the wiring exists and is well-defined.
+   */
+  readonly kpiWeights = computed<KpiWeights>(() => {
+    const p = this.kpiPriorities();
+    const keys: (keyof KpiPriorities)[] = ['time', 'energy', 'platformRouting', 'trainRouting'];
+    const sum = keys.reduce((acc, k) => acc + Math.max(0, p[k]), 0);
+    if (sum <= 0) {
+      const equal = 1 / keys.length;
+      return { time: equal, energy: equal, platformRouting: equal, trainRouting: equal };
+    }
+    return {
+      time: Math.max(0, p.time) / sum,
+      energy: Math.max(0, p.energy) / sum,
+      platformRouting: Math.max(0, p.platformRouting) / sum,
+      trainRouting: Math.max(0, p.trainRouting) / sum,
+    };
+  });
+
+  /**
+   * Active human-AI collaboration mode (WP 3.1 / 3.3 / 3.4). For now this only
+   * holds UI state; mode-specific behaviour is wired up in a later step.
+   */
+  readonly interactionMode = signal<InteractionMode>('recommendation');
+
+  /** True while the AI drives the simulation autonomously (Director / WP 3.4). */
+  readonly aiInControl = computed(() => this.interactionMode() === 'director');
+  /** True in Co-Learning mode (WP 3.3), where human interventions are logged. */
+  readonly isCoLearning = computed(() => this.interactionMode() === 'co-learning');
+
+  /**
+   * How action/policy options are framed across the whole UI:
+   *  - 'recommended' (Recommendation / WP 3.1): AI ranks + badges a best option.
+   *  - 'neutral'     (Co-Learning / WP 3.3): options shown as equal choices.
+   *  - 'none'        (Director / WP 3.4): the human isn't prompted with options.
+   * Every options surface (recommendations-panel, scenario-panel, …) reads THIS
+   * — there is no parallel flag.
+   */
+  readonly optionPresentation = computed<'recommended' | 'neutral' | 'none'>(() => {
+    switch (this.interactionMode()) {
+      case 'recommendation':
+        return 'recommended';
+      case 'co-learning':
+        return 'neutral';
+      case 'director':
+        return 'none';
+    }
+  });
+
+  /** Human interventions recorded during the current Co-Learning session. */
+  readonly coLearningFeedback = signal<CoLearningEntry[]>([]);
+  readonly interventionCount = computed(() => this.coLearningFeedback().length);
+
+  /**
+   * Switch collaboration mode and apply its immediate behaviour:
+   *  - Director: hand control to the AI by starting auto-play.
+   *  - leaving Director: pause so the human regains step-by-step control.
+   */
+  setInteractionMode(mode: InteractionMode): void {
+    const prev = this.interactionMode();
+    if (mode === prev) return;
+    this.interactionMode.set(mode);
+
+    if (!this.session()) return;
+
+    if (mode === 'director') {
+      if (!this.episodeDone() && !this.playing()) {
+        this.play(this.activePolicy() || this.defaultPolicy());
+      }
+    } else if (prev === 'director' && this.playing()) {
+      this.pause();
+    }
+  }
+
+  /** Top AI recommendation title right now, used to annotate Co-Learning logs. */
+  private _currentTopRecommendation(): string | null {
+    const recs = this.recommendations();
+    return recs.length > 0 ? recs[0].title : null;
+  }
   readonly notifications = signal<AppNotification[]>([]);
   readonly scenarios = signal<ScenarioOption[]>([]);
   readonly recommendations = signal<Recommendation[]>([]);
@@ -383,6 +488,7 @@ export class SessionStore {
     this.message.set(null);
     this.playing.set(false);
     this._resetTrajectories();
+    this.coLearningFeedback.set([]);
     const payload: any = {};
     if (opts.width != null) payload.width = opts.width;
     if (opts.height != null) payload.height = opts.height;
@@ -517,6 +623,7 @@ export class SessionStore {
     this.message.set(null);
     this.playing.set(false);
     this._resetTrajectories();
+    this.coLearningFeedback.set([]);
     this.api.reset(s.id).subscribe({
       next: () => this.refreshState(true),
       error: (e) => {
@@ -623,6 +730,21 @@ export class SessionStore {
 
     // Optimistic UI update: button reacts immediately.
     this._setLocalOverride(handle, action);
+
+    // Co-Learning (WP 3.3): capture the human intervention so it can feed
+    // the reflection panel (and, later, an actual learning loop).
+    if (this.isCoLearning()) {
+      this.coLearningFeedback.update((list) => [
+        ...list,
+        {
+          step: this.elapsedSteps(),
+          handle,
+          humanAction: action,
+          aiSuggestion: this._currentTopRecommendation(),
+          timestamp: Date.now(),
+        },
+      ]);
+    }
 
     this.api.setOverride(s.id, handle, action as any).subscribe({
       next: () => {

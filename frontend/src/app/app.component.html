@@ -11,24 +11,71 @@
       <span class="grid_info-id">Grid: {{ store.state()?.width }} × {{ store.state()?.height }}</span>
       <span class="anzahl_Agents-id">Agents: {{ store.agents().length }}</span>
     </div>
+
+    <div class="header-actions">
+      <sbb-transparent-button
+        id="mode-trigger"
+        size="m"
+        class="header-mode-trigger"
+        [attr.data-mode]="store.interactionMode()">
+        <span class="mode-dot" aria-hidden="true"></span>
+        Mode: {{ currentModeLabel() }}
+        <span class="mode-caret" aria-hidden="true">▾</span>
+      </sbb-transparent-button>
+      <sbb-menu trigger="mode-trigger">
+        @for (m of interactionModes; track m.id) {
+          <sbb-menu-button (click)="store.setInteractionMode(m.id)">
+            {{ m.label }} ({{ m.wp }})
+            @if (store.interactionMode() === m.id) { <span class="menu-current"> · current</span> }
+          </sbb-menu-button>
+        }
+      </sbb-menu>
+
+      <sbb-transparent-button
+        id="app-menu-trigger"
+        size="m"
+        icon-name="hamburger-menu-small">
+        Menu
+      </sbb-transparent-button>
+      <sbb-menu trigger="app-menu-trigger">
+        <sbb-menu-button icon-name="gear-small" (click)="openSettings()">Session Settings</sbb-menu-button>
+        <sbb-menu-button icon-name="list-small" (click)="openScenarioPolicySettings()">Scenarios / Policy</sbb-menu-button>
+        <sbb-menu-button (click)="resetWithSettings()">Reset session</sbb-menu-button>
+      </sbb-menu>
+    </div>
   }
 
 </header>
 
-<app-toolbar [settingsActive]="settingsMode()" [scenarioPolicyActive]="scenarioPolicyMode()" (openSettings)="settingsMode() ? cancelSettings() : openSettings()" (openScenarioPolicy)="scenarioPolicyMode() ? cancelScenarioPolicySettings() : openScenarioPolicySettings()" (resetRequested)="resetWithSettings()"></app-toolbar>
+<app-toolbar></app-toolbar>
 
 @if (store.session()) {
   <div class="three-col">
     <aside class="left-pane">
       <app-notifications-panel></app-notifications-panel>
-      <app-layer-visibility></app-layer-visibility>
       <div class="left-kpi-filter">
         <app-kpi-filter></app-kpi-filter>
       </div>
     </aside>
 
     <section class="center-pane">
-      <app-view-toggle></app-view-toggle>
+      @if (store.aiInControl()) {
+        <div class="ai-control-banner" role="status">
+          <span class="ai-control-dot"></span>
+          <span class="ai-control-text">
+            <strong>AI in control</strong> — the agent dispatches autonomously.
+            Adjust the <em>KPI filter</em> to steer its priorities; an override counts as a manual intervention.
+          </span>
+        </div>
+      }
+
+      <div class="map-controls">
+        <app-view-toggle></app-view-toggle>
+        @if (store.showMap()) {
+          <span class="map-controls-divider"></span>
+          <app-layer-visibility></app-layer-visibility>
+        }
+      </div>
 
       <div class="views"
            [class.split]="store.showMap() && store.showMarey()"
@@ -53,15 +100,19 @@
 
     <aside class="right-pane">
       <app-scenario-panel></app-scenario-panel>
-      <app-recommendations-panel></app-recommendations-panel>
+      @if (store.optionPresentation() === 'recommended') {
+        <app-recommendations-panel></app-recommendations-panel>
+      }
+      @if (store.isCoLearning() && store.episodeDone()) {
+        <app-co-learning-reflection></app-co-learning-reflection>
+      }
       <app-agents-panel></app-agents-panel>
       <app-agent-inspector></app-agent-inspector>
     </aside>
   </div>
 } @else {
   <main class="welcome">
-    @if (!store.session()) {
-      <div class="welcome-card">
+    <div class="welcome-card">
         <img class="welcome-icon" src="/ai4realnet_logo.svg" alt="AI4REALNET" />
         <h2 class="welcome-title">Flatland Dispatcher</h2>
         <p class="welcome-subtitle">A Human-AI Teaming Playground</p>
@@ -106,107 +157,6 @@
         </div>
 
       </div>
-    } @else if (scenarioPolicyMode()) {
-      <div class="policy-card">
-        <div class="settings-header">
-          <div>
-            <h2>Scenarios / Policy</h2>
-            <p>Select which policies are available for scenario generation and dispatcher control.</p>
-          </div>
-          <button class="settings-close" type="button" aria-label="Close policy settings" (click)="cancelScenarioPolicySettings()">×</button>
-        </div>
-
-        <div class="settings-actions">
-          <sbb-secondary-button (click)="cancelScenarioPolicySettings()">Cancel</sbb-secondary-button>
-          <sbb-button (click)="applyScenarioPolicySettings()">Apply</sbb-button>
-        </div>
-      </div>
-    } @else {
-      <div class="settings-card">
-        <div class="settings-header">
-          <div>
-            <h2>Session Properties</h2>
-            <p>Configure Flatland generation and dispatcher defaults.</p>
-          </div>
-          <button class="settings-close" type="button" aria-label="Close settings" (click)="cancelSettings()">×</button>
-        </div>
-
-        <section class="settings-section">
-          <h3>Grid</h3>
-          <div class="settings-grid">
-            <label><span>Width</span><input type="number" min="25" max="200" [value]="draftWidth()" (input)="draftWidth.set(+$any($event.target).value)"></label>
-            <label><span>Height</span><input type="number" min="20" max="150" [value]="draftHeight()" (input)="draftHeight.set(+$any($event.target).value)"></label>
-            <label><span># Agents</span><input type="number" min="1" max="50" [value]="draftAgents()" (input)="draftAgents.set(+$any($event.target).value)"></label>
-            <label><span>Max Steps</span><input type="number" min="100" max="3000" step="100" [value]="draftMaxSteps()" (input)="draftMaxSteps.set(+$any($event.target).value)"></label>
-          </div>
-        </section>
-
-        <section class="settings-section">
-          <h3>Timetable & Speed</h3>
-          <div class="settings-grid">
-            <label title="No train starts later than this step."><span>Latest Departure Max</span><input type="number" min="0" max="10000" [value]="draftLatestDepartureMax()" (input)="draftLatestDepartureMax.set(+$any($event.target).value)"></label>
-            <label><span>Speed Profile</span>
-              <select [value]="draftSpeedProfile()" (change)="draftSpeedProfile.set($any($event.target).value)">
-                <option value="uniform_1_0">All trains: 1.0</option>
-                <option value="uniform_0_5">All trains: 0.5</option>
-                <option value="uniform_0_33">All trains: 0.33</option>
-                <option value="uniform_0_25">All trains: 0.25</option>
-                <option value="mixed">Mixed probabilities</option>
-              </select>
-            </label>
-            <label title="Flatland sparse line generator line_length."><span>Line Length</span><input type="number" min="1" max="50" [value]="draftLineLength()" (input)="draftLineLength.set(+$any($event.target).value)"></label>
-            <label><span>Seed</span><input type="number" min="0" max="999999" [value]="draftSeed()" (input)="draftSeed.set(+$any($event.target).value)"></label>
-          </div>
-        </section>
-
-      <section class="settings-section">
-        <h3>Malfunctions</h3>
-        <div class="settings-grid">
-          <label class="settings-check-label" title="Enable random train malfunctions during simulation.">
-            <span>Enabled</span>
-            <input type="checkbox"
-                   [checked]="draftMalfunctionsEnabled()"
-                   (change)="draftMalfunctionsEnabled.set($any($event.target).checked)">
-          </label>
-          <label title="Probability/rate for random malfunctions. 0 disables malfunctions.">
-            <span>Rate</span>
-            <input type="number" min="0" max="1" step="0.0001"
-                   [disabled]="!draftMalfunctionsEnabled()"
-                   [value]="draftMalfunctionRate()"
-                   (input)="draftMalfunctionRate.set(+$any($event.target).value)">
-          </label>
-          <label title="Minimum malfunction duration in steps.">
-            <span>Min Duration</span>
-            <input type="number" min="1" max="10000"
-                   [disabled]="!draftMalfunctionsEnabled()"
-                   [value]="draftMalfunctionMinDuration()"
-                   (input)="draftMalfunctionMinDuration.set(+$any($event.target).value)">
-          </label>
-          <label title="Maximum malfunction duration in steps.">
-            <span>Max Duration</span>
-            <input type="number" min="1" max="10000"
-                   [disabled]="!draftMalfunctionsEnabled()"
-                   [value]="draftMalfunctionMaxDuration()"
-                   (input)="draftMalfunctionMaxDuration.set(+$any($event.target).value)">
-          </label>
-        </div>
-      </section>
-
-        <section class="settings-section">
-          <h3>Rail Generator</h3>
-          <div class="settings-grid">
-            <label><span>Max Cities</span><input type="number" min="2" max="10" [value]="draftMaxNumCities()" (input)="draftMaxNumCities.set(+$any($event.target).value)"></label>
-            <label><span>Rails Between Cities</span><input type="number" min="1" max="10" [value]="draftMaxRailsBetweenCities()" (input)="draftMaxRailsBetweenCities.set(+$any($event.target).value)"></label>
-            <label><span>Rail Pairs In City</span><input type="number" min="1" max="10" [value]="draftMaxRailPairsInCity()" (input)="draftMaxRailPairsInCity.set(+$any($event.target).value)"></label>
-          </div>
-        </section>
-
-        <div class="settings-actions">
-          <sbb-secondary-button size="m" type="button" (click)="cancelSettings()">Cancel</sbb-secondary-button>
-          <sbb-button size="m" type="button" (click)="applySettings()">Apply</sbb-button>
-        </div>
-      </div>
-    }
   </main>
 }
 
@@ -371,8 +321,14 @@
 <footer class="footer">
   <div class="footer-left">
     @if (store.session()) {
+      <span class="footer-mode" [attr.data-mode]="store.interactionMode()">{{ store.interactionMode() }}</span>
       <span>Step: <strong>{{ store.elapsedSteps() }}</strong> / {{ store.maxSteps() }}</span>
       <span>Agents: <strong>{{ store.agents().length }}</strong></span>
+      @if (store.isCoLearning()) {
+        <span class="footer-interventions" title="Manual interventions captured this run">
+          Interventions: <strong>{{ store.interventionCount() }}</strong>
+        </span>
+      }
       @if (store.playing()) {
         <span class="playing-indicator">
           <sbb-loading-indicator-circle size="s"></sbb-loading-indicator-circle>

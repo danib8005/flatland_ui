@@ -132,6 +132,16 @@ sbb-transparent-button:hover {
   background: var(--sbb-color-milk, #f6f6f6);
 }
 
+/* Config actions (Settings, Scenarios/Policy): highlight while their
+   dialog is open, so the button reflects the active panel. */
+sbb-transparent-button.config-action.active {
+  --sbb-button-color: #fff;
+  --sbb-button-text-color: #fff;
+  border-color: var(--sbb-color-charcoal, #212121);
+  background: var(--sbb-color-charcoal, #212121);
+  color: #fff;
+}
+
 .welcome-inputs {
   display: flex;
   gap: 6px;

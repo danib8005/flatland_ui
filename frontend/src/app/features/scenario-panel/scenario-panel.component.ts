@@ -1,8 +1,8 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, effect, inject, signal } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, computed, effect, inject, signal } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
 import { ApiService } from '../../core/api.service';
 import { EventBusService } from '../../core/events/event-bus.service';
-import { ScenarioOption } from '../../core/events/event-types';
+import { KpiWeights, ScenarioOption } from '../../core/events/event-types';
 import { PolicyName } from '../../core/models';
 
 @Component({
@@ -19,6 +19,57 @@ export class ScenarioPanelComponent {
 
   /** Tracks which card is currently being confirmed. */
   confirming = signal<string | null>(null);
+
+  /**
+   * Scenarios ordered by the operator's KPI priorities. The baseline always
+   * stays on top; the alternatives are ranked by a KPI-weighted desirability
+   * score so that nudging the KPI sliders visibly re-orders the comparison.
+   *
+   * NOTE: the weight→KPI mapping below is provisional. It exists to make the
+   * KPI filter a live, end-to-end wired control; the final scoring semantics
+   * (and any backend involvement) are decided in a later step. See
+   * SessionStore.kpiWeights for the single source of weights.
+   */
+  readonly rankedScenarios = computed<ScenarioOption[]>(() => {
+    const scenarios = this.store.scenarios();
+    const baseline = scenarios.filter((s) => s.isBaseline);
+    const alternatives = scenarios.filter((s) => !s.isBaseline);
+
+    // Co-Learning (and Director): present options neutrally — no KPI-score
+    // reordering, just a stable order with the baseline pinned on top.
+    if (this.store.optionPresentation() !== 'recommended') {
+      return [...baseline, ...alternatives];
+    }
+
+    // Recommendation: rank alternatives by the operator's KPI priorities.
+    const weights = this.store.kpiWeights();
+    const ranked = [...alternatives].sort((a, b) => this.kpiScore(b, weights) - this.kpiScore(a, weights));
+    return [...baseline, ...ranked];
+  });
+
+  /** Whether the panel may surface an AI-preferred option (badges, ranking). */
+  readonly showRecommendedFraming = computed(() => this.store.optionPresentation() === 'recommended');
+
+  /**
+   * Provisional KPI-weighted score for a scenario: higher is better.
+   * - time           → penalise mean delay
+   * - energy         → penalise episode length (steps)
+   * - platformRouting/trainRouting → reward completions, penalise deadlocks
+   */
+  private kpiScore(s: ScenarioOption, w: KpiWeights): number {
+    const k = s.kpis;
+    if (!k) return 0;
+    const total = Math.max(1, this.totalAgents());
+    const doneRatio = (k.done ?? 0) / total;
+    const delayPenalty = (k.meanDelay ?? 0) / 10;
+    const stepsPenalty = (k.episodeSteps ?? 0) / 1000;
+    const deadlockPenalty = k.deadlocks ?? 0;
+    return (
+      w.time * -delayPenalty +
+      w.energy * -stepsPenalty +
+      (w.platformRouting + w.trainRouting) * (doneRatio - deadlockPenalty)
+    );
+  }
 
   constructor() {
     // Scenarios are EXPENSIVE: /hmi/scenarios runs the current policy
