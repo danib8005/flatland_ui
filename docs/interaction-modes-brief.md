@@ -182,6 +182,17 @@ consortium's A3S/TraceRL tool.
 **Done when:** in Co-Learning, after a decision the user can pull up their choice
 vs one alternative on the Marey with a KPI comparison.
 
+**Mode-awareness (clarification):** what-if/compare is NOT Co-Learning-only. Its
+source is T3.1 (EnliteAI), i.e. originally a *Recommendation* tool. Build it
+mode-aware, gated by `optionPresentation` like everything else:
+- **Recommendation (3.1):** *before* deciding — "follow the AI's recommendation
+  vs. my current path", with the AI/recommended branch highlighted.
+- **Co-Learning (3.3):** *after* deciding — "what if I had chosen Y", alternatives
+  shown neutrally for reflection.
+- **Director (3.4):** not a per-decision surface; supervision stays on the
+  goal-achievement panel.
+Same blue/yellow machinery and KPI delta; only the framing differs.
+
 ### 3.4 Director: pre-run directive + goal-achievement view (§4)
 
 See §4 for the proposed design. Two parts:
