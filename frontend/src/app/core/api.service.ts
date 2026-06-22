@@ -11,7 +11,18 @@ import {
   SessionState,
   StepResponse,
 } from './models';
-import { AppNotification, Recommendation, ScenarioOption } from './events/event-types';
+import { AppNotification, KpiPriorities, Recommendation, ScenarioOption } from './events/event-types';
+
+/** Build the KPI query params for the scenario/recommendation endpoints. */
+function kpiParams(kpi?: KpiPriorities): { [k: string]: string } {
+  if (!kpi) return {};
+  return {
+    kpi_time: String(kpi.time),
+    kpi_energy: String(kpi.energy),
+    kpi_platform: String(kpi.platformRouting),
+    kpi_train: String(kpi.trainRouting),
+  };
+}
 
 export interface HmiBundle {
   notifications: AppNotification[];
@@ -75,12 +86,12 @@ export class ApiService {
     return this.http.get<AppNotification[]>(`${API_BASE}/session/${id}/hmi/notifications`);
   }
 
-  getScenarios(id: string) {
-    return this.http.get<ScenarioOption[]>(`${API_BASE}/session/${id}/hmi/scenarios`);
+  getScenarios(id: string, kpi?: KpiPriorities) {
+    return this.http.get<ScenarioOption[]>(`${API_BASE}/session/${id}/hmi/scenarios`, { params: kpiParams(kpi) });
   }
 
-  getRecommendations(id: string) {
-    return this.http.get<Recommendation[]>(`${API_BASE}/session/${id}/hmi/recommendations`);
+  getRecommendations(id: string, kpi?: KpiPriorities) {
+    return this.http.get<Recommendation[]>(`${API_BASE}/session/${id}/hmi/recommendations`, { params: kpiParams(kpi) });
   }
 
   getHmiBundle(id: string) {

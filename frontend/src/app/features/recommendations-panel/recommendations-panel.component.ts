@@ -66,7 +66,7 @@ export class RecommendationsPanelComponent implements OnDestroy {
   }
 
   private _fetchRecommendations(sessionId: string): void {
-    this.api.getRecommendations(sessionId).subscribe({
+    this.api.getRecommendations(sessionId, this.store.kpiPriorities()).subscribe({
       next: (recs) => {
         this.store.recommendations.set(recs);
         this.elapsedSinceFetch.set(0);

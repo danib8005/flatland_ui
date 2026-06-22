@@ -811,11 +811,12 @@ export class SessionStore {
   refreshForecasts(): void {
     const s = this.session();
     if (!s) return;
-    this.api.getScenarios(s.id).subscribe({
+    const kpi = this.kpiPriorities();
+    this.api.getScenarios(s.id, kpi).subscribe({
       next: (scenarios) => this.scenarios.set(scenarios),
       error: () => {},
     });
-    this.api.getRecommendations(s.id).subscribe({
+    this.api.getRecommendations(s.id, kpi).subscribe({
       next: (recs) => this.recommendations.set(recs),
       error: () => {},
     });

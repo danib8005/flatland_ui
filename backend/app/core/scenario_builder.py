@@ -54,6 +54,32 @@ class ScoringWeights:
     deadlock: float = 0.5
 
 
+def scoring_weights_from_kpi(
+    time: float = 1.0,
+    energy: float = 0.5,
+    platform_routing: float = 0.5,
+    train_routing: float = 0.5,
+) -> ScoringWeights:
+    """Map the four HMI KPI sliders onto the branch-scoring weights.
+
+    The sliders are normalised (so the absolute slider scale doesn't matter) and
+    mapped onto the available branch KPIs (success rate, delay, deadlocks):
+      - time            → delay sensitivity
+      - energy          → efficiency, folded into delay (no separate steps KPI yet)
+      - platform/train routing → throughput (done) + routing safety (deadlock)
+    Provisional operationalisation; tune here as the study needs evolve.
+    """
+    vals = [max(0.0, time), max(0.0, energy), max(0.0, platform_routing), max(0.0, train_routing)]
+    s = sum(vals) or 1.0
+    t, e, p, r = (v / s for v in vals)
+    routing = p + r
+    return ScoringWeights(
+        done=0.5 + routing,
+        delay=t + 0.5 * e,
+        deadlock=0.5 + 0.5 * routing,
+    )
+
+
 def score_branch(result: BranchResult,
                  weights: ScoringWeights = ScoringWeights()) -> float:
     sr = result.success_rate

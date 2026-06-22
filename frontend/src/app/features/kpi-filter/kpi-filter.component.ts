@@ -26,12 +26,25 @@ export class KpiFilterComponent {
     { key: 'trainRouting',    label: 'Train Routing' },
   ];
 
+  private _refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
   // Slider hat 11 Schritte: 0, 0.1, 0.2, ..., 1.0
   setValue(key: keyof KpiPriorities, value: number) {
     const cur = this.store.kpiPriorities();
     const next: KpiPriorities = { ...cur, [key]: Math.max(0, Math.min(1, value)) };
     this.store.kpiPriorities.set(next);
     this.bus.emit({ type: 'KPI_FILTER_CHANGED', priorities: next });
+    // KPI weights now affect backend scoring (scenarios + recommendation).
+    // Debounce so dragging across several dots triggers a single recompute.
+    this._scheduleForecastRefresh();
+  }
+
+  private _scheduleForecastRefresh() {
+    if (this._refreshTimer) clearTimeout(this._refreshTimer);
+    this._refreshTimer = setTimeout(() => {
+      this._refreshTimer = null;
+      this.store.refreshForecasts();
+    }, 500);
   }
 
   onSlider(key: keyof KpiPriorities, event: Event) {

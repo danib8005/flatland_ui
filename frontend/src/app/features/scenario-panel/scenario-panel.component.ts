@@ -108,7 +108,7 @@ export class ScenarioPanelComponent {
       // Pull scenarios on: new session, or when Play just stopped
       // (= user paused → wants fresh forecast for current state).
       if (sessionChanged || stoppedPlaying) {
-        this.api.getScenarios(sess.id).subscribe({
+        this.api.getScenarios(sess.id, this.store.kpiPriorities()).subscribe({
           next: (scenarios) => this.store.scenarios.set(scenarios),
           error: () => {},
         });
@@ -124,7 +124,7 @@ export class ScenarioPanelComponent {
   refreshScenarios(): void {
     const sess = this.store.session();
     if (!sess) return;
-    this.api.getScenarios(sess.id).subscribe({
+    this.api.getScenarios(sess.id, this.store.kpiPriorities()).subscribe({
       next: (scenarios) => this.store.scenarios.set(scenarios),
       error: () => {},
     });
@@ -160,7 +160,7 @@ export class ScenarioPanelComponent {
         // Backend has cleared the scenario cache; force a reload so the
         // panel + Marey re-render with the NEW baseline (the chosen
         // policy now carries the 'Current' badge).
-        this.api.getScenarios(sess.id).subscribe({
+        this.api.getScenarios(sess.id, this.store.kpiPriorities()).subscribe({
           next: (scenarios) => this.store.scenarios.set(scenarios),
           error: () => {},
         });
