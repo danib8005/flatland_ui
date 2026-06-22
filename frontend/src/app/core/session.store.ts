@@ -228,6 +228,37 @@ export class SessionStore {
     this.enabledSurveyParts.set([...ids]);
   }
 
+  /**
+   * Flatland has no malfunction *type* (a malfunction is just "train stuck for N
+   * steps"). When this is off we label it honestly as "Train breakdown". When on
+   * (demo/study), we assign a synthetic operational type from the AI4REALNET
+   * taxonomy deterministically per train, clearly marked "(demo)". A real backend
+   * `malfunction_type` (if added later) always wins over both.
+   */
+  readonly demoMalfunctionTypes = signal<boolean>(false);
+
+  setDemoMalfunctionTypes(on: boolean): void {
+    this.demoMalfunctionTypes.set(on);
+  }
+
+  /** Synthetic operational malfunction types (AI4REALNET D4.1 taxonomy A). */
+  private static readonly DEMO_MALFUNCTION_TYPES = [
+    'Track blockage',
+    'Switch failure',
+    'Signal failure',
+    'Overhead-power failure',
+  ];
+
+  /** Label for a malfunctioning train's disruption type (see demoMalfunctionTypes). */
+  malfunctionTypeLabel(agent: AgentDTO): string {
+    const real = (agent as any)?.malfunction_type;
+    if (typeof real === 'string' && real) return real;
+    if (!this.demoMalfunctionTypes()) return 'Train breakdown';
+    const types = SessionStore.DEMO_MALFUNCTION_TYPES;
+    const idx = ((agent.handle % types.length) + types.length) % types.length;
+    return `${types[idx]} (demo)`;
+  }
+
   /** True while the AI drives the simulation autonomously (Director / WP 3.4). */
   readonly aiInControl = computed(() => this.interactionMode() === 'director');
   /** True in Co-Learning mode (WP 3.3), where human interventions are logged. */

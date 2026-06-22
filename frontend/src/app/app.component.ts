@@ -86,6 +86,7 @@ export class AppComponent implements OnInit {
   /** Available survey building blocks + the draft selection edited in Settings. */
   readonly surveyParts = SURVEY_PARTS;
   draftSurveyParts = signal<string[]>([...DEFAULT_SURVEY_PARTS]);
+  draftDemoMalfunctionTypes = signal(false);
 
   isDraftSurveyPartEnabled(id: string): boolean {
     return this.draftSurveyParts().includes(id);
@@ -168,6 +169,7 @@ export class AppComponent implements OnInit {
         malfunctionMinDuration: this.newMalfunctionMinDuration(),
         malfunctionMaxDuration: this.newMalfunctionMaxDuration(),
         surveyParts: this.store.enabledSurveyParts(),
+        demoMalfunctionTypes: this.store.demoMalfunctionTypes(),
       }));
     } catch {
       // localStorage can be unavailable in tests / private mode.
@@ -197,6 +199,7 @@ export class AppComponent implements OnInit {
       if (cfg.malfunctionMinDuration != null) this.newMalfunctionMinDuration.set(Number(cfg.malfunctionMinDuration));
       if (cfg.malfunctionMaxDuration != null) this.newMalfunctionMaxDuration.set(Number(cfg.malfunctionMaxDuration));
       if (Array.isArray(cfg.surveyParts)) this.store.setEnabledSurveyParts(cfg.surveyParts.map(String));
+      if (cfg.demoMalfunctionTypes != null) this.store.setDemoMalfunctionTypes(Boolean(cfg.demoMalfunctionTypes));
     } catch {
       // Ignore malformed persisted settings.
     }
@@ -284,6 +287,7 @@ export class AppComponent implements OnInit {
     this.draftMalfunctionMaxDuration.set(this.newMalfunctionMaxDuration());
     this.draftScenarioPolicyIds.set([...this.welcomeScenarioPolicyIds()]);
     this.draftSurveyParts.set([...this.store.enabledSurveyParts()]);
+    this.draftDemoMalfunctionTypes.set(this.store.demoMalfunctionTypes());
     this.scenarioPolicyMode.set(false);
     this.settingsMode.set(true);
     this.blurActiveElement();
@@ -311,6 +315,7 @@ export class AppComponent implements OnInit {
     this.newMalfunctionMinDuration.set(Math.max(1, Math.floor(this.draftMalfunctionMinDuration() || 1)));
     this.newMalfunctionMaxDuration.set(Math.max(this.newMalfunctionMinDuration(), Math.floor(this.draftMalfunctionMaxDuration() || this.newMalfunctionMinDuration())));
     this.store.setEnabledSurveyParts(this.draftSurveyParts());
+    this.store.setDemoMalfunctionTypes(this.draftDemoMalfunctionTypes());
     this.persistSessionSettings();
     this.settingsMode.set(false);
     this.blurActiveElement();

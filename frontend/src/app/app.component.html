@@ -241,6 +241,12 @@
                    (input)="draftMalfunctionMaxDuration.set(+$any($event.target).value)">
           </label>
         </div>
+        <label class="settings-check-label" title="Flatland has no malfunction type. When on, assign a synthetic operational type per train (Track blockage, Signal failure, …), marked '(demo)'. Off = honest 'Train breakdown'.">
+          <span>Assign demo malfunction types</span>
+          <input type="checkbox"
+                 [checked]="draftDemoMalfunctionTypes()"
+                 (change)="draftDemoMalfunctionTypes.set($any($event.target).checked)">
+        </label>
       </section>
 
       <section class="settings-section">
