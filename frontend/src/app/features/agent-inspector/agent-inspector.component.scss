@@ -78,6 +78,39 @@
 }
 .ao-close:hover { color: var(--sbb-color-charcoal, #212121); }
 
+.ao-malf-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--sbb-color-red, #eb0000) 10%, white);
+  border-left: 3px solid var(--sbb-color-red, #eb0000);
+}
+
+.ao-malf-ico {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sbb-color-red, #eb0000);
+  color: #fff;
+  font-weight: 700;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ao-malf-text {
+  font-size: 12px;
+  color: var(--sbb-color-charcoal, #212121);
+  font-variant-numeric: tabular-nums;
+}
+.ao-malf-text strong { color: var(--sbb-color-red, #eb0000); }
+.ao-malf-at { color: var(--sbb-color-granite, #686868); }
+
 .ao-facts {
   display: flex;
   flex-wrap: wrap;

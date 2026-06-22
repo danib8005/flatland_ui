@@ -47,6 +47,11 @@ export class AgentInspectorComponent {
     this.store.clearSelection();
   }
 
+  /** Absolute step at which a malfunctioning train is expected to resume. */
+  resumeStep(a: AgentDTO): number {
+    return this.store.elapsedSteps() + Math.max(0, a.malfunction_remaining ?? 0);
+  }
+
   /** Apply or clear a per-agent override from the overlay action buttons. */
   onActionClick(handle: number, action: number, isOverride: boolean): void {
     if (isOverride) {

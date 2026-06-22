@@ -31,6 +31,12 @@
                 <span class="agent-dot" [style.background]="agentColor(a.handle)"></span>
                 <span class="agent-name">Train {{ a.handle }}</span>
 
+                @if (isMalfunctioning(a)) {
+                  <span class="resume-badge" title="Malfunction — resumes in {{ a.malfunction_remaining }} step(s)">
+                    ↻ {{ a.malfunction_remaining }}
+                  </span>
+                }
+
                 @if (a.state === 'READY_TO_DEPART') {
                   <span class="agent-state state-outside" title="Ready to depart">
                     READY → {{ formatEta(a) }}
