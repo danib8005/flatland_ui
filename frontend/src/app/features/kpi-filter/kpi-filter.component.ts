@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, effect, inject, signal } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
 import { EventBusService } from '../../core/events/event-bus.service';
 import { KpiPriorities } from '../../core/events/event-types';
@@ -18,6 +18,23 @@ interface KpiDef {
 export class KpiFilterComponent {
   store = inject(SessionStore);
   bus = inject(EventBusService);
+
+  /** KPI is the primary directive lever in Director mode → expanded there;
+   *  collapsed elsewhere to keep the screen simple. Re-defaults on mode change;
+   *  the user can still toggle within a mode. */
+  readonly collapsed = signal<boolean>(true);
+
+  constructor() {
+    effect(() => {
+      const director = this.store.aiInControl();
+      // Runs initially and whenever the mode crosses into/out of Director.
+      this.collapsed.set(!director);
+    });
+  }
+
+  toggleCollapsed() {
+    this.collapsed.update((v) => !v);
+  }
 
   kpis: KpiDef[] = [
     { key: 'time',            label: 'Time' },

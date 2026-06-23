@@ -1,5 +1,11 @@
 <div class="kpi-filter">
-  <h3 class="panel-title">KPI Filter</h3>
+  <button class="kpi-panel-head" type="button" (click)="toggleCollapsed()"
+          [attr.aria-expanded]="!collapsed()">
+    <span class="panel-title">KPI Filter</span>
+    <span class="kpi-caret" [class.open]="!collapsed()" aria-hidden="true">▸</span>
+  </button>
+
+  @if (!collapsed()) {
   <p class="hint">Adjust optimization weights</p>
 
   <div class="kpi-list">
@@ -20,4 +26,5 @@
       </div>
     }
   </div>
+  }
 </div>
