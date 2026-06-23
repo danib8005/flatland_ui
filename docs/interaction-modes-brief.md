@@ -2,7 +2,7 @@
 
 > For Claude Code. Goal: make the three collaboration modes (Recommendation /
 > Co-Learning / Director) **behaviourally distinct and switchable at runtime**,
-> following the interaction flows validated with Samira (AI4REALNET, FHNW).
+> following the interaction flows validated with the FHNW study team (AI4REALNET).
 > This is a research prototype — clarity of the interaction differences matters
 > more than production hardening.
 
@@ -32,7 +32,7 @@ candidate surfaces; we use **both, at different altitudes**:
 
 - **Tactical (per-incident):** when a conflict is predicted, the affected
   agent's decision options — `AgentDTO.next_decision.options` (`DecisionOption`)
-  — applied via `setOverride()`. This is the primary surface for Samira's
+  — applied via `setOverride()`. This is the primary surface for the study team's
   "AI generates action options based on an expected incident".
 - **Strategic (per-policy):** the `recommendations-panel` + `scenario-panel`
   (switch policy / compare branches on the Marey). Secondary surface, reused for
@@ -44,7 +44,7 @@ The `recommended` vs `neutral` distinction must apply to **both** layers.
 
 ## 1. The validated interaction flows (source of truth)
 
-These are Samira's sequences (validated against her video). Implement the
+These are the consortium-validated sequences (validated against the reference video). Implement the
 modes so a user clicking through experiences exactly these steps.
 
 ### Mode A — Recommendation (AI-Assisted Human Control, WP 3.1)
@@ -134,7 +134,7 @@ neutral — with no other UI difference forced on the user.
 
 ### 3.2 Co-Learning: reflection available "when calm" (not only at episode end)
 
-Today `co-learning-reflection` only renders on `episodeDone()`. Samira's step 5
+Today `co-learning-reflection` only renders on `episodeDone()`. The storyboard step 5
 is "reflect when it's quiet again". Add a lull/calm signal and surface the
 reflection entry point then too:
 

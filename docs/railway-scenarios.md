@@ -5,7 +5,7 @@ deliverables:
 - **D1.1** — Framework and use cases (use-case framing, objectives)
 - **D4.1** — Evaluation and test protocols (the operational scenarios + KPIs)
 
-(Both list D. Boos / SBB among the authors — this is our own consortium material.)
+(Both are SBB/consortium-authored — this is our own consortium material.)
 
 ---
 

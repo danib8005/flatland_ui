@@ -51,15 +51,15 @@ prerequisites. Co-Learning has two halves:
 
 ## Consortium anchors (not invented here)
 
-- **Supportive-AI / Hybrid Intelligence** (Hamouche/Waefler): continuous mutual
-  improvement on both sides — Level B is the machine side of it.
+- **Supportive-AI / Hybrid Intelligence** (AI4REALNET Supportive-AI framework):
+  continuous mutual improvement on both sides — Level B is the machine side of it.
 - **"beliefs about operator reward weights"** — `T2.3_explaining_action_alternatives`
   and **`risk-sensitive-inverse-rl`**: learn operator preferences from behaviour.
-- **Buçinca et al.** (cited in Hamouche): optimizing human-centric objectives with
-  offline RL — optimize for the human, not only task reward.
-- **Van Zoelen — mutual adaptation for human-AI co-learning**: both sides adapt.
-- **Adjustable autonomy** (Marot et al. / RP2 Part B): autonomy level is exactly
-  the variable Level B learns.
+- **Human-centric objective optimization** (offline RL): optimize for the human,
+  not only task reward.
+- **Mutual adaptation for human-AI co-learning**: both sides adapt.
+- **Adjustable autonomy** (AI4REALNET conceptual framework, arXiv:2504.16133 /
+  RP2 Part B): autonomy level is exactly the variable Level B learns.
 
 ## Caveats
 
