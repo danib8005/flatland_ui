@@ -20,6 +20,10 @@ export class ScenarioPanelComponent {
   /** Tracks which card is currently being confirmed. */
   confirming = signal<string | null>(null);
 
+  /** Collapsible panel (default expanded). */
+  readonly collapsed = signal<boolean>(false);
+  toggleCollapsed(): void { this.collapsed.update((v) => !v); }
+
   /**
    * Scenarios ordered by the operator's KPI priorities. The baseline always
    * stays on top; the alternatives are ranked by a KPI-weighted desirability

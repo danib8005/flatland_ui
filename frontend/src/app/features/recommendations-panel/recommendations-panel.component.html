@@ -1,6 +1,10 @@
 <div class="recommendations-panel">
-  <h3 class="panel-title">AI Recommendations</h3>
+  <button class="panel-head" type="button" (click)="toggleCollapsed()" [attr.aria-expanded]="!collapsed()">
+    <span class="panel-title">AI Recommendations</span>
+    <span class="panel-caret" [class.open]="!collapsed()" aria-hidden="true">▸</span>
+  </button>
 
+  @if (!collapsed()) {
   @if (store.recommendations().length === 0) {
     <p class="empty">No active recommendations</p>
   } @else {
@@ -40,5 +44,6 @@
         </div>
       }
     </div>
+  }
   }
 </div>

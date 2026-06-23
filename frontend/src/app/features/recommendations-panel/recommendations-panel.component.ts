@@ -17,6 +17,10 @@ export class RecommendationsPanelComponent implements OnDestroy {
   api = inject(ApiService);
   bus = inject(EventBusService);
 
+  /** Collapsible panel (default expanded). */
+  readonly collapsed = signal<boolean>(false);
+  toggleCollapsed(): void { this.collapsed.update((v) => !v); }
+
   // Countdown ticker (1Hz)
   private tickHandle: any;
   private elapsedSinceFetch = signal(0);

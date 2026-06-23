@@ -1,8 +1,12 @@
 <div class="scenario-panel">
-  <h3 class="panel-title">
-    {{ showRecommendedFraming() ? 'Scenarios — Policy Comparison' : 'Options — Policy Comparison' }}
-  </h3>
+  <button class="panel-head" type="button" (click)="toggleCollapsed()" [attr.aria-expanded]="!collapsed()">
+    <span class="panel-title">
+      {{ showRecommendedFraming() ? 'Scenarios — Policy Comparison' : 'Options — Policy Comparison' }}
+    </span>
+    <span class="panel-caret" [class.open]="!collapsed()" aria-hidden="true">▸</span>
+  </button>
 
+  @if (!collapsed()) {
   @if (store.scenarios().length === 0) {
     <p class="empty">No scenarios available</p>
   } @else {
@@ -81,5 +85,6 @@
         </div>
       }
     </div>
+  }
   }
 </div>

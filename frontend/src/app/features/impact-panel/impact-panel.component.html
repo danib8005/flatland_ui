@@ -1,13 +1,23 @@
-@if (store.impact().length > 0) {
-  <div class="impact-panel">
-    <div class="ip-head">
-      <h3 class="panel-title">Impact — Affected Trains</h3>
-      <span class="ip-count">{{ store.impact().length }}</span>
-    </div>
+<div class="impact-panel">
+  <button class="ip-panel-head" type="button" (click)="toggleCollapsed()"
+          [attr.aria-expanded]="!collapsed()">
+    <span class="panel-title">Impact — Affected Trains</span>
+    <span class="ip-count" [class.zero]="items().length === 0">{{ items().length }}</span>
+    <span class="ip-caret" [class.open]="!collapsed()" aria-hidden="true">▸</span>
+  </button>
 
+  @if (!collapsed()) {
+    @if (items().length === 0) {
+      <p class="ip-empty">No affected trains right now.</p>
+    } @else {
     <ul class="ip-list">
-      @for (item of store.impact(); track item.handle) {
-        <li class="ip-item" [class.high]="item.severity === 'high'">
+      @for (item of items(); track item.handle) {
+        <li class="ip-item clickable"
+            [class.high]="item.severity === 'high'"
+            [class.selected]="store.selectedHandle() === item.handle"
+            (click)="select(item)"
+            (mouseenter)="onEnter(item)"
+            (mouseleave)="onLeave()">
           <div class="ip-row">
             <span class="ip-dot" [style.background]="agentColor(item.handle)"></span>
             <span class="ip-title">Train {{ item.handle }}</span>
@@ -22,7 +32,7 @@
             @case ('recommended') {
               <div class="ip-actions">
                 <span class="ip-rec">Recommended: {{ item.recommended_action }}</span>
-                <button class="ip-btn" type="button" (click)="apply(item)">
+                <button class="ip-btn" type="button" (click)="apply(item); $event.stopPropagation()">
                   {{ item.recommended_action === 'hold' ? 'Hold train' : 'Reroute…' }}
                 </button>
               </div>
@@ -32,7 +42,7 @@
                 <span class="ip-options">
                   Options: reroute @if (item.can_reroute) {} @else { (no switch — hold only) } · hold
                 </span>
-                <button class="ip-btn neutral" type="button" (click)="inspect(item)">Inspect</button>
+                <button class="ip-btn neutral" type="button" (click)="inspect(item); $event.stopPropagation()">Inspect</button>
               </div>
             }
             @default {
@@ -42,5 +52,6 @@
         </li>
       }
     </ul>
-  </div>
-}
+    }
+  }
+</div>

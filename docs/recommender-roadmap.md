@@ -22,6 +22,14 @@ for Recommendation / Co-Learning).
 - ✅ Intervention recommender seam: `InterventionRecommender` + registry;
   `Phase1ProximityRecommender` is the first implementation (wraps the impact
   analysis); `/hmi/impact` resolves the active recommender.
+- ✅ Impact panel UX: always visible, **auto-collapses when idle / auto-expands**
+  on a malfunction; rows are **clickable** (select + highlight the train on the
+  map) and **hover-highlight**; applying **Hold/Reroute dismisses** the item.
+- ✅ Consistent **collapsible panels** across the right column (Impact, Scenarios/
+  Policy, Recommendations) + KPI filter — click the header to toggle.
+- ✅ Up to 3 ranked policy recommendations, **no explanation text**.
+- ✅ Clear split surfaced in the UI: **Impact = per-train intervention** (local,
+  malfunction) vs **Scenarios/Policy = system-wide strategy**.
 
 ## Planned (in order)
 
@@ -35,6 +43,12 @@ for Recommendation / Co-Learning).
 3. **Impact panel: up to 3 ranked intervention options** + mode-aware apply
    (recommendation = highlighted + apply; co-learning = neutral / inspect;
    director = overview).
+4. **Dual-path what-if visualisation (§3.3)**: on reroute, show **both** paths on
+   the map/Marey — old/current (blue = human-influenced) vs new/rerouted
+   (yellow = AI-simulated) — with a KPI delta. Needs the backend to compute the
+   alternative route around the block (PP replan / targeted reroute path);
+   today only the current path is highlighted on selection and the new forecast
+   appears after applying.
 4. **Clear UI separation**: intervention recommendations live in the impact panel;
    policy-change recommendations stay in the scenario panel. Label both distinctly.
 5. **RL recommender** (`recommenders/rl_recommender.py`): a trained model behind
