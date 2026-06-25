@@ -319,6 +319,39 @@ export class SessionStore {
    *  - Director: hand control to the AI by starting auto-play.
    *  - leaving Director: pause so the human regains step-by-step control.
    */
+  // ── Guided demo flow (sequential modes on the SAME environment) ──────
+  readonly demoActive = signal(false);
+  readonly demoSequence: InteractionMode[] = ['recommendation', 'co-learning', 'director'];
+  readonly demoStepIndex = signal(0);
+  /** Current demo phase (mode) or null when no demo is running. */
+  readonly demoPhase = computed<InteractionMode | null>(() =>
+    this.demoActive() ? this.demoSequence[this.demoStepIndex()] : null,
+  );
+  readonly demoIsLast = computed(() => this.demoStepIndex() >= this.demoSequence.length - 1);
+
+  /** Begin the guided demo at the first mode (caller creates the session). */
+  startDemo(): void {
+    this.demoStepIndex.set(0);
+    this.demoActive.set(true);
+    this.setInteractionMode(this.demoSequence[0]);
+  }
+
+  /** Advance to the next demo mode; returns false when the demo is finished. */
+  advanceDemo(): boolean {
+    if (this.demoIsLast()) {
+      this.demoActive.set(false);
+      return false;
+    }
+    this.demoStepIndex.update((i) => i + 1);
+    this.setInteractionMode(this.demoSequence[this.demoStepIndex()]);
+    return true;
+  }
+
+  stopDemo(): void {
+    this.demoActive.set(false);
+    this.demoStepIndex.set(0);
+  }
+
   setInteractionMode(mode: InteractionMode): void {
     const prev = this.interactionMode();
     if (mode === prev) return;

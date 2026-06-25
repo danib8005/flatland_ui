@@ -84,6 +84,40 @@ export class AppComponent implements OnInit {
   settingsMode = signal(false);
   scenarioPolicyMode = signal(false);
   surveyActive = signal(false);
+  demoComplete = signal(false);
+
+  /** Fixed demo environment: same conflict-prone env across all three modes.
+   *  Tuned (empirically) so conflicts emerge from the real simulation —
+   *  bottlenecked corridors (few rails/pairs) + congestion (many trains) +
+   *  real malfunctions — rather than being scripted. */
+  private demoSessionOpts() {
+    return {
+      width: 36, height: 24, agents: 8, maxSteps: 400, seed: 42,
+      maxNumCities: 3, maxRailsBetweenCities: 2, maxRailPairsInCity: 1,
+      latestDepartureMax: 35, speedProfile: 'uniform_1_0', lineLength: 4,
+      malfunctionRate: 0.012, malfunctionMinDuration: 10, malfunctionMaxDuration: 22,
+      scenarioPolicyIds: this.welcomeScenarioPolicyIds(),
+      policyControlIds: this.welcomeControlPolicyIds(),
+    };
+  }
+
+  /** Start the guided demo: one fixed env, modes run in sequence. */
+  startDemoSession() {
+    this.store.stopDemo();
+    this.demoComplete.set(false);
+    this.store.newSession(this.demoSessionOpts());
+    this.store.startDemo();
+  }
+
+  /** Finish the current demo mode → open its survey (advance happens on close). */
+  finishDemoMode() {
+    this.openSurvey();
+  }
+
+  exitDemo() {
+    this.store.stopDemo();
+    this.demoComplete.set(false);
+  }
 
   /** Available survey building blocks + the draft selection edited in Settings. */
   readonly surveyParts = SURVEY_PARTS;
@@ -110,6 +144,16 @@ export class AppComponent implements OnInit {
 
   closeSurvey() {
     this.surveyActive.set(false);
+    // In the guided demo, submitting a mode's survey advances to the next mode
+    // (replaying the SAME environment) or finishes the demo.
+    if (this.store.demoActive()) {
+      const more = this.store.advanceDemo();
+      if (more) {
+        this.store.reset(); // same env, fresh start for the next mode
+      } else {
+        this.demoComplete.set(true);
+      }
+    }
   }
   draftWidth = signal(50);
   draftHeight = signal(20);

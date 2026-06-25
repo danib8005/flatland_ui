@@ -1,5 +1,6 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, computed, effect, inject, signal } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
+import { ApiService } from '../../core/api.service';
 import { AgentColorService } from '../../core/agent-color.service';
 import { ImpactItem } from '../../core/events/event-types';
 
@@ -18,11 +19,15 @@ import { ImpactItem } from '../../core/events/event-types';
   styleUrl: './impact-panel.component.scss',
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
-export class ImpactPanelComponent {
+export class ImpactPanelComponent implements OnDestroy {
   store = inject(SessionStore);
+  private api = inject(ApiService);
   private colors = inject(AgentColorService);
 
   private static readonly STOP = 4;
+  private _pollHandle: any = null;
+  private _pollSession: string | null = null;
+  private _hadImpact = false;
 
   /** Items the user has acted on (applied) → hidden from the list. */
   readonly applied = signal<Set<number>>(new Set<number>());
@@ -45,6 +50,51 @@ export class ImpactPanelComponent {
         this.collapsed.set(!has);
       }
     });
+
+    // Impact is cheap to compute → poll it live (~1.5s) so conflicts surface
+    // while the simulation runs, not only on pause. Scenarios stay throttled.
+    effect(() => {
+      const sid = this.store.session()?.id ?? null;
+      if (sid !== this._pollSession) {
+        this._pollSession = sid;
+        this._stopPoll();
+        this.applied.set(new Set<number>());
+        if (sid) {
+          this._fetchImpact(sid);
+          this._pollHandle = setInterval(() => {
+            const cur = this.store.session()?.id;
+            if (cur) this._fetchImpact(cur);
+          }, 1500);
+        }
+      }
+    });
+  }
+
+  private _fetchImpact(sid: string): void {
+    this.api.getImpact(sid).subscribe({
+      next: (items) => {
+        this.store.impact.set(items);
+        // Guided demo: gently pause on a NEW conflict so the human decides.
+        const has = items.length > 0;
+        if (has && !this._hadImpact && this.store.demoActive() && this.store.playing()
+            && this.store.interactionMode() !== 'director') {
+          this.store.pause();
+        }
+        this._hadImpact = has;
+      },
+      error: () => {},
+    });
+  }
+
+  private _stopPoll(): void {
+    if (this._pollHandle !== null) {
+      clearInterval(this._pollHandle);
+      this._pollHandle = null;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this._stopPoll();
   }
 
   private dismiss(handle: number): void {
