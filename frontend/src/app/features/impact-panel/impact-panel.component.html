@@ -1,7 +1,7 @@
 <div class="impact-panel">
   <button class="ip-panel-head" type="button" (click)="toggleCollapsed()"
           [attr.aria-expanded]="!collapsed()">
-    <span class="panel-title">Impact — Affected Trains</span>
+    <span class="panel-title" title="Trains whose route is blocked by another train's malfunction before it clears — not the malfunctioning trains themselves (those appear in Notifications).">Disruption Conflicts</span>
     <span class="ip-count" [class.zero]="items().length === 0">{{ items().length }}</span>
     <span class="ip-caret" [class.open]="!collapsed()" aria-hidden="true">▸</span>
   </button>
@@ -28,30 +28,37 @@
             · reaches in {{ item.eta_steps }} · clears in {{ item.clears_in_steps }}
           </div>
 
-          @switch (store.optionPresentation()) {
-            @case ('recommended') {
-              <div class="ip-actions">
-                <span class="ip-rec">Recommended: {{ item.recommended_action }}</span>
-                <button class="ip-btn" type="button" (click)="apply(item); $event.stopPropagation()">
-                  {{ item.recommended_action === 'hold' ? 'Hold train' : 'Reroute…' }}
+          @if (store.optionPresentation() === 'none') {
+            <div class="ip-overview">AI handling autonomously</div>
+          } @else {
+            <div class="ip-options-list">
+              @for (opt of item.options; track opt.action) {
+                <button
+                  class="ip-opt"
+                  [class.recommended]="store.optionPresentation() === 'recommended' && opt.recommended"
+                  [disabled]="!opt.available"
+                  (click)="applyOption(item, opt.action); $event.stopPropagation()">
+                  {{ opt.label }}
+                  @if (store.optionPresentation() === 'recommended' && opt.recommended) {
+                    <span class="ip-rec-tag">Recommended</span>
+                  }
+                  @if (!opt.available) { <span class="ip-na">n/a</span> }
                 </button>
-              </div>
-            }
-            @case ('neutral') {
-              <div class="ip-actions">
-                <span class="ip-options">
-                  Options: reroute @if (item.can_reroute) {} @else { (no switch — hold only) } · hold
-                </span>
-                <button class="ip-btn neutral" type="button" (click)="inspect(item); $event.stopPropagation()">Inspect</button>
-              </div>
-            }
-            @default {
-              <div class="ip-overview">AI handling autonomously</div>
-            }
+              }
+            </div>
           }
         </li>
       }
     </ul>
+
+    @if (countdownRemaining() !== null) {
+      <div class="ip-countdown">
+        <div class="ip-cd-text">
+          AI decides in <strong>{{ countdownRemaining() }}s</strong> if you don't
+        </div>
+        <div class="ip-cd-bar"><div class="ip-cd-fill" [style.width.%]="countdownPct() * 100"></div></div>
+      </div>
+    }
     }
   }
 </div>

@@ -295,11 +295,17 @@
       <section class="settings-section">
         <h3>Co-Learning Reflection</h3>
         <div class="settings-grid">
-          <label title="How many of the 5 reflection questions to show per incident (Samira: 2 of 5).">
+          <label title="How many of the 5 reflection questions to show per incident.">
             <span>Reflection questions shown</span>
             <input type="number" min="1" max="5"
                    [value]="draftReflectionLimit()"
                    (input)="draftReflectionLimit.set(+$any($event.target).value)">
+          </label>
+          <label title="Seconds to decide on a conflict before the system applies the recommended option (Recommendation & Co-Learning).">
+            <span>Decision time (s)</span>
+            <input type="number" min="3" max="60"
+                   [value]="draftDecisionCountdown()"
+                   (input)="draftDecisionCountdown.set(+$any($event.target).value)">
           </label>
         </div>
       </section>

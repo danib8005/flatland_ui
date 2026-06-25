@@ -124,6 +124,7 @@ export class AppComponent implements OnInit {
   draftSurveyParts = signal<string[]>([...DEFAULT_SURVEY_PARTS]);
   draftDemoMalfunctionTypes = signal(false);
   draftReflectionLimit = signal(2);
+  draftDecisionCountdown = signal(10);
 
   isDraftSurveyPartEnabled(id: string): boolean {
     return this.draftSurveyParts().includes(id);
@@ -218,6 +219,7 @@ export class AppComponent implements OnInit {
         surveyParts: this.store.enabledSurveyParts(),
         demoMalfunctionTypes: this.store.demoMalfunctionTypes(),
         reflectionLimit: this.store.reflectionQuestionLimit(),
+        decisionCountdown: this.store.decisionCountdownSeconds(),
       }));
     } catch {
       // localStorage can be unavailable in tests / private mode.
@@ -249,6 +251,7 @@ export class AppComponent implements OnInit {
       if (Array.isArray(cfg.surveyParts)) this.store.setEnabledSurveyParts(cfg.surveyParts.map(String));
       if (cfg.demoMalfunctionTypes != null) this.store.setDemoMalfunctionTypes(Boolean(cfg.demoMalfunctionTypes));
       if (cfg.reflectionLimit != null) this.store.setReflectionQuestionLimit(Number(cfg.reflectionLimit));
+      if (cfg.decisionCountdown != null) this.store.setDecisionCountdownSeconds(Number(cfg.decisionCountdown));
     } catch {
       // Ignore malformed persisted settings.
     }
@@ -338,6 +341,7 @@ export class AppComponent implements OnInit {
     this.draftSurveyParts.set([...this.store.enabledSurveyParts()]);
     this.draftDemoMalfunctionTypes.set(this.store.demoMalfunctionTypes());
     this.draftReflectionLimit.set(this.store.reflectionQuestionLimit());
+    this.draftDecisionCountdown.set(this.store.decisionCountdownSeconds());
     this.scenarioPolicyMode.set(false);
     this.settingsMode.set(true);
     this.blurActiveElement();
@@ -367,6 +371,7 @@ export class AppComponent implements OnInit {
     this.store.setEnabledSurveyParts(this.draftSurveyParts());
     this.store.setDemoMalfunctionTypes(this.draftDemoMalfunctionTypes());
     this.store.setReflectionQuestionLimit(this.draftReflectionLimit());
+    this.store.setDecisionCountdownSeconds(this.draftDecisionCountdown());
     this.persistSessionSettings();
     this.settingsMode.set(false);
     this.blurActiveElement();

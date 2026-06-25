@@ -250,6 +250,14 @@ export class SessionStore {
     this.reflectionQuestionLimit.set(Math.max(1, Math.min(5, Math.floor(n || 1))));
   }
 
+  /** Decision time budget (seconds) before the system applies the recommended
+   *  option itself (Recommendation & Co-Learning). Configurable in Settings. */
+  readonly decisionCountdownSeconds = signal<number>(10);
+
+  setDecisionCountdownSeconds(n: number): void {
+    this.decisionCountdownSeconds.set(Math.max(3, Math.min(60, Math.floor(n || 10))));
+  }
+
   /** Synthetic operational malfunction types (AI4REALNET D4.1 taxonomy A). */
   private static readonly DEMO_MALFUNCTION_TYPES = [
     'Track blockage',

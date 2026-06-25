@@ -183,3 +183,64 @@
   font-style: italic;
   color: var(--sbb-color-granite, #686868);
 }
+
+/* Per-train options + recommended highlight. */
+.ip-options-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.ip-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  background: #fff;
+  color: var(--sbb-color-charcoal, #212121);
+  border-radius: 3px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ip-opt:hover:not(:disabled) { border-color: var(--sbb-color-charcoal, #212121); }
+.ip-opt:disabled { opacity: 0.5; cursor: not-allowed; }
+.ip-opt.recommended {
+  border: 2px solid var(--sbb-color-blue, #0079c7);
+  background: color-mix(in srgb, var(--sbb-color-blue, #0079c7) 8%, white);
+  font-weight: 600;
+}
+.ip-rec-tag {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #fff;
+  background: var(--sbb-color-blue, #0079c7);
+  border-radius: 9px;
+  padding: 0 6px;
+}
+.ip-na { font-size: 10px; color: var(--sbb-color-granite, #686868); }
+
+/* Decision countdown bar. */
+.ip-countdown {
+  margin: 8px 4px 2px;
+}
+.ip-cd-text {
+  font-size: 11px;
+  color: var(--sbb-color-charcoal, #212121);
+  margin-bottom: 4px;
+}
+.ip-cd-text strong { color: var(--sbb-color-red, #eb0000); }
+.ip-cd-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--sbb-color-cloud, #d2d2d2);
+  overflow: hidden;
+}
+.ip-cd-fill {
+  height: 100%;
+  background: var(--sbb-color-blue, #0079c7);
+  transition: width 1s linear;
+}

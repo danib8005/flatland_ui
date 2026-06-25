@@ -42,6 +42,19 @@ export class ImpactPanelComponent implements OnDestroy {
   readonly collapsed = signal<boolean>(true);
   private _lastHasImpact = false;
 
+  /** Decision countdown (seconds left) before the system auto-applies the
+   *  recommended option; null = inactive. */
+  readonly countdownRemaining = signal<number | null>(null);
+  private _tickHandle: any = null;
+
+  /** Countdown progress 0..1 (for the bar). */
+  readonly countdownPct = computed(() => {
+    const rem = this.countdownRemaining();
+    const total = this.store.decisionCountdownSeconds();
+    if (rem == null || total <= 0) return 0;
+    return Math.max(0, Math.min(1, rem / total));
+  });
+
   constructor() {
     effect(() => {
       const has = this.items().length > 0;
@@ -74,12 +87,15 @@ export class ImpactPanelComponent implements OnDestroy {
     this.api.getImpact(sid).subscribe({
       next: (items) => {
         this.store.impact.set(items);
-        // Guided demo: gently pause on a NEW conflict so the human decides.
+        // Guided demo: gently pause on a NEW conflict so the human decides, and
+        // start the decision countdown (Recommendation & Co-Learning).
         const has = items.length > 0;
         if (has && !this._hadImpact && this.store.demoActive() && this.store.playing()
             && this.store.interactionMode() !== 'director') {
           this.store.pause();
+          this._startCountdown();
         }
+        if (!has) this._stopCountdown();
         this._hadImpact = has;
       },
       error: () => {},
@@ -95,10 +111,52 @@ export class ImpactPanelComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this._stopPoll();
+    this._stopCountdown();
+  }
+
+  // ── Decision countdown → auto-apply recommended option ───────────────
+  private _startCountdown(): void {
+    this._stopCountdown();
+    this.countdownRemaining.set(this.store.decisionCountdownSeconds());
+    this._tickHandle = setInterval(() => {
+      const rem = (this.countdownRemaining() ?? 0) - 1;
+      if (rem <= 0) {
+        this._autoDecide();
+      } else {
+        this.countdownRemaining.set(rem);
+      }
+    }, 1000);
+  }
+
+  private _stopCountdown(): void {
+    if (this._tickHandle !== null) {
+      clearInterval(this._tickHandle);
+      this._tickHandle = null;
+    }
+    this.countdownRemaining.set(null);
+  }
+
+  /** Time's up: apply each train's recommended option (hold = safe default) and
+   *  resume the run. */
+  private _autoDecide(): void {
+    for (const item of this.items()) {
+      // Apply the recommended option; reroute uses the alternative-branch
+      // override when available, otherwise hold is the safe fallback.
+      const rec = item.recommended_action;
+      if (!(rec === 'reroute' && this._apply(item, 'reroute'))) {
+        this.store.setOverride(item.handle, ImpactPanelComponent.STOP);
+      }
+      this.dismiss(item.handle);
+    }
+    this._stopCountdown();
+    if (!this.store.episodeDone()) {
+      this.store.play(this.store.activePolicy(), this.store.playSpeed());
+    }
   }
 
   private dismiss(handle: number): void {
     this.applied.update((s) => new Set(s).add(handle));
+    if (this.items().length === 0) this._stopCountdown();
   }
 
   toggleCollapsed(): void {
@@ -123,20 +181,42 @@ export class ImpactPanelComponent implements OnDestroy {
     this.store.clearAgentHoverAgents();
   }
 
-  /** Apply the recommended action (Recommendation mode). Always selects the
-   *  train too, so the map overlay shows it / its decision options. */
-  apply(item: ImpactItem): void {
+  /** Apply a chosen option for a train. Stops the countdown (human decided). */
+  applyOption(item: ImpactItem, action: 'hold' | 'reroute' | 'proceed'): void {
     this.store.selectedHandle.set(item.handle);
-    if (item.recommended_action === 'hold') {
-      this.store.setOverride(item.handle, ImpactPanelComponent.STOP);
+    if (!this._apply(item, action)) {
+      // Reroute requested but no branch action available → surface the train in
+      // the map overlay so the human can pick a branch manually; keep the item.
+      this.store.selectedHandle.set(item.handle);
+      this._stopCountdown();
+      return;
     }
-    // Reroute: selection (above) surfaces the train's branch options in the
-    // map overlay, where the human picks the alternative.
-    this.dismiss(item.handle); // acted on → remove from the list
+    this._stopCountdown();
+    this.dismiss(item.handle);
+  }
+
+  /** Apply an action's override. Returns false if reroute had no branch action
+   *  (so the caller can fall back to manual selection without dismissing). */
+  private _apply(item: ImpactItem, action: 'hold' | 'reroute' | 'proceed'): boolean {
+    if (action === 'hold') {
+      this.store.setOverride(item.handle, ImpactPanelComponent.STOP);
+      return true;
+    }
+    if (action === 'proceed') {
+      this.store.clearOverride(item.handle);
+      return true;
+    }
+    // reroute: apply the alternative-branch override (fires at the next switch).
+    if (item.reroute_action != null) {
+      this.store.setOverride(item.handle, item.reroute_action);
+      return true;
+    }
+    return false;
   }
 
   /** Select the affected train to inspect/decide (neutral framing). */
   inspect(item: ImpactItem): void {
     this.store.selectedHandle.set(item.handle);
+    this._stopCountdown();
   }
 }

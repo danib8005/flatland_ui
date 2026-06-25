@@ -91,6 +91,14 @@ export interface Recommendation {
   scenarioId?: string;
 }
 
+/** One tactical option for an affected train. */
+export interface ImpactOption {
+  action: 'hold' | 'reroute' | 'proceed';
+  label: string;
+  available: boolean;
+  recommended: boolean;
+}
+
 /** One affected train from the Phase-1 impact analysis (malfunction fallout). */
 export interface ImpactItem {
   handle: number;
@@ -99,7 +107,13 @@ export interface ImpactItem {
   eta_steps: number;
   clears_in_steps: number;
   can_reroute: boolean;
+  /** Override action that takes the alternative branch at the next switch
+   *  (RailEnvActions: LEFT=1, FORWARD=2, RIGHT=3); null if no reroute exists. */
+  reroute_action?: number | null;
+  /** Cell of the switch where the reroute override applies, for context. */
+  reroute_cell?: [number, number] | null;
   recommended_action: 'reroute' | 'hold';
+  options?: ImpactOption[];
   severity: 'high' | 'medium';
 }
 

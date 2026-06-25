@@ -223,7 +223,18 @@ async def reset_session(session_id: str):
     session = session_manager.get(session_id)
     if not session:
         raise HTTPException(404, f"Session {session_id} not found")
-    obs, info = session.env.reset()
+    # Replay the IDENTICAL scenario (same rail, schedule, malfunctions) so a
+    # Reset — and each guided-demo mode switch — restarts the same situation,
+    # instead of env.reset() rolling a fresh random episode.
+    if session.seed is not None:
+        obs, info = session.env.reset(
+            regenerate_rail=False, regenerate_schedule=False, random_seed=session.seed
+        )
+    else:
+        obs, info = session.env.reset()
+    # Flatland's reset() overwrites _max_episode_steps; re-apply the session's.
+    if session.max_episode_steps:
+        session.env._max_episode_steps = session.max_episode_steps
     session.last_observations = obs
     session.last_info = info
     override_manager.clear_all(session_id)
