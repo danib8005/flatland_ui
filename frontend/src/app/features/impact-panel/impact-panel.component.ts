@@ -91,7 +91,8 @@ export class ImpactPanelComponent implements OnDestroy {
         // start the decision countdown (Recommendation & Co-Learning).
         const has = items.length > 0;
         if (has && !this._hadImpact && this.store.demoActive() && this.store.playing()
-            && this.store.interactionMode() !== 'director') {
+            && this.store.interactionMode() !== 'director'
+            && this.store.autoPauseOnConflict()) {
           this.store.pause();
           this._startCountdown();
         }

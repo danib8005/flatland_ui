@@ -307,6 +307,18 @@
                    [value]="draftDecisionCountdown()"
                    (input)="draftDecisionCountdown.set(+$any($event.target).value)">
           </label>
+          <label title="Countdown shown on each AI recommendation. 0 = no countdown — the recommendation stays as long as it makes sense.">
+            <span>Recommendation countdown (s, 0 = none)</span>
+            <input type="number" min="0" max="120"
+                   [value]="draftRecommendationDuration()"
+                   (input)="draftRecommendationDuration.set(+$any($event.target).value)">
+          </label>
+          <label class="settings-check" title="When on, a new conflict auto-pauses the run so you can decide (Recommendation & Co-Learning). When off, the simulation keeps running and you act when you want.">
+            <input type="checkbox"
+                   [checked]="draftAutoPauseOnConflict()"
+                   (change)="draftAutoPauseOnConflict.set($any($event.target).checked)">
+            <span>Auto-pause on conflict</span>
+          </label>
         </div>
       </section>
 

@@ -65,10 +65,12 @@ export class AppComponent implements OnInit {
     return this.interactionModes.find((m) => m.id === id)?.label ?? id;
   }
 
-  newWidth = signal(50);
-  newHeight = signal(20);
-  newAgents = signal(3);
-  newMaxSteps = signal(1000);
+  // Defaults match the conflict-tuned guided-demo env so an untouched
+  // "Guided Demo" reliably produces conflicts; users can still change them.
+  newWidth = signal(36);
+  newHeight = signal(24);
+  newAgents = signal(8);
+  newMaxSteps = signal(400);
   newSeed = signal(42);
   newLatestDepartureMax = signal(20);
   newSpeedProfile = signal('uniform_1_0');
@@ -86,16 +88,23 @@ export class AppComponent implements OnInit {
   surveyActive = signal(false);
   demoComplete = signal(false);
 
-  /** Fixed demo environment: same conflict-prone env across all three modes.
-   *  Tuned (empirically) so conflicts emerge from the real simulation —
-   *  bottlenecked corridors (few rails/pairs) + congestion (many trains) +
-   *  real malfunctions — rather than being scripted. */
+  /** Demo environment. The conflict-tuning (bottlenecked corridors via few
+   *  rails/pairs + real malfunctions) stays fixed so conflicts reliably
+   *  emerge, but the four user-facing fields from the welcome page / Settings
+   *  (grid size, #agents, max steps) are respected — picking "Guided Demo"
+   *  no longer silently ignores them. Their defaults (see newWidth/etc.) are
+   *  set to the conflict-prone values, so an untouched demo stays tuned. */
   private demoSessionOpts() {
     return {
-      width: 36, height: 24, agents: 8, maxSteps: 400, seed: 42,
+      width: this.newWidth(), height: this.newHeight(),
+      agents: this.newAgents(), maxSteps: this.newMaxSteps(),
+      seed: 42,
       maxNumCities: 3, maxRailsBetweenCities: 2, maxRailPairsInCity: 1,
       latestDepartureMax: 35, speedProfile: 'uniform_1_0', lineLength: 4,
-      malfunctionRate: 0.012, malfunctionMinDuration: 10, malfunctionMaxDuration: 22,
+      // Slightly higher than before (0.012) so a blocking malfunction — and
+      // thus an impact-driven decision moment — surfaces more reliably within
+      // a run. Scripted events (Phase 1) will later guarantee this.
+      malfunctionRate: 0.02, malfunctionMinDuration: 10, malfunctionMaxDuration: 22,
       scenarioPolicyIds: this.welcomeScenarioPolicyIds(),
       policyControlIds: this.welcomeControlPolicyIds(),
     };
@@ -125,6 +134,8 @@ export class AppComponent implements OnInit {
   draftDemoMalfunctionTypes = signal(false);
   draftReflectionLimit = signal(2);
   draftDecisionCountdown = signal(10);
+  draftRecommendationDuration = signal(0);
+  draftAutoPauseOnConflict = signal(true);
 
   isDraftSurveyPartEnabled(id: string): boolean {
     return this.draftSurveyParts().includes(id);
@@ -220,6 +231,8 @@ export class AppComponent implements OnInit {
         demoMalfunctionTypes: this.store.demoMalfunctionTypes(),
         reflectionLimit: this.store.reflectionQuestionLimit(),
         decisionCountdown: this.store.decisionCountdownSeconds(),
+        recommendationDuration: this.store.recommendationDurationSeconds(),
+        autoPauseOnConflict: this.store.autoPauseOnConflict(),
       }));
     } catch {
       // localStorage can be unavailable in tests / private mode.
@@ -252,6 +265,8 @@ export class AppComponent implements OnInit {
       if (cfg.demoMalfunctionTypes != null) this.store.setDemoMalfunctionTypes(Boolean(cfg.demoMalfunctionTypes));
       if (cfg.reflectionLimit != null) this.store.setReflectionQuestionLimit(Number(cfg.reflectionLimit));
       if (cfg.decisionCountdown != null) this.store.setDecisionCountdownSeconds(Number(cfg.decisionCountdown));
+      if (cfg.recommendationDuration != null) this.store.setRecommendationDurationSeconds(Number(cfg.recommendationDuration));
+      if (cfg.autoPauseOnConflict != null) this.store.setAutoPauseOnConflict(Boolean(cfg.autoPauseOnConflict));
     } catch {
       // Ignore malformed persisted settings.
     }
@@ -342,6 +357,8 @@ export class AppComponent implements OnInit {
     this.draftDemoMalfunctionTypes.set(this.store.demoMalfunctionTypes());
     this.draftReflectionLimit.set(this.store.reflectionQuestionLimit());
     this.draftDecisionCountdown.set(this.store.decisionCountdownSeconds());
+    this.draftRecommendationDuration.set(this.store.recommendationDurationSeconds());
+    this.draftAutoPauseOnConflict.set(this.store.autoPauseOnConflict());
     this.scenarioPolicyMode.set(false);
     this.settingsMode.set(true);
     this.blurActiveElement();
@@ -372,6 +389,8 @@ export class AppComponent implements OnInit {
     this.store.setDemoMalfunctionTypes(this.draftDemoMalfunctionTypes());
     this.store.setReflectionQuestionLimit(this.draftReflectionLimit());
     this.store.setDecisionCountdownSeconds(this.draftDecisionCountdown());
+    this.store.setRecommendationDurationSeconds(this.draftRecommendationDuration());
+    this.store.setAutoPauseOnConflict(this.draftAutoPauseOnConflict());
     this.persistSessionSettings();
     this.settingsMode.set(false);
     this.blurActiveElement();

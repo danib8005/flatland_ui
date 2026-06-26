@@ -258,6 +258,29 @@ export class SessionStore {
     this.decisionCountdownSeconds.set(Math.max(3, Math.min(60, Math.floor(n || 10))));
   }
 
+  /** How long an AI recommendation shows a countdown before it reads as
+   *  "stale". 0 = no countdown: the recommendation stays as long as it
+   *  makes sense (i.e. until the backend stops surfacing it, or the human
+   *  acts on it). This countdown is a presentation cue only — it does not
+   *  auto-apply anything (that's decisionCountdownSeconds). */
+  readonly recommendationDurationSeconds = signal<number>(0);
+
+  setRecommendationDurationSeconds(n: number): void {
+    const v = Math.floor(n || 0);
+    // 0 means "no countdown"; otherwise clamp to a sane [5, 120] window.
+    this.recommendationDurationSeconds.set(v <= 0 ? 0 : Math.max(5, Math.min(120, v)));
+  }
+
+  /** Whether a new conflict auto-pauses the run (and starts the decision
+   *  countdown) in Recommendation & Co-Learning. When off, conflicts still
+   *  surface in the impact panel but the simulation keeps running — the
+   *  human acts when they want, without being interrupted. Default on. */
+  readonly autoPauseOnConflict = signal<boolean>(true);
+
+  setAutoPauseOnConflict(on: boolean): void {
+    this.autoPauseOnConflict.set(!!on);
+  }
+
   /** Synthetic operational malfunction types (AI4REALNET D4.1 taxonomy A). */
   private static readonly DEMO_MALFUNCTION_TYPES = [
     'Track blockage',

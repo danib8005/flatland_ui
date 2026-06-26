@@ -662,6 +662,28 @@
   box-shadow: 0 0 0 2px rgba(33, 33, 33, 0.1);
 }
 
+/* Checkbox rows sit on their own full-width line and lay the box + label
+   out horizontally, rather than the stacked span/input of numeric fields. */
+.settings-grid label.settings-check {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.settings-grid label.settings-check input {
+  min-height: 0;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+.settings-grid label.settings-check span {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--sbb-color-charcoal, #212121);
+}
+
 .settings-policy-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -10,14 +10,24 @@
   } @else {
     <div class="recs">
       @for (r of store.recommendations(); track r.id) {
-        <div class="rec-card" [class.urgent]="remaining(r) < 10">
+        <div class="rec-card"
+             [class.urgent]="isUrgent(r)"
+             [class.previewable]="previewable(r)"
+             (mouseenter)="previewOn(r)"
+             (mouseleave)="previewOff(r)">
           <div class="rec-head">
             <span class="ai-badge">AI</span>
             <span class="confidence">{{ confidencePct(r) }}%</span>
-            <span class="countdown">{{ remaining(r) }}s</span>
+            @if (remaining(r) !== null) {
+              <span class="countdown">{{ remaining(r) }}s</span>
+            }
           </div>
 
           <h4 class="title">{{ r.title }}</h4>
+
+          @if (previewable(r)) {
+            <p class="preview-hint">Hover zeigt die geänderte Route auf Karte & Marey</p>
+          }
 
           <!-- Confidence Bar -->
           <div class="conf-bar">
