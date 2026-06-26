@@ -184,6 +184,30 @@ GET /sessions/{id}/events
 → { "active": [...], "upcoming_warnings": [...], "train_labels": {...} }
 ```
 
+### 2.6 On/off toggle (an- und abschaltbar)
+
+Scripted events müssen jederzeit komplett abschaltbar sein — z.B. für die
+freie Demo, für Kontroll-Conditions ohne Events, oder wenn man nur die
+emergenten Random-Malfunctions testen will.
+
+**Muster:** identisch zum bestehenden `malfunctionsEnabled`-Toggle in den
+Session Settings (`app.component.ts`, persistiert in localStorage unter
+`flatland_ui_session_settings_v1`).
+
+- Neuer Toggle `scriptedEventsEnabled` (default: aus) in den Session Settings,
+  direkt neben dem Malfunctions-Toggle
+- Wenn aus: `ScriptedEventScheduler` wird gar nicht erst instanziiert bzw.
+  `tick()` ist ein No-op → keine Events, keine Notifications, keine Overlays
+- Persistiert wie alle anderen Settings; überlebt Reset/Reload
+- Greift erst beim nächsten Session-Neustart (wie die anderen Env-Settings),
+  weil das Event-Script an die Session/das Grid gebunden ist
+- Später (Phase 2): pro-Szenario wählbar, welches Event-Script geladen wird —
+  der globale Toggle bleibt als Master-Schalter darüber
+
+Backend: `create_session` / `reset`-Payload bekommt ein optionales Feld
+`scripted_events: { enabled: bool, config: "weather_north" }`. Fehlt es oder
+`enabled=false`, läuft die Session wie heute (rein emergent).
+
 ---
 
 ## 3. HMI: Where do warnings appear?
@@ -318,7 +342,8 @@ between a **warning** event and the corresponding **consequence** event.
 
 ### Phase 1 — MVP for internal testing (2-3 weeks)
 
-- [ ] `ScriptedEventScheduler` class with `tick()`, `_apply()`, `_revert()`
+- [ ] `scriptedEventsEnabled` toggle in Session Settings (default off), persisted like `malfunctionsEnabled` — master on/off switch
+- [ ] `ScriptedEventScheduler` class with `tick()`, `_apply()`, `_revert()` (no-op when disabled)
 - [ ] JSON scenario config loader
 - [ ] Integration in `scenario_runner.py` step loop
 - [ ] Events → existing notifications (no new UI panel)
