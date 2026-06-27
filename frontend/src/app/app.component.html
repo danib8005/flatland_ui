@@ -141,7 +141,7 @@
       <div class="right-kpi-filter">
         <app-kpi-filter></app-kpi-filter>
       </div>
-      @if (store.isCoLearning() && (store.isCalm() || store.episodeDone())) {
+      @if (store.isCoLearning() && (store.reflectionRequested() || store.episodeDone())) {
         <app-co-learning-reflection></app-co-learning-reflection>
       }
     </aside>
@@ -428,6 +428,14 @@
         <span class="footer-interventions" title="Manual interventions captured this run">
           Interventions: <strong>{{ store.interventionCount() }}</strong>
         </span>
+        @if (!store.episodeDone()) {
+          <button class="footer-reflect-btn" type="button"
+                  [class.active]="store.reflectionRequested()"
+                  (click)="store.toggleReflectionRequested()"
+                  title="Reflect on your decisions so far — you choose when">
+            {{ store.reflectionRequested() ? 'Hide reflection' : 'Reflect now' }}
+          </button>
+        }
       }
       @if (store.playing()) {
         <span class="playing-indicator">

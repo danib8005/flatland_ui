@@ -346,6 +346,14 @@ export class SessionStore {
     return !anyMalfunction;
   });
 
+  /** Co-Learning: the human explicitly asked to reflect *now* (also mid-run).
+   *  The reflection panel shows when this is set (or at episode end). Reflection
+   *  is intentional, not an auto-popup on every calm moment. */
+  readonly reflectionRequested = signal<boolean>(false);
+  toggleReflectionRequested(): void {
+    this.reflectionRequested.update((v) => !v);
+  }
+
   /**
    * Switch collaboration mode and apply its immediate behaviour:
    *  - Director: hand control to the AI by starting auto-play.
@@ -625,6 +633,7 @@ export class SessionStore {
     this._resetTrajectories();
     this.coLearningFeedback.set([]);
     this.impact.set([]);
+    this.reflectionRequested.set(false);
     const payload: any = {};
     if (opts.width != null) payload.width = opts.width;
     if (opts.height != null) payload.height = opts.height;
@@ -761,6 +770,7 @@ export class SessionStore {
     this._resetTrajectories();
     this.coLearningFeedback.set([]);
     this.impact.set([]);
+    this.reflectionRequested.set(false);
     this.api.reset(s.id).subscribe({
       next: () => this.refreshState(true),
       error: (e) => {
