@@ -84,6 +84,7 @@ them can change freely. Distinguish **policy change (system-wide)** from
 - [visual-concept.md](visual-concept.md) — canonical names for our surfaces, the 3 zones, and the InteractiveAI lineage
 - [scripted-events-plan.md](scripted-events-plan.md) — deterministic scenario events for User Study 2
 - [recommendation-reliability.md](recommendation-reliability.md) — guaranteeing a decision moment (variants A–D)
+- [heterogeneous-tracks.md](heterogeneous-tracks.md) — track classes/costs so reroute becomes a real trade-off
 
 ## Roadmap / further ideas
 
