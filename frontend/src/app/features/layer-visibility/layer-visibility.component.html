@@ -1,41 +1,11 @@
 <div class="layer-visibility">
-  <h3 class="panel-title">Layer Visibility</h3>
+  <span class="lv-label">Layers</span>
   <div class="layers">
-    <label class="layer-item">
-      <input type="checkbox"
-             [checked]="store.layerVisibility().grid"
-             (change)="toggle('grid')">
-      <span>Grid</span>
-    </label>
-    <label class="layer-item">
-      <input type="checkbox"
-             [checked]="store.layerVisibility().nextDecisions"
-             (change)="toggle('nextDecisions')">
-      <span>Next Decisions</span>
-    </label>
-    <label class="layer-item">
-      <input type="checkbox"
-             [checked]="store.layerVisibility().agentTrajectory"
-             (change)="toggle('agentTrajectory')">
-      <span>Agents trajectory</span>
-    </label>
-    <label class="layer-item">
-      <input type="checkbox"
-             [checked]="store.layerVisibility().switches"
-             (change)="toggle('switches')">
-      <span>All Switches</span>
-    </label>
-    <label class="layer-item">
-      <input type="checkbox"
-             [checked]="store.layerVisibility().signals"
-             (change)="toggle('signals')">
-      <span>All Signals</span>
-    </label>
-    <label class="layer-item">
-      <input type="checkbox"
-             [checked]="store.layerVisibility().trajectoryCellInfo"
-             (change)="toggle('trajectoryCellInfo')">
-      <span>Trajectory cell info</span>
-    </label>
+    <button type="button" class="layer-chip" [class.on]="store.layerVisibility().grid" [attr.aria-pressed]="store.layerVisibility().grid" (click)="toggle('grid')">Grid</button>
+    <button type="button" class="layer-chip" [class.on]="store.layerVisibility().nextDecisions" [attr.aria-pressed]="store.layerVisibility().nextDecisions" (click)="toggle('nextDecisions')">Decisions</button>
+    <button type="button" class="layer-chip" [class.on]="store.layerVisibility().agentTrajectory" [attr.aria-pressed]="store.layerVisibility().agentTrajectory" (click)="toggle('agentTrajectory')">Trajectory</button>
+    <button type="button" class="layer-chip" [class.on]="store.layerVisibility().trajectoryCellInfo" [attr.aria-pressed]="store.layerVisibility().trajectoryCellInfo" (click)="toggle('trajectoryCellInfo')">Cell info</button>
+    <button type="button" class="layer-chip" [class.on]="store.layerVisibility().switches" [attr.aria-pressed]="store.layerVisibility().switches" (click)="toggle('switches')">Switches</button>
+    <button type="button" class="layer-chip" [class.on]="store.layerVisibility().signals" [attr.aria-pressed]="store.layerVisibility().signals" (click)="toggle('signals')">Signals</button>
   </div>
 </div>
