@@ -51,9 +51,17 @@ export class ImpactPanelComponent implements OnDestroy {
     this._held.set(next);
   }
 
+  // Stabilized display list. The live impact poll (1.5s) makes rows pop in/out
+  // and reorder, which felt chaotic. We keep a short grace window so transient
+  // blips don't flash, hold a stable order (by handle), and keep held rows.
+  private static readonly GRACE_MS = 3000;
+  private readonly _cache = new Map<number, ImpactItem>();
+  private readonly _seenAt = new Map<number, number>();
+  private readonly _stable = signal<ImpactItem[]>([]);
+
   /** Affected trains still pending an action (acted-on ones removed). */
   readonly items = computed<ImpactItem[]>(() =>
-    this.store.impact().filter((i) => !this.applied().has(i.handle)),
+    this._stable().filter((i) => !this.applied().has(i.handle)),
   );
 
   /** Panel stays visible always; auto-expands when trains are affected,
@@ -75,12 +83,12 @@ export class ImpactPanelComponent implements OnDestroy {
   });
 
   constructor() {
+    // Auto-EXPAND when conflicts appear; never auto-collapse (that open/close
+    // thrash was part of the chaotic feel). The user can collapse manually.
     effect(() => {
       const has = this.items().length > 0;
-      if (has !== this._lastHasImpact) {
-        this._lastHasImpact = has;
-        this.collapsed.set(!has);
-      }
+      if (has && !this._lastHasImpact) this.collapsed.set(false);
+      this._lastHasImpact = has;
     });
 
     // Impact is cheap to compute → poll it live (~1.5s) so conflicts surface
@@ -104,9 +112,11 @@ export class ImpactPanelComponent implements OnDestroy {
 
   private _fetchImpact(sid: string): void {
     this.api.getImpact(sid).subscribe({
-      next: (items) => {
-        this.store.impact.set(items);
-        const has = items.length > 0;
+      next: (live) => {
+        this.store.impact.set(live);
+        this._rebuildStable(live);
+
+        const has = live.length > 0;
         const newConflict = has && !this._hadImpact;
         const engage = newConflict && this.store.demoActive() && this.store.playing()
           && this.store.interactionMode() !== 'director'
@@ -125,18 +135,34 @@ export class ImpactPanelComponent implements OnDestroy {
           }
         }
 
-        // Drop holds for trains no longer affected (resolved / cleared).
-        if (this._held().size > 0) {
-          const live = new Set(items.map((i) => i.handle));
-          const next = new Set([...this._held()].filter((h) => live.has(h)));
-          if (next.size !== this._held().size) this._held.set(next);
-        }
-
         if (!has) this._stopCountdown();
         this._hadImpact = has;
       },
       error: () => {},
     });
+  }
+
+  /** Merge the live impact into a stable display list: refresh cached rows,
+   *  keep rows for a short grace window (and held rows indefinitely) so they
+   *  don't flicker out, prune the rest, and sort by handle for a stable order. */
+  private _rebuildStable(live: ImpactItem[]): void {
+    const now = Date.now();
+    for (const it of live) {
+      this._cache.set(it.handle, it);
+      this._seenAt.set(it.handle, now);
+    }
+    const out: ImpactItem[] = [];
+    for (const [handle, item] of this._cache) {
+      const fresh = now - (this._seenAt.get(handle) ?? 0) <= ImpactPanelComponent.GRACE_MS;
+      if (fresh || this._held().has(handle)) {
+        out.push(item);
+      } else {
+        this._cache.delete(handle);
+        this._seenAt.delete(handle);
+      }
+    }
+    out.sort((a, b) => a.handle - b.handle);
+    this._stable.set(out);
   }
 
   private _stopPoll(): void {
