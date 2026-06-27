@@ -33,6 +33,24 @@ export class ImpactPanelComponent implements OnDestroy {
   /** Items the user has acted on (applied) → hidden from the list. */
   readonly applied = signal<Set<number>>(new Set<number>());
 
+  /** Affected trains the system is currently holding (localized blocking,
+   *  Co-Learning): they wait for the human's decision while the rest runs. */
+  private readonly _held = signal<Set<number>>(new Set<number>());
+  readonly heldCount = computed(() => this._held().size);
+  isHeld(handle: number): boolean { return this._held().has(handle); }
+
+  /** Hold every still-affected train (STOP) and remember it as held. */
+  private _holdAffected(): void {
+    const next = new Set(this._held());
+    for (const item of this.items()) {
+      if (!next.has(item.handle)) {
+        this.store.systemHold(item.handle);
+        next.add(item.handle);
+      }
+    }
+    this._held.set(next);
+  }
+
   /** Affected trains still pending an action (acted-on ones removed). */
   readonly items = computed<ImpactItem[]>(() =>
     this.store.impact().filter((i) => !this.applied().has(i.handle)),
@@ -88,15 +106,32 @@ export class ImpactPanelComponent implements OnDestroy {
     this.api.getImpact(sid).subscribe({
       next: (items) => {
         this.store.impact.set(items);
-        // Guided demo: gently pause on a NEW conflict so the human decides, and
-        // start the decision countdown (Recommendation & Co-Learning).
         const has = items.length > 0;
-        if (has && !this._hadImpact && this.store.demoActive() && this.store.playing()
-            && this.store.interactionMode() !== 'director'
-            && this.store.autoPauseOnConflict()) {
-          this.store.pause();
-          this._startCountdown();
+        const newConflict = has && !this._hadImpact;
+        const engage = newConflict && this.store.demoActive() && this.store.playing()
+          && this.store.interactionMode() !== 'director'
+          && this.store.autoPauseOnConflict();
+
+        if (engage) {
+          if (this.store.isCoLearning()) {
+            // Localized blocking: hold the affected trains, keep the world
+            // running. The human releases them by deciding (no global pause,
+            // no auto-apply). Delay accrues = realistic pressure.
+            this._holdAffected();
+          } else {
+            // Recommendation: keep the gentle global pause + decision countdown.
+            this.store.pause();
+            this._startCountdown();
+          }
         }
+
+        // Drop holds for trains no longer affected (resolved / cleared).
+        if (this._held().size > 0) {
+          const live = new Set(items.map((i) => i.handle));
+          const next = new Set([...this._held()].filter((h) => live.has(h)));
+          if (next.size !== this._held().size) this._held.set(next);
+        }
+
         if (!has) this._stopCountdown();
         this._hadImpact = has;
       },
@@ -158,6 +193,10 @@ export class ImpactPanelComponent implements OnDestroy {
 
   private dismiss(handle: number): void {
     this.applied.update((s) => new Set(s).add(handle));
+    // The human decided for this train → it's no longer a system hold.
+    if (this._held().has(handle)) {
+      this._held.update((s) => { const n = new Set(s); n.delete(handle); return n; });
+    }
     if (this.items().length === 0) this._stopCountdown();
   }
 

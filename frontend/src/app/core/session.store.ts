@@ -898,6 +898,20 @@ export class SessionStore {
     });
   }
 
+  /** Localized blocking: the SYSTEM holds an affected train (STOP) while the
+   *  rest of the network keeps running, until the human decides. Unlike
+   *  setOverride this is NOT logged as a human intervention — it's the safe
+   *  default that creates the decision moment, not the human's choice. */
+  systemHold(handle: number) {
+    const s = this.session();
+    if (!s) return;
+    this._setLocalOverride(handle, 4); // STOP_MOVING
+    this.api.setOverride(s.id, handle, 4 as any).subscribe({
+      next: () => this.refreshState(),
+      error: () => {},
+    });
+  }
+
   clearOverride(handle: number) {
     const s = this.session();
     if (!s) return;

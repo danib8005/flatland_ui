@@ -1,6 +1,11 @@
 # Localized blocking decisions — hold the affected, not the world
 
-> **Status:** Concept for discussion (not implemented).
+> **Status:** Concept + first prototype. In Co-Learning the guided-demo now
+> holds the affected trains (STOP) on a new conflict instead of globally pausing;
+> the rest of the network keeps running, and the human releases them by deciding
+> (option buttons). Recommendation mode keeps the old gentle global pause.
+> Still open: event-type-dependent scope (area/sector), the autonomy agreement
+> panel (§5.3), and the post-decision outcome feedback (§6.2).
 > **Origin:** Came out of the question "when do I have to find a solution and get
 > feedback?" The realisation: today the decision moment auto-resolves, so a
 > passive human gets a fully AI-driven run — a *disguised director mode*. The fix
