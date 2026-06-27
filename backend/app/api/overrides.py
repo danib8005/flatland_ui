@@ -32,6 +32,47 @@ def _estimate_branch_kpis(env, policy_factory, overrides: dict, horizon: int) ->
     return deadlocks, done
 
 
+def _branch_kpis_full(env, policy_factory, overrides: dict, horizon: int) -> dict:
+    """Forward-simulate a branch and return the KPIs Co-Learning feedback
+    needs: deadlocks, arrived (done), total trains, and total delay."""
+    from app.core.scenario_runner import TrajectoryBranchRunner
+
+    runner = TrajectoryBranchRunner(env, policy_factory)
+    res = runner.run_branch(overrides=overrides, max_steps=horizon)
+    return {
+        "deadlocks": int(res.kpis.get("deadlocks", res.kpis.get("num_deadlock_cycles", 0)) or 0),
+        "done": int(res.success_count or 0),
+        "total": int(res.total_agents or 0),
+        "delay": int(res.kpis.get("total_delay", 0) or 0),
+    }
+
+
+def _whatif_summary(baseline: dict, branch: dict) -> str:
+    """Plain-language consequence of the human's proposed action vs. the
+    current course (baseline). Mirrors the framing used in recommendations."""
+    parts: list[str] = []
+
+    d_delay = branch["delay"] - baseline["delay"]
+    if d_delay < 0:
+        parts.append(f"saves {abs(d_delay)} steps")
+    elif d_delay > 0:
+        parts.append(f"+{d_delay} steps delay")
+
+    d_dl = branch["deadlocks"] - baseline["deadlocks"]
+    if d_dl < 0:
+        parts.append(f"avoids {abs(d_dl)} deadlock(s)")
+    elif d_dl > 0:
+        parts.append(f"risks {d_dl} deadlock(s)")
+
+    d_done = branch["done"] - baseline["done"]
+    if d_done > 0:
+        parts.append(f"{d_done} more train(s) arrive")
+    elif d_done < 0:
+        parts.append(f"{abs(d_done)} fewer train(s) arrive")
+
+    return " · ".join(parts) if parts else "no measurable change vs. current course"
+
+
 @router.post("/{session_id}/agent/{handle}/override")
 def set_override(session_id: str, handle: int, req: OverrideRequest):
     session = session_manager.get(session_id)
@@ -100,6 +141,59 @@ def set_override(session_id: str, handle: int, req: OverrideRequest):
         "session_id": session_id,
         "handle": handle,
         "action": req.action,
+    }
+
+
+class WhatIfRequest(BaseModel):
+    """A hypothetical proposal: handle → action int. Not committed."""
+    overrides: dict[int, int]
+
+
+@router.post("/{session_id}/what-if-override")
+def what_if_override(session_id: str, req: WhatIfRequest):
+    """Read-only Co-Learning feedback: forward-simulate the human's PROPOSED
+    action(s) against the current course (committed overrides) and return the
+    KPI delta + a plain-language consequence — without committing anything.
+
+    This is the reciprocal half of co-learning: the human proposes, the AI
+    gives feedback on the proposal before it is applied."""
+    session = session_manager.get(session_id)
+    if not session:
+        raise HTTPException(404, f"Session {session_id} not found")
+
+    env = session.env
+    n = len(env.agents)
+    for h, a in req.overrides.items():
+        if h < 0 or h >= n:
+            raise HTTPException(404, f"Agent {h} not found")
+        if a not in (0, 1, 2, 3, 4):
+            raise HTTPException(400, f"Invalid action {a}")
+
+    elapsed = int(getattr(env, "_elapsed_steps", 0) or 0)
+    max_ep = int(getattr(env, "_max_episode_steps", 0) or 0)
+    horizon = min(max(50, max_ep - elapsed) if max_ep else 200, 250)
+    policy_id = getattr(session, "policy", None) or "deadlock_avoidance"
+    policy_factory = _policy_factory_for(policy_id)
+
+    # Baseline = current course (already-committed overrides). Branch = baseline
+    # plus the proposed override(s), which win on conflicting handles.
+    baseline_overrides = dict(override_manager.get_all(session_id))
+    branch_overrides = dict(baseline_overrides)
+    branch_overrides.update({int(h): int(a) for h, a in req.overrides.items()})
+
+    baseline = _branch_kpis_full(env, policy_factory, baseline_overrides, horizon)
+    branch = _branch_kpis_full(env, policy_factory, branch_overrides, horizon)
+
+    return {
+        "horizon": horizon,
+        "baseline": baseline,
+        "branch": branch,
+        "delta": {
+            "delay": branch["delay"] - baseline["delay"],
+            "deadlocks": branch["deadlocks"] - baseline["deadlocks"],
+            "done": branch["done"] - baseline["done"],
+        },
+        "summary": _whatif_summary(baseline, branch),
     }
 
 

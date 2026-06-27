@@ -223,6 +223,26 @@
 }
 .ip-na { font-size: 10px; color: var(--sbb-color-granite, #686868); }
 
+/* Co-Learning reciprocity: AI feedback on the hovered option. */
+.ip-opt-feedback {
+  margin-top: 6px;
+  padding: 5px 8px;
+  border-left: 2px solid var(--sbb-color-blue, #0079c7);
+  background: var(--sbb-color-milk, #f6f6f6);
+  font-size: 11px;
+  line-height: 1.35;
+  display: flex;
+  gap: 5px;
+  align-items: baseline;
+}
+.ip-opt-feedback.loading { opacity: 0.7; }
+.ip-fb-label {
+  font-weight: 700;
+  color: var(--sbb-color-charcoal, #212121);
+  white-space: nowrap;
+}
+.ip-fb-text { color: var(--sbb-color-iron, #444); }
+
 /* Decision countdown bar. */
 .ip-countdown {
   margin: 8px 4px 2px;

@@ -119,6 +119,21 @@ export interface ImpactOption {
   recommended: boolean;
 }
 
+/** Forward-sim feedback on a proposed override (Co-Learning reciprocity). */
+export interface WhatIfKpis {
+  deadlocks: number;
+  done: number;
+  total: number;
+  delay: number;
+}
+export interface WhatIfResult {
+  horizon: number;
+  baseline: WhatIfKpis;
+  branch: WhatIfKpis;
+  delta: { delay: number; deadlocks: number; done: number };
+  summary: string;
+}
+
 /** One affected train from the Phase-1 impact analysis (malfunction fallout). */
 export interface ImpactItem {
   handle: number;

@@ -11,7 +11,7 @@ import {
   SessionState,
   StepResponse,
 } from './models';
-import { AppNotification, ImpactItem, KpiPriorities, Recommendation, ScenarioOption } from './events/event-types';
+import { AppNotification, ImpactItem, KpiPriorities, Recommendation, ScenarioOption, WhatIfResult } from './events/event-types';
 
 /** Build the KPI query params for the scenario/recommendation endpoints. */
 function kpiParams(kpi?: KpiPriorities): { [k: string]: string } {
@@ -129,6 +129,15 @@ export class ApiService {
   }
   getMareyData(sessionId: string) {
     return this.http.get<any>(`${API_BASE}/session/${sessionId}/hmi/marey-data`);
+  }
+
+  /** Read-only Co-Learning feedback: forward-simulate a proposed override
+   *  (handle → action int) against the current course, without committing. */
+  whatIfOverride(id: string, overrides: Record<number, ActionInt>) {
+    return this.http.post<WhatIfResult>(
+      `${API_BASE}/session/${id}/what-if-override`,
+      { overrides },
+    );
   }
 
 }

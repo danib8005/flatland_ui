@@ -2,7 +2,8 @@ import { Component, CUSTOM_ELEMENTS_SCHEMA, OnDestroy, computed, effect, inject,
 import { SessionStore } from '../../core/session.store';
 import { ApiService } from '../../core/api.service';
 import { AgentColorService } from '../../core/agent-color.service';
-import { ImpactItem } from '../../core/events/event-types';
+import { ImpactItem, ImpactOption } from '../../core/events/event-types';
+import { ActionInt } from '../../core/models';
 
 /**
  * Impact analysis panel (Phase 1): when a train malfunctions, shows which other
@@ -166,6 +167,62 @@ export class ImpactPanelComponent implements OnDestroy {
 
   agentColor(handle: number): string {
     return this.colors.getColorSolid(handle);
+  }
+
+  // ── Co-Learning reciprocity: AI feedback on the human's PROPOSED option ──
+  // Hovering an option forward-simulates that choice (read-only) and shows
+  // the consequence, so the human gets feedback before committing.
+  readonly optionFeedback = signal<Record<string, { loading: boolean; summary: string }>>({});
+  readonly hoveredOpt = signal<{ handle: number; action: string; label: string } | null>(null);
+
+  /** Cache key includes the step so feedback invalidates as the sim advances
+   *  (during the Co-Learning decision moment the run is paused → key stable). */
+  private optKey(handle: number, action: string): string {
+    return `${handle}:${action}:${this.store.elapsedSteps()}`;
+  }
+
+  /** The consequence line for whatever option is currently hovered. */
+  readonly hoveredFeedback = computed<{ loading: boolean; summary: string } | null>(() => {
+    const h = this.hoveredOpt();
+    if (!h) return null;
+    return this.optionFeedback()[this.optKey(h.handle, h.action)] ?? null;
+  });
+
+  onOptionHover(item: ImpactItem, opt: ImpactOption): void {
+    this.hoveredOpt.set({ handle: item.handle, action: opt.action, label: opt.label });
+    const sess = this.store.session();
+    if (!sess || !opt.available) return;
+
+    const key = this.optKey(item.handle, opt.action);
+    if (this.optionFeedback()[key]) return; // cached for this step
+
+    // "proceed" = stay on the current course (no deviation from baseline).
+    if (opt.action === 'proceed') {
+      this._setFeedback(key, { loading: false, summary: 'current course (no change)' });
+      return;
+    }
+    const action: ActionInt | null =
+      opt.action === 'hold' ? 4 :
+      opt.action === 'reroute' ? ((item.reroute_action ?? null) as ActionInt | null) :
+      null;
+    if (action == null) {
+      this._setFeedback(key, { loading: false, summary: '' });
+      return;
+    }
+
+    this._setFeedback(key, { loading: true, summary: '' });
+    this.api.whatIfOverride(sess.id, { [item.handle]: action }).subscribe({
+      next: (r) => this._setFeedback(key, { loading: false, summary: r.summary }),
+      error: () => this._setFeedback(key, { loading: false, summary: '' }),
+    });
+  }
+
+  onOptionLeave(): void {
+    this.hoveredOpt.set(null);
+  }
+
+  private _setFeedback(key: string, val: { loading: boolean; summary: string }): void {
+    this.optionFeedback.update((m) => ({ ...m, [key]: val }));
   }
 
   /** Click a row → select the affected train (map overlay + cross-view highlight). */

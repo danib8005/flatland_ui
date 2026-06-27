@@ -31,12 +31,13 @@
           @if (store.optionPresentation() === 'none') {
             <div class="ip-overview">AI handling autonomously</div>
           } @else {
-            <div class="ip-options-list">
+            <div class="ip-options-list" (mouseleave)="onOptionLeave()">
               @for (opt of item.options; track opt.action) {
                 <button
                   class="ip-opt"
                   [class.recommended]="store.optionPresentation() === 'recommended' && opt.recommended"
                   [disabled]="!opt.available"
+                  (mouseenter)="onOptionHover(item, opt)"
                   (click)="applyOption(item, opt.action); $event.stopPropagation()">
                   {{ opt.label }}
                   @if (store.optionPresentation() === 'recommended' && opt.recommended) {
@@ -46,6 +47,19 @@
                 </button>
               }
             </div>
+
+            @if (hoveredOpt(); as ho) {
+              @if (hoveredFeedback(); as fb) {
+                <div class="ip-opt-feedback" [class.loading]="fb.loading">
+                  <span class="ip-fb-label">{{ ho.label }} →</span>
+                  @if (fb.loading) {
+                    <span class="ip-fb-text">simulating…</span>
+                  } @else {
+                    <span class="ip-fb-text">{{ fb.summary }}</span>
+                  }
+                </div>
+              }
+            }
           }
         </li>
       }
