@@ -182,12 +182,11 @@ export class RecommendationsPanelComponent implements OnDestroy {
     return this.isAutoDispatchPolicyEnabled(policyId);
   }
 
-  thumbsUp(r: Recommendation) {
-    this.bus.emit({ type: 'RECOMMENDATION_FEEDBACK', recId: r.id, thumbsUp: true });
-    this.dismiss(r);
-  }
-
-  thumbsDown(r: Recommendation) {
+  /** Decline the recommendation: the policy change is NOT applied, the card
+   *  is dismissed. We still record the decision (accepted vs. rejected) as a
+   *  signal for the co-learning / calibrated-trust loop — but it's framed as
+   *  a decision, not a like/dislike. */
+  reject(r: Recommendation) {
     this.bus.emit({ type: 'RECOMMENDATION_FEEDBACK', recId: r.id, thumbsUp: false });
     this.dismiss(r);
   }
