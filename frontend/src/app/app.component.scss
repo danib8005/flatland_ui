@@ -139,6 +139,10 @@
   background: var(--sbb-color-milk, #f6f6f6);
   overflow-y: auto;
   overflow-x: hidden;
+  /* Reserve the scrollbar gutter so panels that grow/shrink with live
+     polling (impact auto-collapse, etc.) don't toggle the scrollbar and
+     shift the column sideways — that was the visible "flicker". */
+  scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
   min-height: 0;
