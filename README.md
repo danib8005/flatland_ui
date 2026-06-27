@@ -4,10 +4,9 @@ Human-in-the-loop train dispatching based on the [Flatland Reinforcement Learnin
 
 The frontend follows the official [SBB Design System](https://digital.sbb.ch/en/) and uses [SBB Lyne Web Components](https://lyne-angular.app.sbb.ch/).
 
-https://raw.githubusercontent.com/danib8005/flatland_ui/experiment/vibecoding-playground/docs/media/guided-demo.mp4
+![Guided demo: Recommendation → Co-Learning → Director](docs/media/guided-demo.gif)
 
-> Guided demo walkthrough (Recommendation → Co-Learning → Director). If the player
-> above doesn't load, [open the clip](docs/media/guided-demo.mp4).
+> Guided demo walkthrough. For the full-quality clip see [guided-demo.mp4](docs/media/guided-demo.mp4).
 
 > **Playground branch (`experiment/vibecoding-playground`):** this fork makes the
 > three AI4REALNET collaboration modes behaviourally distinct (Recommendation /
