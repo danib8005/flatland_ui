@@ -150,3 +150,75 @@ KPI fields listed, and the interaction events it emits."
 final model: "Here are design proposals from three LLMs (pasted below).
 De-duplicate, cluster by theme, and rank by impact-to-effort for a real-time
 rail dispatching HMI."
+
+---
+
+## ░ MINI-ROUND FOLLOW-UP PROMPT (build-ready) ░
+
+> Use after the first round, once you've picked a tile to build. Paste this into
+> 1–2 strong models (GPT-5.5-pro, Claude Opus 4.8, or Gemini Pro). Replace
+> `<TILE>` with the chosen idea (e.g. "Conflict-aware Marey" or "Triage'd
+> notification column"). The point is a spec Claude Code can implement directly —
+> the model is secondary, the spec is the product.
+
+You previously proposed UI tiles for the **Flatland Dispatcher**, a human-in-the-
+loop railway-dispatching HMI (Angular standalone components + signals, SBB Lyne,
+real-time WebSocket; abstract Flatland grid; three modes Recommendation /
+Co-Learning / Director; what-if convention human=blue, AI-simulated=yellow).
+
+Take **one** tile — **`<TILE>`** — and turn it into a **build-ready spec** for an
+Angular standalone component. Be concrete and implementation-level:
+
+1. **Component contract:** name, inputs (as signals), outputs/events it emits, and
+   which shared store signals it reads (e.g. selected train, brushed time window,
+   interaction mode).
+2. **Data transform:** exactly which fields it consumes — per train
+   (`position, direction, speed, delay, eta, time_to_deadline, earliest_departure,
+   latest_arrival, next_decision.options, malfunction_remaining, state`), per
+   network (rail topology, predicted conflicts, per-scenario KPIs:
+   `total_delay, deadlocks, completions, mean_delay`), compressed trajectories —
+   and the transform from those into what's drawn.
+3. **Render structure:** SVG vs Canvas, the element hierarchy, and how it updates
+   on each WebSocket tick without re-rendering everything (respect throttling).
+4. **Interaction & states:** hover / select / brush / drill-in; empty, loading,
+   and error states; keyboard access.
+5. **Mode behaviour:** how it differs across Recommendation / Co-Learning /
+   Director (and where it shows a *recommended* option vs *neutral* options vs
+   *none*).
+6. **Failure modes:** how this visualisation could mislead a tired dispatcher at
+   3am, and the specific guardrail against each.
+7. **Smallest first version:** the minimum slice worth shipping, and what to defer.
+
+Output as a spec, not prose. Assume an engineer (or a coding agent) implements
+directly from it. Flag any data we'd need that probably isn't available yet.
+
+## ░ END MINI-ROUND ░
+
+---
+
+## ░ REFERENCES & USE-CASE FOLLOW-UP PROMPT ░
+
+> Paste under a model's first-round answer (works well for Opus, GPT-5.5-pro,
+> Gemini). Sonar gives citations natively; this makes the *non-web* models put
+> their grounding and concrete scenarios on the record too. Ask for it explicitly —
+> otherwise they stay abstract.
+
+For your **top 3 tile ideas**, add two things to each:
+
+1. **Grounding references (be specific and verifiable):** name the standard,
+   paper, product, or control room the pattern comes from — e.g. "EEMUA 191",
+   "ISA-18.2", "UIC Code 406 blocking-time", "Tufte, *Envisioning Information*",
+   "SBB RCS-Dispo", "ETCS Level 2". Prefer named, checkable sources over vague
+   "control-room practice". If you are not sure a source exists, say so rather
+   than inventing a citation — a fabricated reference is worse than none.
+2. **A concrete use-case walkthrough (a 4–6 step scenario):** a specific
+   dispatching moment on a Flatland grid where this tile changes the outcome.
+   Format: *Situation → what the dispatcher sees on the tile → the decision they
+   make → what they'd have done without it → the measurable difference
+   (delay/deadlocks/arrivals)*. Use concrete train IDs, cells, and step numbers.
+
+Keep each tile to ~8 lines. Do not re-explain the tile from scratch — only add
+the references and the walkthrough. Flag any reference you are not confident is
+real.
+
+## ░ END REFERENCES & USE-CASE ░
