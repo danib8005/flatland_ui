@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, HostBinding, Input } from '@angular/core';
 import { LeftSidebarComponent } from '../left-sidebar/left-sidebar.component';
 
 @Component({
@@ -9,4 +9,12 @@ import { LeftSidebarComponent } from '../left-sidebar/left-sidebar.component';
   styleUrl: './agents-panel.component.scss',
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
-export class AgentsPanelComponent {}
+export class AgentsPanelComponent {
+  @Input() embedded = false;
+
+  @HostBinding('class.embedded')
+  get embeddedClass(): boolean {
+    return this.embedded;
+  }
+}
+
