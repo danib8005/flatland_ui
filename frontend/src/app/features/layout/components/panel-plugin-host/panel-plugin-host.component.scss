@@ -5,6 +5,17 @@
 }
 
 .panel-plugin-host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.panel-plugin-host > * {
+  width: 100%;
+  min-width: 0;
+}
+
+.panel-plugin-host__placeholder {
   display: grid;
   gap: var(--sbb-spacing-fixed-1x, 0.25rem);
   min-width: 0;

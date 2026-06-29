@@ -1,7 +1,37 @@
 <div class="panel-plugin-host">
-  <div class="panel-plugin-host__label">Plugin host</div>
-  <div class="panel-plugin-host__type">{{ panel.type }}</div>
-  <div class="panel-plugin-host__hint">
-    Existing feature components will be connected here in the next migration step.
-  </div>
+  @switch (panel.type) {
+    @case ('notifications') {
+      <app-notifications-panel></app-notifications-panel>
+    }
+
+    @case ('agents') {
+      <app-agents-panel></app-agents-panel>
+    }
+
+    @case ('kpi-filter') {
+      <app-kpi-filter></app-kpi-filter>
+    }
+
+    @case ('scenario') {
+      <app-scenario-panel></app-scenario-panel>
+    }
+
+    @case ('recommendations') {
+      <app-recommendations-panel></app-recommendations-panel>
+    }
+
+    @case ('impact') {
+      <app-impact-panel></app-impact-panel>
+    }
+
+    @default {
+      <div class="panel-plugin-host__placeholder">
+        <div class="panel-plugin-host__label">Plugin host</div>
+        <div class="panel-plugin-host__type">{{ panel.type }}</div>
+        <div class="panel-plugin-host__hint">
+          No plugin component has been mapped for this panel type yet.
+        </div>
+      </div>
+    }
+  }
 </div>
