@@ -22,7 +22,7 @@ export class KpiFilterComponent {
   /** KPI is the primary directive lever in Director mode → expanded there;
    *  collapsed elsewhere to keep the screen simple. Re-defaults on mode change;
    *  the user can still toggle within a mode. */
-  readonly collapsed = signal<boolean>(true);
+  readonly collapsed = signal<boolean>(false);
 
   constructor() {
     effect(() => {

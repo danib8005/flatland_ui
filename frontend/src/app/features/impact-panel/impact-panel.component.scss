@@ -285,3 +285,18 @@
   background: var(--sbb-color-blue, #0079c7);
   transition: width 1s linear;
 }
+
+
+/* SBB Lyne expansion-panel migration.
+   The caret/expand affordance is provided by <sbb-expansion-panel>. */
+sbb-expansion-panel.impact-panel {
+  display: block;
+}
+
+sbb-expansion-panel-header.ip-panel-head {
+  width: 100%;
+}
+
+.ip-caret {
+  display: none;
+}

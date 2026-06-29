@@ -22,7 +22,7 @@ export class ScenarioPanelComponent {
 
   /** Collapsible panel. Default: collapsed in Recommendation/Co-Learning (focus on
    *  the per-train decision), expanded in Director (policy is the directive). */
-  readonly collapsed = signal<boolean>(true);
+  readonly collapsed = signal<boolean>(false);
   toggleCollapsed(): void { this.collapsed.update((v) => !v); }
   private _lastDirector: boolean | null = null;
 

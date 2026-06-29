@@ -1,30 +1,32 @@
-<div class="kpi-filter">
-  <button class="kpi-panel-head" type="button" (click)="toggleCollapsed()"
-          [attr.aria-expanded]="!collapsed()">
-    <span class="panel-title">KPI Filter</span>
-    <span class="kpi-caret" [class.open]="!collapsed()" aria-hidden="true">▸</span>
-  </button>
+<sbb-expansion-panel class="lyne-feature-panel kpi-filter-lyne-panel" color="white" size="s" expanded>
+  <sbb-expansion-panel-header>
+    <span class="lyne-panel-title">KPI filter</span>
+  </sbb-expansion-panel-header>
 
-  @if (!collapsed()) {
-  <p class="hint">Adjust optimization weights</p>
+  <sbb-expansion-panel-content class="lyne-panel-content">
+  <div class="kpi-filter">
 
-  <div class="kpi-list">
-    @for (kpi of kpis; track kpi.key) {
-      <div class="kpi-row">
-        <div class="kpi-head">
-          <span class="kpi-label">{{ kpi.label }}</span>
-          <span class="kpi-value">{{ pct(store.kpiPriorities()[kpi.key]) }}</span>
+    <p class="hint">Adjust optimization weights</p>
+
+    <div class="kpi-list">
+      @for (kpi of kpis; track kpi.key) {
+        <div class="kpi-row">
+          <div class="kpi-head">
+            <span class="kpi-label">{{ kpi.label }}</span>
+            <span class="kpi-value">{{ pct(store.kpiPriorities()[kpi.key]) }}</span>
+          </div>
+          <div class="dots">
+            @for (filled of dotStates(store.kpiPriorities()[kpi.key]); track $index; let i = $index) {
+              <span class="dot"
+                    [class.filled]="filled"
+                    (click)="setValue(kpi.key, (i + 1) / 10)">
+              </span>
+            }
+          </div>
         </div>
-        <div class="dots">
-          @for (filled of dotStates(store.kpiPriorities()[kpi.key]); track $index; let i = $index) {
-            <span class="dot"
-                  [class.filled]="filled"
-                  (click)="setValue(kpi.key, (i + 1) / 10)">
-            </span>
-          }
-        </div>
-      </div>
-    }
+      }
+    </div>
+    
   </div>
-  }
-</div>
+  </sbb-expansion-panel-content>
+</sbb-expansion-panel>

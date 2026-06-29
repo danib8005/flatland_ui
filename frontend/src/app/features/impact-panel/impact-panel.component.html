@@ -1,10 +1,10 @@
-<div class="impact-panel">
-  <button class="ip-panel-head" type="button" (click)="toggleCollapsed()"
-          [attr.aria-expanded]="!collapsed()">
+<sbb-expansion-panel class="impact-panel" color="white" size="s">
+  <sbb-expansion-panel-header class="ip-panel-head">
     <span class="panel-title" title="Trains whose route is blocked by another train's malfunction before it clears — not the malfunctioning trains themselves (those appear in Notifications).">Disruption Conflicts</span>
     <span class="ip-count" [class.zero]="items().length === 0">{{ items().length }}</span>
-    <span class="ip-caret" [class.open]="!collapsed()" aria-hidden="true">▸</span>
-  </button>
+  </sbb-expansion-panel-header>
+
+  <sbb-expansion-panel-content class="lyne-panel-content">
 
   @if (!collapsed()) {
     @if (items().length === 0) {
@@ -82,4 +82,5 @@
     }
     }
   }
-</div>
+  </sbb-expansion-panel-content>
+</sbb-expansion-panel>

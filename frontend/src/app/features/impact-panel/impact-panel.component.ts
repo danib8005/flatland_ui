@@ -66,7 +66,7 @@ export class ImpactPanelComponent implements OnDestroy {
 
   /** Panel stays visible always; auto-expands when trains are affected,
    *  auto-collapses when nothing is going on. User can still toggle. */
-  readonly collapsed = signal<boolean>(true);
+  readonly collapsed = signal<boolean>(false);
   private _lastHasImpact = false;
 
   /** Decision countdown (seconds left) before the system auto-applies the
