@@ -1,11 +1,19 @@
-<sbb-expansion-panel class="lyne-feature-panel kpi-filter-lyne-panel" color="white" size="s" expanded>
-  <sbb-expansion-panel-header>
-    <span class="lyne-panel-title">KPI filter</span>
-  </sbb-expansion-panel-header>
+@if (embedded) {
+  <ng-container [ngTemplateOutlet]="kpiFilterContent"></ng-container>
+} @else {
+  <sbb-expansion-panel class="lyne-feature-panel kpi-filter-lyne-panel" color="white" size="s" expanded>
+    <sbb-expansion-panel-header>
+      <span class="lyne-panel-title">KPI filter</span>
+    </sbb-expansion-panel-header>
 
-  <sbb-expansion-panel-content class="lyne-panel-content">
+    <sbb-expansion-panel-content class="lyne-panel-content">
+      <ng-container [ngTemplateOutlet]="kpiFilterContent"></ng-container>
+    </sbb-expansion-panel-content>
+  </sbb-expansion-panel>
+}
+
+<ng-template #kpiFilterContent>
   <div class="kpi-filter">
-
     <p class="hint">Adjust optimization weights</p>
 
     <div class="kpi-list">
@@ -26,7 +34,5 @@
         </div>
       }
     </div>
-    
   </div>
-  </sbb-expansion-panel-content>
-</sbb-expansion-panel>
+</ng-template>
