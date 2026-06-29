@@ -1,0 +1,115 @@
+:host {
+  display: block;
+  border-bottom: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  flex-shrink: 0;
+}
+
+.goal {
+  padding: 12px 16px;
+  background: var(--sbb-color-milk, #f6f6f6);
+  border-left: 3px solid var(--sbb-color-orange, #ffaa00);
+  border-radius: 4px;
+  margin: 4px;
+}
+
+.goal-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--sbb-color-granite, #686868);
+  margin: 0;
+}
+
+.goal-sub {
+  font-size: 11px;
+  color: var(--sbb-color-granite, #686868);
+}
+
+.goal-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.goal-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 4px solid var(--sbb-color-cloud, #d2d2d2);
+  background: var(--sbb-color-white, #fff);
+}
+.goal-ring.ok { border-color: #00973b; }
+
+.goal-ring-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--sbb-color-charcoal, #212121);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.goal-ring-lbl {
+  font-size: 9px;
+  color: var(--sbb-color-granite, #686868);
+}
+
+.goal-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--sbb-color-cloud, #d2d2d2);
+  overflow: hidden;
+}
+
+.goal-bar-fill {
+  height: 100%;
+  background: var(--sbb-color-orange, #ffaa00);
+  transition: width 0.3s ease;
+}
+.goal-bar-fill.ok { background: #00973b; }
+
+.goal-targets {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--sbb-color-charcoal, #212121);
+}
+
+.target-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--sbb-color-red, #eb0000);
+}
+.target.ok .target-dot { background: #00973b; }
+.target.neutral .target-dot { background: var(--sbb-color-granite, #686868); }
+
+.target-text { flex: 1; }
+
+.target-val {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

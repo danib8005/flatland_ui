@@ -98,11 +98,28 @@
   color: var(--sbb-color-granite, #686868);
 }
 
+.rec-card.previewable {
+  cursor: help;
+}
+
 .title {
   font-size: 13px;
   font-weight: 600;
   color: var(--sbb-color-charcoal, #212121);
   margin: 0 0 4px 0;
+}
+
+.preview-hint {
+  font-size: 10px;
+  font-style: italic;
+  color: var(--sbb-color-granite, #686868);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.rec-card.previewable:hover .preview-hint {
+  color: var(--sbb-color-iron, #444);
 }
 
 .desc {
@@ -146,11 +163,6 @@
 .btn:hover {
   background: var(--sbb-color-cloud, #d2d2d2);
 }
-.btn-feedback {
-  width: 32px;
-  flex-shrink: 0;
-  font-size: 14px;
-}
 .btn-accept {
   flex: 1;
   background: var(--sbb-color-charcoal, #212121);
@@ -161,6 +173,16 @@
 .btn-accept:hover {
   background: #000;
   border-color: #000;
+}
+.btn-reject {
+  flex: 1;
+  font-size: 11px;
+  color: var(--sbb-color-granite, #686868);
+}
+.btn-reject:hover {
+  background: var(--sbb-color-milk, #f6f6f6);
+  border-color: #eb0000;
+  color: #eb0000;
 }
 
 
@@ -205,3 +227,23 @@
     0 6px 18px rgba(0, 0, 0, 0.16) !important;
 }
 /* app interaction color concept overrides - end */
+
+/* Collapsible panel header. */
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+.panel-head .panel-title { margin: 0; }
+.panel-caret {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--sbb-color-granite, #686868);
+  transition: transform 0.15s ease;
+}
+.panel-caret.open { transform: rotate(90deg); }

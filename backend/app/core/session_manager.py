@@ -17,6 +17,11 @@ class Session:
         self.env = env
         self.last_observations = None
         self.last_info = None
+        # Creation seed + episode length, so reset() can replay the IDENTICAL
+        # scenario (same rail, schedule, malfunctions) instead of rolling a new
+        # random episode. Set by SessionManager.create.
+        self.seed: int | None = None
+        self.max_episode_steps: int | None = None
         # Currently active policy (used as baseline in /hmi/scenarios
         # and applied to every step unless overridden in the step request).
         self.policy: str = "deadlock_avoidance"
@@ -53,6 +58,11 @@ class SessionManager:
         enabled_policy_set = set(enabled_policy_ids or []) if enabled_policy_ids is not None else None
         env = create_env(**env_kwargs)
         session = Session(sid, env, enabled_scenario_policy_set, enabled_policy_set)
+        seed = env_kwargs.get("seed")
+        session.seed = int(seed) if seed is not None else None
+        session.max_episode_steps = (
+            int(max_ep_override) if max_ep_override is not None and int(max_ep_override) > 0 else None
+        )
         # env_factory already reset() the env (inside its retry block, so
         # IndexErrors from timetable_generator are caught). Reuse stashed
         # obs/info instead of resetting again.

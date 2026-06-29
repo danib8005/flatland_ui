@@ -14,6 +14,20 @@ export type KpiPriorities = {
   trainRouting: number;
 };
 
+/** Normalised KPI weights (each in [0,1], summing to 1). Derived from the
+ *  raw KpiPriorities sliders. This is the value consumers should read so the
+ *  KPI filter has a single, well-defined effect surface. */
+export type KpiWeights = KpiPriorities;
+
+/**
+ * Human-AI collaboration mode the operator is currently working in.
+ * Maps to the AI4REALNET work packages:
+ *  - 'recommendation' = WP 3.1 (AI suggests, human decides)
+ *  - 'co-learning'    = WP 3.3 (human and AI adapt to each other)
+ *  - 'director'       = WP 3.4 (AI acts autonomously on high-level directives)
+ */
+export type InteractionMode = 'recommendation' | 'co-learning' | 'director';
+
 export type NotificationKind = 'info' | 'warning' | 'error';
 
 export interface AppNotification {
@@ -95,6 +109,47 @@ export interface Recommendation {
   confidence: number;
   countdownSeconds: number;
   scenarioId?: string;
+}
+
+/** One tactical option for an affected train. */
+export interface ImpactOption {
+  action: 'hold' | 'reroute' | 'proceed';
+  label: string;
+  available: boolean;
+  recommended: boolean;
+}
+
+/** Forward-sim feedback on a proposed override (Co-Learning reciprocity). */
+export interface WhatIfKpis {
+  deadlocks: number;
+  done: number;
+  total: number;
+  delay: number;
+}
+export interface WhatIfResult {
+  horizon: number;
+  baseline: WhatIfKpis;
+  branch: WhatIfKpis;
+  delta: { delay: number; deadlocks: number; done: number };
+  summary: string;
+}
+
+/** One affected train from the Phase-1 impact analysis (malfunction fallout). */
+export interface ImpactItem {
+  handle: number;
+  blocked_by: number;
+  blocked_cell: [number, number];
+  eta_steps: number;
+  clears_in_steps: number;
+  can_reroute: boolean;
+  /** Override action that takes the alternative branch at the next switch
+   *  (RailEnvActions: LEFT=1, FORWARD=2, RIGHT=3); null if no reroute exists. */
+  reroute_action?: number | null;
+  /** Cell of the switch where the reroute override applies, for context. */
+  reroute_cell?: [number, number] | null;
+  recommended_action: 'reroute' | 'hold';
+  options?: ImpactOption[];
+  severity: 'high' | 'medium';
 }
 
 export type AppEvent =

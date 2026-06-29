@@ -1,0 +1,85 @@
+<div class="impact-panel">
+  <button class="ip-panel-head" type="button" (click)="toggleCollapsed()"
+          [attr.aria-expanded]="!collapsed()">
+    <span class="panel-title" title="Trains whose route is blocked by another train's malfunction before it clears — not the malfunctioning trains themselves (those appear in Notifications).">Disruption Conflicts</span>
+    <span class="ip-count" [class.zero]="items().length === 0">{{ items().length }}</span>
+    <span class="ip-caret" [class.open]="!collapsed()" aria-hidden="true">▸</span>
+  </button>
+
+  @if (!collapsed()) {
+    @if (items().length === 0) {
+      <p class="ip-empty">No affected trains right now.</p>
+    } @else {
+    @if (heldCount() > 0) {
+      <div class="ip-held-banner">
+        <strong>{{ heldCount() }} train(s) held</strong> — waiting for your decision.
+        The rest of the network keeps running.
+      </div>
+    }
+    <ul class="ip-list">
+      @for (item of items(); track item.handle) {
+        <li class="ip-item clickable"
+            [class.high]="item.severity === 'high'"
+            [class.selected]="store.selectedHandle() === item.handle"
+            (click)="select(item)"
+            (mouseenter)="onEnter(item)"
+            (mouseleave)="onLeave()">
+          <div class="ip-row">
+            <span class="ip-dot" [style.background]="agentColor(item.handle)"></span>
+            <span class="ip-title">Train {{ item.handle }}</span>
+            @if (isHeld(item.handle)) { <span class="ip-held-tag">held</span> }
+            <span class="ip-sev" [class.high]="item.severity === 'high'">{{ item.severity }}</span>
+          </div>
+          <div class="ip-why">
+            blocked by Train {{ item.blocked_by }} at ({{ item.blocked_cell[0] }}, {{ item.blocked_cell[1] }})
+            · reaches in {{ item.eta_steps }} · clears in {{ item.clears_in_steps }}
+          </div>
+
+          @if (store.optionPresentation() === 'none') {
+            <div class="ip-overview">AI handling autonomously</div>
+          } @else {
+            <div class="ip-options-list" (mouseleave)="onOptionLeave()">
+              @for (opt of item.options; track opt.action) {
+                <button
+                  class="ip-opt"
+                  [class.recommended]="store.optionPresentation() === 'recommended' && opt.recommended"
+                  [disabled]="!opt.available"
+                  (mouseenter)="onOptionHover(item, opt)"
+                  (click)="applyOption(item, opt.action); $event.stopPropagation()">
+                  {{ opt.label }}
+                  @if (store.optionPresentation() === 'recommended' && opt.recommended) {
+                    <span class="ip-rec-tag">Recommended</span>
+                  }
+                  @if (!opt.available) { <span class="ip-na">n/a</span> }
+                </button>
+              }
+            </div>
+
+            @if (hoveredOpt(); as ho) {
+              @if (hoveredFeedback(); as fb) {
+                <div class="ip-opt-feedback" [class.loading]="fb.loading">
+                  <span class="ip-fb-label">{{ ho.label }} →</span>
+                  @if (fb.loading) {
+                    <span class="ip-fb-text">simulating…</span>
+                  } @else {
+                    <span class="ip-fb-text">{{ fb.summary }}</span>
+                  }
+                </div>
+              }
+            }
+          }
+        </li>
+      }
+    </ul>
+
+    @if (countdownRemaining() !== null) {
+      <div class="ip-countdown">
+        <div class="ip-cd-text">
+          AI decides in <strong>{{ countdownRemaining() }}s</strong> if you don't
+        </div>
+        <div class="ip-cd-bar"><div class="ip-cd-fill" [style.width.%]="countdownPct() * 100"></div></div>
+      </div>
+    }
+    }
+  }
+</div>

@@ -1,0 +1,39 @@
+<div class="goal">
+  <div class="goal-head">
+    <h3 class="panel-title">Goal Achievement</h3>
+    <span class="goal-sub">vs. directive targets</span>
+  </div>
+
+  <div class="goal-main">
+    <div class="goal-ring" [class.ok]="arrivedOk()">
+      <span class="goal-ring-num">{{ arrivedPct() }}%</span>
+      <span class="goal-ring-lbl">arrived</span>
+    </div>
+    <div class="goal-bar">
+      <div class="goal-bar-fill" [class.ok]="arrivedOk()" [style.width.%]="arrivedPct()"></div>
+    </div>
+  </div>
+
+  <div class="goal-targets">
+    <div class="target" [class.ok]="arrivedOk()">
+      <span class="target-dot"></span>
+      <span class="target-text">All trains arrive</span>
+      <span class="target-val">{{ arrived() }}/{{ total() }}</span>
+    </div>
+    <div class="target" [class.ok]="delayOk()">
+      <span class="target-dot"></span>
+      <span class="target-text">Mean delay ≤ {{ meanDelayTarget }}</span>
+      <span class="target-val">{{ meanDelay() }}</span>
+    </div>
+    <div class="target" [class.ok]="malfunctionOk()">
+      <span class="target-dot"></span>
+      <span class="target-text">No malfunctions</span>
+      <span class="target-val">{{ malfunctions() }}</span>
+    </div>
+    <div class="target neutral">
+      <span class="target-dot"></span>
+      <span class="target-text">On time</span>
+      <span class="target-val">{{ onTimePct() }}%</span>
+    </div>
+  </div>
+</div>

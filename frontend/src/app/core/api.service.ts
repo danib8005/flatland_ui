@@ -11,7 +11,18 @@ import {
   SessionState,
   StepResponse,
 } from './models';
-import { AppNotification, Recommendation, ScenarioOption } from './events/event-types';
+import { AppNotification, ImpactItem, KpiPriorities, Recommendation, ScenarioOption, WhatIfResult } from './events/event-types';
+
+/** Build the KPI query params for the scenario/recommendation endpoints. */
+function kpiParams(kpi?: KpiPriorities): { [k: string]: string } {
+  if (!kpi) return {};
+  return {
+    kpi_time: String(kpi.time),
+    kpi_energy: String(kpi.energy),
+    kpi_platform: String(kpi.platformRouting),
+    kpi_train: String(kpi.trainRouting),
+  };
+}
 
 export interface HmiBundle {
   notifications: AppNotification[];
@@ -75,12 +86,16 @@ export class ApiService {
     return this.http.get<AppNotification[]>(`${API_BASE}/session/${id}/hmi/notifications`);
   }
 
-  getScenarios(id: string) {
-    return this.http.get<ScenarioOption[]>(`${API_BASE}/session/${id}/hmi/scenarios`);
+  getScenarios(id: string, kpi?: KpiPriorities) {
+    return this.http.get<ScenarioOption[]>(`${API_BASE}/session/${id}/hmi/scenarios`, { params: kpiParams(kpi) });
   }
 
-  getRecommendations(id: string) {
-    return this.http.get<Recommendation[]>(`${API_BASE}/session/${id}/hmi/recommendations`);
+  getRecommendations(id: string, kpi?: KpiPriorities) {
+    return this.http.get<Recommendation[]>(`${API_BASE}/session/${id}/hmi/recommendations`, { params: kpiParams(kpi) });
+  }
+
+  getImpact(id: string) {
+    return this.http.get<ImpactItem[]>(`${API_BASE}/session/${id}/hmi/impact`);
   }
 
   getHmiBundle(id: string) {
@@ -114,6 +129,15 @@ export class ApiService {
   }
   getMareyData(sessionId: string) {
     return this.http.get<any>(`${API_BASE}/session/${sessionId}/hmi/marey-data`);
+  }
+
+  /** Read-only Co-Learning feedback: forward-simulate a proposed override
+   *  (handle → action int) against the current course, without committing. */
+  whatIfOverride(id: string, overrides: Record<number, ActionInt>) {
+    return this.http.post<WhatIfResult>(
+      `${API_BASE}/session/${id}/what-if-override`,
+      { overrides },
+    );
   }
 
 }

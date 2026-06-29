@@ -385,3 +385,23 @@
 /* Semantic warning/error/recommended tags keep their own semantic colors.
    This override only concerns interaction states. */
 /* app interaction color concept overrides - end */
+
+/* Collapsible panel header. */
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+.panel-head .panel-title { margin: 0; }
+.panel-caret {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--sbb-color-granite, #686868);
+  transition: transform 0.15s ease;
+}
+.panel-caret.open { transform: rotate(90deg); }

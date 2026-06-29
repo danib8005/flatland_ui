@@ -1,12 +1,17 @@
 <div class="kpi-filter">
-  <h3 class="panel-title">KPI Filter</h3>
+  <button class="kpi-panel-head" type="button" (click)="toggleCollapsed()"
+          [attr.aria-expanded]="!collapsed()">
+    <span class="panel-title">KPI Filter</span>
+    <span class="kpi-caret" [class.open]="!collapsed()" aria-hidden="true">▸</span>
+  </button>
+
+  @if (!collapsed()) {
   <p class="hint">Adjust optimization weights</p>
 
   <div class="kpi-list">
     @for (kpi of kpis; track kpi.key) {
       <div class="kpi-row">
         <div class="kpi-head">
-          <span class="kpi-icon">{{ kpi.icon }}</span>
           <span class="kpi-label">{{ kpi.label }}</span>
           <span class="kpi-value">{{ pct(store.kpiPriorities()[kpi.key]) }}</span>
         </div>
@@ -21,4 +26,5 @@
       </div>
     }
   </div>
+  }
 </div>

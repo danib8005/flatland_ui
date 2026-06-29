@@ -186,15 +186,12 @@ export class NotificationsPanelComponent implements OnDestroy {
     this.store.notifications.set(cur.filter((x) => x.id !== n.id));
   }
 
-  iconFor(kind: string): string {
-    switch (kind) {
-      case 'error':
-        return '⛔';
-      case 'warning':
-        return '⚠';
-      default:
-        return 'ⓘ';
-    }
+  errorCount(): number {
+    return this.store.notifications().filter((n) => n.kind === 'error').length;
+  }
+
+  warningCount(): number {
+    return this.store.notifications().filter((n) => n.kind === 'warning').length;
   }
 
   ngOnDestroy() {

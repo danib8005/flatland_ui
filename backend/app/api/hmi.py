@@ -86,6 +86,27 @@ def get_notifications(session_id: str):
     return generate_notifications(session_id, _step_for(session_id))
 
 
+@router.get("/{session_id}/hmi/impact")
+def get_impact(session_id: str):
+    """Impact analysis / intervention recommendations: trains affected by a
+    malfunctioning train, with a per-train recommendation. Produced by the active
+    InterventionRecommender (pluggable seam) — Phase-1 proximity today, PP replan
+    / RL later. Empty when there is no active malfunction."""
+    from app.core.recommenders.registry import active_recommender
+
+    sess = session_manager.get(session_id)
+    if not sess:
+        raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+    env = getattr(sess, "env", None)
+    if env is None:
+        return []
+    try:
+        return active_recommender().recommend(env)
+    except Exception as e:
+        _perf_log.warning("Impact analysis failed for %s: %r", session_id, e)
+        return []
+
+
 # ── scenarios (real, with mock fallback) ───────────────────────────
 
 
@@ -93,6 +114,10 @@ def get_notifications(session_id: str):
 def get_scenarios(
     session_id: str,
     horizon: int | None = Query(None, ge=10, le=2000, description="Branch lookahead; defaults to remaining episode."),
+    kpi_time: float = Query(1.0, ge=0.0, le=1.0, description="KPI priority: time"),
+    kpi_energy: float = Query(0.5, ge=0.0, le=1.0, description="KPI priority: energy"),
+    kpi_platform: float = Query(0.5, ge=0.0, le=1.0, description="KPI priority: platform routing"),
+    kpi_train: float = Query(0.5, ge=0.0, le=1.0, description="KPI priority: train routing"),
 ):
     """What-if scenarios across alternative POLICIES.
 
@@ -104,7 +129,9 @@ def get_scenarios(
     the env actually advances.
     """
     from app.core.scenario_cache import scenario_cache
-    from app.core.scenario_builder import ScenarioBuilder
+    from app.core.scenario_builder import ScenarioBuilder, scoring_weights_from_kpi
+
+    weights = scoring_weights_from_kpi(kpi_time, kpi_energy, kpi_platform, kpi_train)
 
     sess = session_manager.get(session_id)
     if not sess:
@@ -158,9 +185,12 @@ def get_scenarios(
     override_hash = hashlib.md5(
         str(sorted(overrides.items())).encode()
     ).hexdigest()[:8]
+    kpi_hash = hashlib.md5(
+        f"{weights.done:.3f}:{weights.delay:.3f}:{weights.deadlock:.3f}".encode()
+    ).hexdigest()[:6]
     cache_key_step = elapsed * 1000 + int(horizon)
-    cache_key_str = f"{cache_key_step}:{override_hash}"
-    
+    cache_key_str = f"{cache_key_step}:{override_hash}:{kpi_hash}"
+
     cached = scenario_cache.get(session_id, cache_key_str)
     if cached is not None:
         _perf_log.info(
@@ -193,7 +223,7 @@ def get_scenarios(
         n_agents = len(env.get_agent_handles()) if hasattr(env, 'get_agent_handles') else 0
         n_policies = 1 + len(candidates)  # baseline + candidates
         t_total0 = time.perf_counter()
-        builder = ScenarioBuilder(env, baseline_id, baseline_factory, session_id=session_id)
+        builder = ScenarioBuilder(env, baseline_id, baseline_factory, session_id=session_id, scoring_weights=weights)
         scenarios = builder.generate_scenarios(
             candidate_policies=candidates,
             horizon=horizon,
@@ -224,12 +254,20 @@ def get_scenarios(
 
 
 @router.get("/{session_id}/hmi/recommendations", response_model=list[Recommendation])
-def get_recommendations(session_id: str):
+def get_recommendations(
+    session_id: str,
+    kpi_time: float = Query(1.0, ge=0.0, le=1.0),
+    kpi_energy: float = Query(0.5, ge=0.0, le=1.0),
+    kpi_platform: float = Query(0.5, ge=0.0, le=1.0),
+    kpi_train: float = Query(0.5, ge=0.0, le=1.0),
+):
     """Surface the top-scoring alternative policy as a Recommendation,
     only if it clearly beats the current baseline. Empty list otherwise
     — that's the right signal: 'current policy is fine'."""
     from app.core.scenario_cache import scenario_cache
-    from app.core.scenario_builder import ScenarioBuilder
+    from app.core.scenario_builder import ScenarioBuilder, scoring_weights_from_kpi
+
+    weights = scoring_weights_from_kpi(kpi_time, kpi_energy, kpi_platform, kpi_train)
 
     sess = session_manager.get(session_id)
     if not sess:
@@ -264,8 +302,11 @@ def get_recommendations(session_id: str):
     override_hash = hashlib.md5(
         str(sorted(overrides.items())).encode()
     ).hexdigest()[:8]
+    kpi_hash = hashlib.md5(
+        f"{weights.done:.3f}:{weights.delay:.3f}:{weights.deadlock:.3f}".encode()
+    ).hexdigest()[:6]
     cache_key_step = elapsed * 1000 + horizon
-    cache_key_str = f"{cache_key_step}:{override_hash}"
+    cache_key_str = f"{cache_key_step}:{override_hash}:{kpi_hash}"
 
     # Try the cache FIRST: if /hmi/scenarios was just called for this
     # same step + overrides, the Scenario objects are already there —
@@ -298,7 +339,7 @@ def get_recommendations(session_id: str):
             (pid, fac) for pid, fac in _ALL_POLICIES.items()
             if pid != baseline_id and pid in enabled
         ]
-        builder = ScenarioBuilder(env, baseline_id, baseline_factory, session_id=session_id)
+        builder = ScenarioBuilder(env, baseline_id, baseline_factory, session_id=session_id, scoring_weights=weights)
         scenarios = builder.generate_scenarios(
             candidate_policies=candidates, horizon=horizon,
         )

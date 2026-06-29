@@ -11,8 +11,16 @@ import { NotificationsPanelComponent } from './features/notifications-panel/noti
 import { ScenarioPanelComponent } from './features/scenario-panel/scenario-panel.component';
 import { KpiFilterComponent } from './features/kpi-filter/kpi-filter.component';
 import { RecommendationsPanelComponent } from './features/recommendations-panel/recommendations-panel.component';
+import { CoLearningReflectionComponent } from './features/co-learning-reflection/co-learning-reflection.component';
+import { SituationSummaryComponent } from './features/situation-summary/situation-summary.component';
+import { GoalAchievementComponent } from './features/goal-achievement/goal-achievement.component';
+import { DirectorDirectiveComponent } from './features/director-directive/director-directive.component';
+import { SurveyComponent } from './features/survey/survey.component';
+import { ImpactPanelComponent } from './features/impact-panel/impact-panel.component';
+import { SURVEY_PARTS, DEFAULT_SURVEY_PARTS } from './core/survey/survey-configs';
 import { ApiService } from './core/api.service';
 import { SessionStore } from './core/session.store';
+import { InteractionMode } from './core/events/event-types';
 
 @Component({
   selector: 'app-root',
@@ -26,6 +34,12 @@ import { SessionStore } from './core/session.store';
     ScenarioPanelComponent,
     KpiFilterComponent,
     RecommendationsPanelComponent,
+    CoLearningReflectionComponent,
+    SituationSummaryComponent,
+    GoalAchievementComponent,
+    DirectorDirectiveComponent,
+    SurveyComponent,
+    ImpactPanelComponent,
     AgentInspectorComponent,
     AgentsPanelComponent,
     ViewToggleComponent,
@@ -38,10 +52,25 @@ export class AppComponent implements OnInit {
   store = inject(SessionStore);
   private api = inject(ApiService);
 
-  newWidth = signal(50);
-  newHeight = signal(20);
-  newAgents = signal(3);
-  newMaxSteps = signal(1000);
+  /** Human-AI collaboration modes shown in the header switcher (WP 3.1/3.3/3.4). */
+  readonly interactionModes: { id: InteractionMode; label: string; wp: string; description: string }[] = [
+    { id: 'recommendation', label: 'Recommendation', wp: 'WP 3.1', description: 'AI suggests, you decide.' },
+    { id: 'co-learning', label: 'Co-Learning', wp: 'WP 3.3', description: 'You and the AI adapt to each other.' },
+    { id: 'director', label: 'Director', wp: 'WP 3.4', description: 'AI acts autonomously on your high-level directives.' },
+  ];
+
+  /** Label of the currently active collaboration mode (for the header dropdown). */
+  currentModeLabel(): string {
+    const id = this.store.interactionMode();
+    return this.interactionModes.find((m) => m.id === id)?.label ?? id;
+  }
+
+  // Defaults match the conflict-tuned guided-demo env so an untouched
+  // "Guided Demo" reliably produces conflicts; users can still change them.
+  newWidth = signal(36);
+  newHeight = signal(24);
+  newAgents = signal(8);
+  newMaxSteps = signal(400);
   newSeed = signal(42);
   newLatestDepartureMax = signal(20);
   newSpeedProfile = signal('uniform_1_0');
@@ -56,6 +85,88 @@ export class AppComponent implements OnInit {
 
   settingsMode = signal(false);
   scenarioPolicyMode = signal(false);
+  surveyActive = signal(false);
+  demoComplete = signal(false);
+
+  /** Demo environment. The conflict-tuning (bottlenecked corridors via few
+   *  rails/pairs + real malfunctions) stays fixed so conflicts reliably
+   *  emerge, but the four user-facing fields from the welcome page / Settings
+   *  (grid size, #agents, max steps) are respected — picking "Guided Demo"
+   *  no longer silently ignores them. Their defaults (see newWidth/etc.) are
+   *  set to the conflict-prone values, so an untouched demo stays tuned. */
+  private demoSessionOpts() {
+    return {
+      width: this.newWidth(), height: this.newHeight(),
+      agents: this.newAgents(), maxSteps: this.newMaxSteps(),
+      seed: 42,
+      maxNumCities: 3, maxRailsBetweenCities: 2, maxRailPairsInCity: 1,
+      latestDepartureMax: 35, speedProfile: 'uniform_1_0', lineLength: 4,
+      // Slightly higher than before (0.012) so a blocking malfunction — and
+      // thus an impact-driven decision moment — surfaces more reliably within
+      // a run. Scripted events (Phase 1) will later guarantee this.
+      malfunctionRate: 0.02, malfunctionMinDuration: 10, malfunctionMaxDuration: 22,
+      scenarioPolicyIds: this.welcomeScenarioPolicyIds(),
+      policyControlIds: this.welcomeControlPolicyIds(),
+    };
+  }
+
+  /** Start the guided demo: one fixed env, modes run in sequence. */
+  startDemoSession() {
+    this.store.stopDemo();
+    this.demoComplete.set(false);
+    this.store.newSession(this.demoSessionOpts());
+    this.store.startDemo();
+  }
+
+  /** Finish the current demo mode → open its survey (advance happens on close). */
+  finishDemoMode() {
+    this.openSurvey();
+  }
+
+  exitDemo() {
+    this.store.stopDemo();
+    this.demoComplete.set(false);
+  }
+
+  /** Available survey building blocks + the draft selection edited in Settings. */
+  readonly surveyParts = SURVEY_PARTS;
+  draftSurveyParts = signal<string[]>([...DEFAULT_SURVEY_PARTS]);
+  draftDemoMalfunctionTypes = signal(false);
+  draftReflectionLimit = signal(2);
+  draftDecisionCountdown = signal(10);
+  draftRecommendationDuration = signal(0);
+  draftAutoPauseOnConflict = signal(true);
+
+  isDraftSurveyPartEnabled(id: string): boolean {
+    return this.draftSurveyParts().includes(id);
+  }
+
+  toggleDraftSurveyPart(id: string, enabled: boolean) {
+    const cur = this.draftSurveyParts();
+    const next = enabled
+      ? Array.from(new Set([...cur, id]))
+      : cur.filter((x) => x !== id);
+    this.draftSurveyParts.set(next);
+  }
+
+  openSurvey() {
+    this.surveyActive.set(true);
+    this.blurActiveElement();
+  }
+
+  closeSurvey() {
+    this.surveyActive.set(false);
+    // In the guided demo, submitting a mode's survey advances to the next mode
+    // (replaying the SAME environment) or finishes the demo.
+    if (this.store.demoActive()) {
+      const more = this.store.advanceDemo();
+      if (more) {
+        this.store.reset(); // same env, fresh start for the next mode
+      } else {
+        this.demoComplete.set(true);
+      }
+    }
+  }
   draftWidth = signal(50);
   draftHeight = signal(20);
   draftAgents = signal(3);
@@ -116,6 +227,12 @@ export class AppComponent implements OnInit {
         malfunctionRate: this.newMalfunctionRate(),
         malfunctionMinDuration: this.newMalfunctionMinDuration(),
         malfunctionMaxDuration: this.newMalfunctionMaxDuration(),
+        surveyParts: this.store.enabledSurveyParts(),
+        demoMalfunctionTypes: this.store.demoMalfunctionTypes(),
+        reflectionLimit: this.store.reflectionQuestionLimit(),
+        decisionCountdown: this.store.decisionCountdownSeconds(),
+        recommendationDuration: this.store.recommendationDurationSeconds(),
+        autoPauseOnConflict: this.store.autoPauseOnConflict(),
       }));
     } catch {
       // localStorage can be unavailable in tests / private mode.
@@ -144,6 +261,12 @@ export class AppComponent implements OnInit {
       if (cfg.malfunctionRate != null) this.newMalfunctionRate.set(Number(cfg.malfunctionRate));
       if (cfg.malfunctionMinDuration != null) this.newMalfunctionMinDuration.set(Number(cfg.malfunctionMinDuration));
       if (cfg.malfunctionMaxDuration != null) this.newMalfunctionMaxDuration.set(Number(cfg.malfunctionMaxDuration));
+      if (Array.isArray(cfg.surveyParts)) this.store.setEnabledSurveyParts(cfg.surveyParts.map(String));
+      if (cfg.demoMalfunctionTypes != null) this.store.setDemoMalfunctionTypes(Boolean(cfg.demoMalfunctionTypes));
+      if (cfg.reflectionLimit != null) this.store.setReflectionQuestionLimit(Number(cfg.reflectionLimit));
+      if (cfg.decisionCountdown != null) this.store.setDecisionCountdownSeconds(Number(cfg.decisionCountdown));
+      if (cfg.recommendationDuration != null) this.store.setRecommendationDurationSeconds(Number(cfg.recommendationDuration));
+      if (cfg.autoPauseOnConflict != null) this.store.setAutoPauseOnConflict(Boolean(cfg.autoPauseOnConflict));
     } catch {
       // Ignore malformed persisted settings.
     }
@@ -230,6 +353,12 @@ export class AppComponent implements OnInit {
     this.draftMalfunctionMinDuration.set(this.newMalfunctionMinDuration());
     this.draftMalfunctionMaxDuration.set(this.newMalfunctionMaxDuration());
     this.draftScenarioPolicyIds.set([...this.welcomeScenarioPolicyIds()]);
+    this.draftSurveyParts.set([...this.store.enabledSurveyParts()]);
+    this.draftDemoMalfunctionTypes.set(this.store.demoMalfunctionTypes());
+    this.draftReflectionLimit.set(this.store.reflectionQuestionLimit());
+    this.draftDecisionCountdown.set(this.store.decisionCountdownSeconds());
+    this.draftRecommendationDuration.set(this.store.recommendationDurationSeconds());
+    this.draftAutoPauseOnConflict.set(this.store.autoPauseOnConflict());
     this.scenarioPolicyMode.set(false);
     this.settingsMode.set(true);
     this.blurActiveElement();
@@ -256,6 +385,12 @@ export class AppComponent implements OnInit {
     this.newMalfunctionRate.set(this.draftMalfunctionRate());
     this.newMalfunctionMinDuration.set(Math.max(1, Math.floor(this.draftMalfunctionMinDuration() || 1)));
     this.newMalfunctionMaxDuration.set(Math.max(this.newMalfunctionMinDuration(), Math.floor(this.draftMalfunctionMaxDuration() || this.newMalfunctionMinDuration())));
+    this.store.setEnabledSurveyParts(this.draftSurveyParts());
+    this.store.setDemoMalfunctionTypes(this.draftDemoMalfunctionTypes());
+    this.store.setReflectionQuestionLimit(this.draftReflectionLimit());
+    this.store.setDecisionCountdownSeconds(this.draftDecisionCountdown());
+    this.store.setRecommendationDurationSeconds(this.draftRecommendationDuration());
+    this.store.setAutoPauseOnConflict(this.draftAutoPauseOnConflict());
     this.persistSessionSettings();
     this.settingsMode.set(false);
     this.blurActiveElement();
@@ -375,6 +510,13 @@ export class AppComponent implements OnInit {
     // ESC priority:
     // 1) close open settings dialogs/panels
     // 2) only if no dialog/panel was open, deselect selected agent
+
+    if (this.surveyActive()) {
+      this.closeSurvey();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
 
     if (this.settingsMode()) {
       this.cancelSettings();

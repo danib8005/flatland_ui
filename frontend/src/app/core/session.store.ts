@@ -2,13 +2,33 @@ import { Injectable, computed, effect, inject, signal, untracked } from '@angula
 import { ApiService } from './api.service';
 import {
   AppNotification,
+  ImpactItem,
+  InteractionMode,
   KpiPriorities,
+  KpiWeights,
   LayerVisibility,
   Recommendation,
   ScenarioOption,
 } from './events/event-types';
 import { WebSocketService } from './websocket.service';
 import { AgentDTO, PolicyInfo, PolicyName, RailTile, SessionInfo, SessionState } from './models';
+
+/**
+ * One human intervention captured while in Co-Learning mode (WP 3.3).
+ * This is the raw material a future feedback/learning loop would consume;
+ * for now it powers the in-session intervention count and the reflection panel.
+ */
+export interface CoLearningEntry {
+  /** Simulation step at which the human intervened. */
+  step: number;
+  /** Agent the human acted on. */
+  handle: number;
+  /** Action the human chose (Flatland action id). */
+  humanAction: number;
+  /** Top AI recommendation title at that moment, if any. */
+  aiSuggestion: string | null;
+  timestamp: number;
+}
 
 export interface TrajectoryPoint {
   /** First simulation step at this compressed trajectory cell/run. */
@@ -168,9 +188,236 @@ export class SessionStore {
     platformRouting: 0.5,
     trainRouting: 0.5,
   });
+
+  /**
+   * Single consumption surface for the KPI filter. Raw slider values are
+   * normalised to weights that sum to 1 (or fall back to an equal split when
+   * every slider is at 0). Any view that wants to reflect KPI priorities
+   * (scenario ranking, Marey emphasis, recommendation scoring) should read
+   * this — NOT kpiPriorities directly. The concrete semantics (how each
+   * weight maps onto backend scoring) are intentionally left open for now;
+   * this just guarantees the wiring exists and is well-defined.
+   */
+  readonly kpiWeights = computed<KpiWeights>(() => {
+    const p = this.kpiPriorities();
+    const keys: (keyof KpiPriorities)[] = ['time', 'energy', 'platformRouting', 'trainRouting'];
+    const sum = keys.reduce((acc, k) => acc + Math.max(0, p[k]), 0);
+    if (sum <= 0) {
+      const equal = 1 / keys.length;
+      return { time: equal, energy: equal, platformRouting: equal, trainRouting: equal };
+    }
+    return {
+      time: Math.max(0, p.time) / sum,
+      energy: Math.max(0, p.energy) / sum,
+      platformRouting: Math.max(0, p.platformRouting) / sum,
+      trainRouting: Math.max(0, p.trainRouting) / sum,
+    };
+  });
+
+  /**
+   * Active human-AI collaboration mode (WP 3.1 / 3.3 / 3.4). For now this only
+   * holds UI state; mode-specific behaviour is wired up in a later step.
+   */
+  readonly interactionMode = signal<InteractionMode>('recommendation');
+
+  /** Which post-session survey parts are active (configured in Settings).
+   *  Default: all parts (see DEFAULT_SURVEY_PARTS). */
+  readonly enabledSurveyParts = signal<string[]>([
+    'mode', 'nasa-tlx', 'trust', 'ueq-s', 'open',
+  ]);
+
+  setEnabledSurveyParts(ids: string[]): void {
+    this.enabledSurveyParts.set([...ids]);
+  }
+
+  /**
+   * Flatland has no malfunction *type* (a malfunction is just "train stuck for N
+   * steps"). When this is off we label it honestly as "Train breakdown". When on
+   * (demo/study), we assign a synthetic operational type from the AI4REALNET
+   * taxonomy deterministically per train, clearly marked "(demo)". A real backend
+   * `malfunction_type` (if added later) always wins over both.
+   */
+  readonly demoMalfunctionTypes = signal<boolean>(false);
+
+  setDemoMalfunctionTypes(on: boolean): void {
+    this.demoMalfunctionTypes.set(on);
+  }
+
+  /** How many Co-Learning reflection questions to show per incident.
+   *  Samira's storyboard: 2 of 5. Configurable in Settings. */
+  readonly reflectionQuestionLimit = signal<number>(2);
+
+  setReflectionQuestionLimit(n: number): void {
+    this.reflectionQuestionLimit.set(Math.max(1, Math.min(5, Math.floor(n || 1))));
+  }
+
+  /** Decision time budget (seconds) before the system applies the recommended
+   *  option itself (Recommendation & Co-Learning). Configurable in Settings. */
+  readonly decisionCountdownSeconds = signal<number>(10);
+
+  setDecisionCountdownSeconds(n: number): void {
+    this.decisionCountdownSeconds.set(Math.max(3, Math.min(60, Math.floor(n || 10))));
+  }
+
+  /** How long an AI recommendation shows a countdown before it reads as
+   *  "stale". 0 = no countdown: the recommendation stays as long as it
+   *  makes sense (i.e. until the backend stops surfacing it, or the human
+   *  acts on it). This countdown is a presentation cue only — it does not
+   *  auto-apply anything (that's decisionCountdownSeconds). */
+  readonly recommendationDurationSeconds = signal<number>(0);
+
+  setRecommendationDurationSeconds(n: number): void {
+    const v = Math.floor(n || 0);
+    // 0 means "no countdown"; otherwise clamp to a sane [5, 120] window.
+    this.recommendationDurationSeconds.set(v <= 0 ? 0 : Math.max(5, Math.min(120, v)));
+  }
+
+  /** Whether a new conflict auto-pauses the run (and starts the decision
+   *  countdown) in Recommendation & Co-Learning. When off, conflicts still
+   *  surface in the impact panel but the simulation keeps running — the
+   *  human acts when they want, without being interrupted. Default on. */
+  readonly autoPauseOnConflict = signal<boolean>(true);
+
+  setAutoPauseOnConflict(on: boolean): void {
+    this.autoPauseOnConflict.set(!!on);
+  }
+
+  /** Synthetic operational malfunction types (AI4REALNET D4.1 taxonomy A). */
+  private static readonly DEMO_MALFUNCTION_TYPES = [
+    'Track blockage',
+    'Switch failure',
+    'Signal failure',
+    'Overhead-power failure',
+  ];
+
+  /** Label for a malfunctioning train's disruption type (see demoMalfunctionTypes). */
+  malfunctionTypeLabel(agent: AgentDTO): string {
+    const real = (agent as any)?.malfunction_type;
+    if (typeof real === 'string' && real) return real;
+    if (!this.demoMalfunctionTypes()) return 'Train breakdown';
+    const types = SessionStore.DEMO_MALFUNCTION_TYPES;
+    const idx = ((agent.handle % types.length) + types.length) % types.length;
+    return `${types[idx]} (demo)`;
+  }
+
+  /** True while the AI drives the simulation autonomously (Director / WP 3.4). */
+  readonly aiInControl = computed(() => this.interactionMode() === 'director');
+  /** True in Co-Learning mode (WP 3.3), where human interventions are logged. */
+  readonly isCoLearning = computed(() => this.interactionMode() === 'co-learning');
+
+  /**
+   * How action/policy options are framed across the whole UI:
+   *  - 'recommended' (Recommendation / WP 3.1): AI ranks + badges a best option.
+   *  - 'neutral'     (Co-Learning / WP 3.3): options shown as equal choices.
+   *  - 'none'        (Director / WP 3.4): the human isn't prompted with options.
+   * Every options surface (recommendations-panel, scenario-panel, …) reads THIS
+   * — there is no parallel flag.
+   */
+  readonly optionPresentation = computed<'recommended' | 'neutral' | 'none'>(() => {
+    switch (this.interactionMode()) {
+      case 'recommendation':
+        return 'recommended';
+      case 'co-learning':
+        return 'neutral';
+      case 'director':
+        return 'none';
+    }
+  });
+
+  /** Human interventions recorded during the current Co-Learning session. */
+  readonly coLearningFeedback = signal<CoLearningEntry[]>([]);
+  readonly interventionCount = computed(() => this.coLearningFeedback().length);
+
+  /**
+   * "Things have calmed down": the lull in which Co-Learning reflection should
+   * become available (Hamouche et al., Kolb phase 2). Calm = a started session
+   * that is currently paused with no agent in malfunction. A pause counts as
+   * calm; the very start (no steps yet) does not.
+   */
+  readonly isCalm = computed(() => {
+    if (!this.session()) return false;
+    if (this.playing()) return false;
+    if (this.elapsedSteps() === 0) return false;
+    const anyMalfunction = this.agents().some(
+      (a) => !!a.is_malfunctioning
+        || (a.malfunction_remaining ?? 0) > 0
+        || String(a.state ?? '').toUpperCase().includes('MALFUNCTION'),
+    );
+    return !anyMalfunction;
+  });
+
+  /** Co-Learning: the human explicitly asked to reflect *now* (also mid-run).
+   *  The reflection panel shows when this is set (or at episode end). Reflection
+   *  is intentional, not an auto-popup on every calm moment. */
+  readonly reflectionRequested = signal<boolean>(false);
+  toggleReflectionRequested(): void {
+    this.reflectionRequested.update((v) => !v);
+  }
+
+  /**
+   * Switch collaboration mode and apply its immediate behaviour:
+   *  - Director: hand control to the AI by starting auto-play.
+   *  - leaving Director: pause so the human regains step-by-step control.
+   */
+  // ── Guided demo flow (sequential modes on the SAME environment) ──────
+  readonly demoActive = signal(false);
+  readonly demoSequence: InteractionMode[] = ['recommendation', 'co-learning', 'director'];
+  readonly demoStepIndex = signal(0);
+  /** Current demo phase (mode) or null when no demo is running. */
+  readonly demoPhase = computed<InteractionMode | null>(() =>
+    this.demoActive() ? this.demoSequence[this.demoStepIndex()] : null,
+  );
+  readonly demoIsLast = computed(() => this.demoStepIndex() >= this.demoSequence.length - 1);
+
+  /** Begin the guided demo at the first mode (caller creates the session). */
+  startDemo(): void {
+    this.demoStepIndex.set(0);
+    this.demoActive.set(true);
+    this.setInteractionMode(this.demoSequence[0]);
+  }
+
+  /** Advance to the next demo mode; returns false when the demo is finished. */
+  advanceDemo(): boolean {
+    if (this.demoIsLast()) {
+      this.demoActive.set(false);
+      return false;
+    }
+    this.demoStepIndex.update((i) => i + 1);
+    this.setInteractionMode(this.demoSequence[this.demoStepIndex()]);
+    return true;
+  }
+
+  stopDemo(): void {
+    this.demoActive.set(false);
+    this.demoStepIndex.set(0);
+  }
+
+  setInteractionMode(mode: InteractionMode): void {
+    const prev = this.interactionMode();
+    if (mode === prev) return;
+    this.interactionMode.set(mode);
+
+    if (!this.session()) return;
+
+    // Director (WP 3.4) no longer auto-plays on entering: the human first sets
+    // a high-level directive (KPI weights + policy) and then explicitly starts
+    // the autonomous run via the directive card. Leaving Director hands control
+    // back to the human, so a running autonomous loop is paused.
+    if (prev === 'director' && this.playing()) {
+      this.pause();
+    }
+  }
+
+  /** Top AI recommendation title right now, used to annotate Co-Learning logs. */
+  private _currentTopRecommendation(): string | null {
+    const recs = this.recommendations();
+    return recs.length > 0 ? recs[0].title : null;
+  }
   readonly notifications = signal<AppNotification[]>([]);
   readonly scenarios = signal<ScenarioOption[]>([]);
   readonly recommendations = signal<Recommendation[]>([]);
+  /** Phase-1 impact analysis: trains affected by a malfunction. */
+  readonly impact = signal<ImpactItem[]>([]);
   readonly focusedElement = signal<{ kind: 'train' | 'switch' | 'signal'; id: string } | null>(null);
 
   constructor() {
@@ -384,6 +631,9 @@ export class SessionStore {
     this.message.set(null);
     this.playing.set(false);
     this._resetTrajectories();
+    this.coLearningFeedback.set([]);
+    this.impact.set([]);
+    this.reflectionRequested.set(false);
     const payload: any = {};
     if (opts.width != null) payload.width = opts.width;
     if (opts.height != null) payload.height = opts.height;
@@ -518,6 +768,9 @@ export class SessionStore {
     this.message.set(null);
     this.playing.set(false);
     this._resetTrajectories();
+    this.coLearningFeedback.set([]);
+    this.impact.set([]);
+    this.reflectionRequested.set(false);
     this.api.reset(s.id).subscribe({
       next: () => this.refreshState(true),
       error: (e) => {
@@ -625,6 +878,21 @@ export class SessionStore {
     // Optimistic UI update: button reacts immediately.
     this._setLocalOverride(handle, action);
 
+    // Co-Learning (WP 3.3): capture the human intervention so it can feed
+    // the reflection panel (and, later, an actual learning loop).
+    if (this.isCoLearning()) {
+      this.coLearningFeedback.update((list) => [
+        ...list,
+        {
+          step: this.elapsedSteps(),
+          handle,
+          humanAction: action,
+          aiSuggestion: this._currentTopRecommendation(),
+          timestamp: Date.now(),
+        },
+      ]);
+    }
+
     this.api.setOverride(s.id, handle, action as any).subscribe({
       next: () => {
         // Backend remains source of truth, but do not wait for it to make
@@ -637,6 +905,20 @@ export class SessionStore {
         // Re-sync from backend if request failed.
         this.refreshState();
       },
+    });
+  }
+
+  /** Localized blocking: the SYSTEM holds an affected train (STOP) while the
+   *  rest of the network keeps running, until the human decides. Unlike
+   *  setOverride this is NOT logged as a human intervention — it's the safe
+   *  default that creates the decision moment, not the human's choice. */
+  systemHold(handle: number) {
+    const s = this.session();
+    if (!s) return;
+    this._setLocalOverride(handle, 4); // STOP_MOVING
+    this.api.setOverride(s.id, handle, 4 as any).subscribe({
+      next: () => this.refreshState(),
+      error: () => {},
     });
   }
 
@@ -662,12 +944,17 @@ export class SessionStore {
   refreshForecasts(): void {
     const s = this.session();
     if (!s) return;
-    this.api.getScenarios(s.id).subscribe({
+    const kpi = this.kpiPriorities();
+    this.api.getScenarios(s.id, kpi).subscribe({
       next: (scenarios) => this.scenarios.set(scenarios),
       error: () => {},
     });
-    this.api.getRecommendations(s.id).subscribe({
+    this.api.getRecommendations(s.id, kpi).subscribe({
       next: (recs) => this.recommendations.set(recs),
+      error: () => {},
+    });
+    this.api.getImpact(s.id).subscribe({
+      next: (items) => this.impact.set(items),
       error: () => {},
     });
   }

@@ -1,20 +1,33 @@
 <div class="recommendations-panel">
-  <h3 class="panel-title">AI Recommendations</h3>
+  <button class="panel-head" type="button" (click)="toggleCollapsed()" [attr.aria-expanded]="!collapsed()">
+    <span class="panel-title">AI Recommendations</span>
+    <span class="panel-caret" [class.open]="!collapsed()" aria-hidden="true">▸</span>
+  </button>
 
+  @if (!collapsed()) {
   @if (store.recommendations().length === 0) {
     <p class="empty">No active recommendations</p>
   } @else {
     <div class="recs">
       @for (r of store.recommendations(); track r.id) {
-        <div class="rec-card" [class.urgent]="remaining(r) < 10">
+        <div class="rec-card"
+             [class.urgent]="isUrgent(r)"
+             [class.previewable]="previewable(r)"
+             (mouseenter)="previewOn(r)"
+             (mouseleave)="previewOff(r)">
           <div class="rec-head">
             <span class="ai-badge">AI</span>
             <span class="confidence">{{ confidencePct(r) }}%</span>
-            <span class="countdown">{{ remaining(r) }}s</span>
+            @if (remaining(r) !== null) {
+              <span class="countdown">{{ remaining(r) }}s</span>
+            }
           </div>
 
           <h4 class="title">{{ r.title }}</h4>
-          <p class="desc">{{ r.description }}</p>
+
+          @if (previewable(r)) {
+            <p class="preview-hint">Hover zeigt die geänderte Route auf Karte & Marey</p>
+          }
 
           <!-- Confidence Bar -->
           <div class="conf-bar">
@@ -22,9 +35,6 @@
           </div>
 
           <div class="actions">
-            <button class="btn btn-feedback" (click)="thumbsDown(r)" title="Reject">
-              👎
-            </button>
             @if (canAcceptRecommendation(r)) {
               <button class="btn btn-accept" (click)="accept(r)">
                 Accept
@@ -34,12 +44,13 @@
                 Deaktiviert für Auto-Dispo
               </span>
             }
-            <button class="btn btn-feedback" (click)="thumbsUp(r)" title="Approve">
-              👍
+            <button class="btn btn-reject" (click)="reject(r)" title="Decline this change">
+              Reject
             </button>
           </div>
         </div>
       }
     </div>
+  }
   }
 </div>
