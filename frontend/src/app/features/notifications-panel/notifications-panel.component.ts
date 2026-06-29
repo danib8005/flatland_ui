@@ -1,4 +1,5 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, effect, inject, OnDestroy} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, HostBinding, Input, effect, inject, OnDestroy} from '@angular/core';
 import { SessionStore } from '../../core/session.store';
 import { ApiService } from '../../core/api.service';
 import { EventBusService } from '../../core/events/event-bus.service';
@@ -8,11 +9,19 @@ import { AppNotification } from '../../core/events/event-types';
 @Component({
   selector: 'app-notifications-panel',
   standalone: true,
+  imports: [CommonModule],
   templateUrl: './notifications-panel.component.html',
   styleUrl: './notifications-panel.component.scss',
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class NotificationsPanelComponent implements OnDestroy {
+  @Input() embedded = false;
+
+  @HostBinding('class.embedded')
+  get embeddedClass(): boolean {
+    return this.embedded;
+  }
+
   store = inject(SessionStore);
   api = inject(ApiService);
   bus = inject(EventBusService);

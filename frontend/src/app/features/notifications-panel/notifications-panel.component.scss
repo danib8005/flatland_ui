@@ -272,3 +272,31 @@
   border-left-color: var(--notification-agent-color, currentColor) !important;
   box-shadow: none !important;
 }
+
+
+:host(.embedded) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: initial;
+  flex-basis: auto;
+  flex-grow: 0;
+  flex-shrink: 1;
+  padding: 0;
+  margin: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+:host(.embedded) .notifications-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+:host(.embedded) .panel-head {
+  margin-top: 0;
+}
+

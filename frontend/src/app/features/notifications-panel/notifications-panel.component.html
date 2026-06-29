@@ -1,9 +1,18 @@
-<sbb-expansion-panel class="lyne-feature-panel notifications-panel-lyne-panel" color="white" size="s">
-  <sbb-expansion-panel-header>
-    <span class="lyne-panel-title">Event Feed</span>
-  </sbb-expansion-panel-header>
+@if (embedded) {
+  <ng-container [ngTemplateOutlet]="notificationContent"></ng-container>
+} @else {
+  <sbb-expansion-panel class="lyne-feature-panel notifications-panel-lyne-panel" color="white" size="s">
+    <sbb-expansion-panel-header>
+      <span class="lyne-panel-title">Event Feed</span>
+    </sbb-expansion-panel-header>
 
-  <sbb-expansion-panel-content class="lyne-panel-content">
+    <sbb-expansion-panel-content class="lyne-panel-content">
+      <ng-container [ngTemplateOutlet]="notificationContent"></ng-container>
+    </sbb-expansion-panel-content>
+  </sbb-expansion-panel>
+}
+
+<ng-template #notificationContent>
   <div class="notifications-panel">
     <div class="panel-head">
       <h3 class="panel-title">Event Feed</h3>
@@ -30,9 +39,9 @@
               [class.kind-warning]="n.kind === 'warning'"
               [class.kind-info]="n.kind === 'info'"
               [class.agent-related]="isAgentRelated(n)"
-                [class.single-agent-related]="singleNotificationAgentHandle(n) !== null"
-                [class.multi-agent-related]="isAgentRelated(n) && singleNotificationAgentHandle(n) === null"
-                [style.--notification-agent-color]="notificationAgentColor(n)"
+              [class.single-agent-related]="singleNotificationAgentHandle(n) !== null"
+              [class.multi-agent-related]="isAgentRelated(n) && singleNotificationAgentHandle(n) === null"
+              [style.--notification-agent-color]="notificationAgentColor(n)"
               [class.selected-agent-related]="isSelectedAgentRelated(n)"
               [class.hovered-agent-related]="isHoveredAgentRelated(n)"
               (mouseenter)="onNotificationMouseEnter(n)"
@@ -56,5 +65,4 @@
       </ul>
     }
   </div>
-  </sbb-expansion-panel-content>
-</sbb-expansion-panel>
+</ng-template>
