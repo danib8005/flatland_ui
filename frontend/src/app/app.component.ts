@@ -21,6 +21,7 @@ import { SURVEY_PARTS, DEFAULT_SURVEY_PARTS } from './core/survey/survey-configs
 import { ApiService } from './core/api.service';
 import { SessionStore } from './core/session.store';
 import { InteractionMode } from './core/events/event-types';
+import { LayoutSandboxComponent } from './features/layout';
 
 @Component({
   selector: 'app-root',
@@ -43,6 +44,7 @@ import { InteractionMode } from './core/events/event-types';
     AgentInspectorComponent,
     AgentsPanelComponent,
     ViewToggleComponent,
+    LayoutSandboxComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
@@ -87,6 +89,11 @@ export class AppComponent implements OnInit {
   scenarioPolicyMode = signal(false);
   surveyActive = signal(false);
   demoComplete = signal(false);
+  showLayoutSandbox = signal(false);
+
+  toggleLayoutSandbox(): void {
+    this.showLayoutSandbox.update((value) => !value);
+  }
 
   /** Demo environment. The conflict-tuning (bottlenecked corridors via few
    *  rails/pairs + real malfunctions) stays fixed so conflicts reliably

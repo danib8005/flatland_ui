@@ -6,6 +6,12 @@
     <span class="header-title-main">Flatland Dispatcher</span>
     <span class="header-title-sub">- A Human-AI Teaming Playground</span>
   </span>
+  <sbb-transparent-button
+    size="m"
+    class="layout-sandbox-toggle"
+    (click)="toggleLayoutSandbox()">
+    {{ showLayoutSandbox() ? 'Exit Layout Sandbox' : 'Layout Sandbox' }}
+  </sbb-transparent-button>
   @if (store.session()) {
     <div class="header-meta">
       <span class="grid_info-id">Grid: {{ store.state()?.width }} × {{ store.state()?.height }}</span>
@@ -55,7 +61,10 @@
 
 </header>
 
-<app-toolbar></app-toolbar>
+@if (showLayoutSandbox()) {
+  <app-layout-sandbox></app-layout-sandbox>
+} @else {
+  <app-toolbar></app-toolbar>
 
 @if (store.session()) {
   <div class="three-col">
@@ -469,3 +478,4 @@
     </span>
   </div>
 </footer>
+}
