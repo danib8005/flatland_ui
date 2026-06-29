@@ -85,6 +85,8 @@ them can change freely. Distinguish **policy change (system-wide)** from
 - [scripted-events-plan.md](scripted-events-plan.md) — deterministic scenario events for User Study 2
 - [recommendation-reliability.md](recommendation-reliability.md) — guaranteeing a decision moment (variants A–D)
 - [heterogeneous-tracks.md](heterogeneous-tracks.md) — track classes/costs so reroute becomes a real trade-off
+- [localized-blocking-decisions.md](localized-blocking-decisions.md) — hold the affected trains/area (not the whole sim) until the human decides; + autonomy agreement idea
+- [scenario-variants.md](scenario-variants.md) — controlled study vs. dynamic "simulated wild" (real algorithms, emergent events); variant axes
 
 ## Roadmap / further ideas
 

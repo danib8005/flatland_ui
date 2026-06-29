@@ -33,9 +33,35 @@ export class ImpactPanelComponent implements OnDestroy {
   /** Items the user has acted on (applied) → hidden from the list. */
   readonly applied = signal<Set<number>>(new Set<number>());
 
+  /** Affected trains the system is currently holding (localized blocking,
+   *  Co-Learning): they wait for the human's decision while the rest runs. */
+  private readonly _held = signal<Set<number>>(new Set<number>());
+  readonly heldCount = computed(() => this._held().size);
+  isHeld(handle: number): boolean { return this._held().has(handle); }
+
+  /** Hold every still-affected train (STOP) and remember it as held. */
+  private _holdAffected(): void {
+    const next = new Set(this._held());
+    for (const item of this.items()) {
+      if (!next.has(item.handle)) {
+        this.store.systemHold(item.handle);
+        next.add(item.handle);
+      }
+    }
+    this._held.set(next);
+  }
+
+  // Stabilized display list. The live impact poll (1.5s) makes rows pop in/out
+  // and reorder, which felt chaotic. We keep a short grace window so transient
+  // blips don't flash, hold a stable order (by handle), and keep held rows.
+  private static readonly GRACE_MS = 3000;
+  private readonly _cache = new Map<number, ImpactItem>();
+  private readonly _seenAt = new Map<number, number>();
+  private readonly _stable = signal<ImpactItem[]>([]);
+
   /** Affected trains still pending an action (acted-on ones removed). */
   readonly items = computed<ImpactItem[]>(() =>
-    this.store.impact().filter((i) => !this.applied().has(i.handle)),
+    this._stable().filter((i) => !this.applied().has(i.handle)),
   );
 
   /** Panel stays visible always; auto-expands when trains are affected,
@@ -57,12 +83,12 @@ export class ImpactPanelComponent implements OnDestroy {
   });
 
   constructor() {
+    // Auto-EXPAND when conflicts appear; never auto-collapse (that open/close
+    // thrash was part of the chaotic feel). The user can collapse manually.
     effect(() => {
       const has = this.items().length > 0;
-      if (has !== this._lastHasImpact) {
-        this._lastHasImpact = has;
-        this.collapsed.set(!has);
-      }
+      if (has && !this._lastHasImpact) this.collapsed.set(false);
+      this._lastHasImpact = has;
     });
 
     // Impact is cheap to compute → poll it live (~1.5s) so conflicts surface
@@ -86,22 +112,57 @@ export class ImpactPanelComponent implements OnDestroy {
 
   private _fetchImpact(sid: string): void {
     this.api.getImpact(sid).subscribe({
-      next: (items) => {
-        this.store.impact.set(items);
-        // Guided demo: gently pause on a NEW conflict so the human decides, and
-        // start the decision countdown (Recommendation & Co-Learning).
-        const has = items.length > 0;
-        if (has && !this._hadImpact && this.store.demoActive() && this.store.playing()
-            && this.store.interactionMode() !== 'director'
-            && this.store.autoPauseOnConflict()) {
-          this.store.pause();
-          this._startCountdown();
+      next: (live) => {
+        this.store.impact.set(live);
+        this._rebuildStable(live);
+
+        const has = live.length > 0;
+        const newConflict = has && !this._hadImpact;
+        const engage = newConflict && this.store.demoActive() && this.store.playing()
+          && this.store.interactionMode() !== 'director'
+          && this.store.autoPauseOnConflict();
+
+        if (engage) {
+          if (this.store.isCoLearning()) {
+            // Localized blocking: hold the affected trains, keep the world
+            // running. The human releases them by deciding (no global pause,
+            // no auto-apply). Delay accrues = realistic pressure.
+            this._holdAffected();
+          } else {
+            // Recommendation: keep the gentle global pause + decision countdown.
+            this.store.pause();
+            this._startCountdown();
+          }
         }
+
         if (!has) this._stopCountdown();
         this._hadImpact = has;
       },
       error: () => {},
     });
+  }
+
+  /** Merge the live impact into a stable display list: refresh cached rows,
+   *  keep rows for a short grace window (and held rows indefinitely) so they
+   *  don't flicker out, prune the rest, and sort by handle for a stable order. */
+  private _rebuildStable(live: ImpactItem[]): void {
+    const now = Date.now();
+    for (const it of live) {
+      this._cache.set(it.handle, it);
+      this._seenAt.set(it.handle, now);
+    }
+    const out: ImpactItem[] = [];
+    for (const [handle, item] of this._cache) {
+      const fresh = now - (this._seenAt.get(handle) ?? 0) <= ImpactPanelComponent.GRACE_MS;
+      if (fresh || this._held().has(handle)) {
+        out.push(item);
+      } else {
+        this._cache.delete(handle);
+        this._seenAt.delete(handle);
+      }
+    }
+    out.sort((a, b) => a.handle - b.handle);
+    this._stable.set(out);
   }
 
   private _stopPoll(): void {
@@ -158,6 +219,10 @@ export class ImpactPanelComponent implements OnDestroy {
 
   private dismiss(handle: number): void {
     this.applied.update((s) => new Set(s).add(handle));
+    // The human decided for this train → it's no longer a system hold.
+    if (this._held().has(handle)) {
+      this._held.update((s) => { const n = new Set(s); n.delete(handle); return n; });
+    }
     if (this.items().length === 0) this._stopCountdown();
   }
 

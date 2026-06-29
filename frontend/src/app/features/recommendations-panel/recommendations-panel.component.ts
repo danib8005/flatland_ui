@@ -61,15 +61,12 @@ export class RecommendationsPanelComponent implements OnDestroy {
       const sessionChanged = sess.id !== this._recLastSession;
       const stoppedPlaying = lastPlaying && !playing;
 
+      // Fetch on session change and when Play stops (= a decision moment).
+      // Deliberately NO live 2s poll during Play: policy-switch recommendations
+      // are marginal and would flip in/out each tick, making cards "disappear"
+      // mid-hover (the flicker). They only matter when the run is paused.
       if (sessionChanged || stoppedPlaying) {
         this._fetchRecommendations(sess.id);
-      }
-
-      if (sessionChanged) {
-        this._stopRecPolling();
-        this._recPollHandle = setInterval(() => {
-          this._fetchRecommendations(sess.id);
-        }, 2000);
       }
 
       this._recLastSession = sess.id;
@@ -182,12 +179,11 @@ export class RecommendationsPanelComponent implements OnDestroy {
     return this.isAutoDispatchPolicyEnabled(policyId);
   }
 
-  thumbsUp(r: Recommendation) {
-    this.bus.emit({ type: 'RECOMMENDATION_FEEDBACK', recId: r.id, thumbsUp: true });
-    this.dismiss(r);
-  }
-
-  thumbsDown(r: Recommendation) {
+  /** Decline the recommendation: the policy change is NOT applied, the card
+   *  is dismissed. We still record the decision (accepted vs. rejected) as a
+   *  signal for the co-learning / calibrated-trust loop — but it's framed as
+   *  a decision, not a like/dislike. */
+  reject(r: Recommendation) {
     this.bus.emit({ type: 'RECOMMENDATION_FEEDBACK', recId: r.id, thumbsUp: false });
     this.dismiss(r);
   }

@@ -35,9 +35,6 @@
           </div>
 
           <div class="actions">
-            <button class="btn btn-feedback" (click)="thumbsDown(r)" title="Reject">
-              👎
-            </button>
             @if (canAcceptRecommendation(r)) {
               <button class="btn btn-accept" (click)="accept(r)">
                 Accept
@@ -47,8 +44,8 @@
                 Deaktiviert für Auto-Dispo
               </span>
             }
-            <button class="btn btn-feedback" (click)="thumbsUp(r)" title="Approve">
-              👍
+            <button class="btn btn-reject" (click)="reject(r)" title="Decline this change">
+              Reject
             </button>
           </div>
         </div>

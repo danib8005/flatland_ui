@@ -223,6 +223,27 @@
 }
 .ip-na { font-size: 10px; color: var(--sbb-color-granite, #686868); }
 
+/* Localized blocking: held trains wait for the human; rest keeps running. */
+.ip-held-banner {
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border-left: 3px solid #eb0000;
+  background: var(--sbb-color-milk, #f6f6f6);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--sbb-color-iron, #444);
+}
+.ip-held-tag {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #fff;
+  background: #eb0000;
+  border-radius: 9px;
+  padding: 0 6px;
+}
+
 /* Co-Learning reciprocity: AI feedback on the hovered option. */
 .ip-opt-feedback {
   margin-top: 6px;

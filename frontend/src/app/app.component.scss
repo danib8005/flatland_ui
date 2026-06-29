@@ -139,6 +139,10 @@
   background: var(--sbb-color-milk, #f6f6f6);
   overflow-y: auto;
   overflow-x: hidden;
+  /* Reserve the scrollbar gutter so panels that grow/shrink with live
+     polling (impact auto-collapse, etc.) don't toggle the scrollbar and
+     shift the column sideways — that was the visible "flicker". */
+  scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -409,6 +413,28 @@
   cursor: pointer;
 }
 .footer-survey-btn:hover { background: #ffbb33; }
+
+/* Co-Learning "Reflect now" trigger — lives in the right (intervention) pane. */
+.reflect-trigger {
+  display: block;
+  width: calc(100% - 8px);
+  margin: 4px;
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  background: var(--sbb-color-white, #fff);
+  color: var(--sbb-color-charcoal, #212121);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.reflect-trigger:hover { border-color: var(--sbb-color-charcoal, #212121); }
+.reflect-trigger.active {
+  background: var(--sbb-color-charcoal, #212121);
+  border-color: var(--sbb-color-charcoal, #212121);
+  color: #fff;
+}
 
 .playing-indicator {
   display: inline-flex;
