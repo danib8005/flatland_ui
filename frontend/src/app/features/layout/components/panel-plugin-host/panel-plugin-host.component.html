@@ -17,11 +17,11 @@
     }
 
     @case ('recommendations') {
-      <app-recommendations-panel></app-recommendations-panel>
+      <app-recommendations-panel [embedded]="true"></app-recommendations-panel>
     }
 
     @case ('impact') {
-      <app-impact-panel></app-impact-panel>
+      <app-impact-panel [embedded]="true"></app-impact-panel>
     }
 
     @default {

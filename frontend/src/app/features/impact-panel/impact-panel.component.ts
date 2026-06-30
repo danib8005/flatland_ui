@@ -1,4 +1,5 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, OnDestroy, computed, effect, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, HostBinding, Input, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
 import { ApiService } from '../../core/api.service';
 import { AgentColorService } from '../../core/agent-color.service';
@@ -16,11 +17,19 @@ import { ActionInt } from '../../core/models';
 @Component({
   selector: 'app-impact-panel',
   standalone: true,
+  imports: [CommonModule],
   templateUrl: './impact-panel.component.html',
   styleUrl: './impact-panel.component.scss',
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class ImpactPanelComponent implements OnDestroy {
+  @Input() embedded = false;
+
+  @HostBinding('class.embedded')
+  get embeddedClass(): boolean {
+    return this.embedded;
+  }
+
   store = inject(SessionStore);
   private api = inject(ApiService);
   private colors = inject(AgentColorService);
