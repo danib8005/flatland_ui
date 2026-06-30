@@ -7,6 +7,7 @@ import { KpiFilterComponent } from '../../../kpi-filter/kpi-filter.component';
 import { ScenarioPanelComponent } from '../../../scenario-panel/scenario-panel.component';
 import { RecommendationsPanelComponent } from '../../../recommendations-panel/recommendations-panel.component';
 import { ImpactPanelComponent } from '../../../impact-panel/impact-panel.component';
+import { FlatlandMapComponent } from '../../../flatland-map/flatland-map.component';
 
 @Component({
   selector: 'app-panel-plugin-host',
@@ -18,6 +19,7 @@ import { ImpactPanelComponent } from '../../../impact-panel/impact-panel.compone
     ScenarioPanelComponent,
     RecommendationsPanelComponent,
     ImpactPanelComponent,
+    FlatlandMapComponent,
   ],
   templateUrl: './panel-plugin-host.component.html',
   styleUrl: './panel-plugin-host.component.scss',

@@ -43,3 +43,19 @@
   font-size: var(--sbb-font-size-text-xs, 0.75rem);
   line-height: 1.4;
 }
+
+
+.panel-plugin-host__map {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 32rem;
+}
+
+.panel-plugin-host__map app-flatland-map {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 32rem;
+}
+
