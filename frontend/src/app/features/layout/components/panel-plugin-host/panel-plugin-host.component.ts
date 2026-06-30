@@ -11,10 +11,12 @@ import { FlatlandMapComponent } from '../../../flatland-map/flatland-map.compone
 import { GraphicTimetableComponent } from '../../../graphic-timetable/graphic-timetable.component';
 import { SituationSummaryComponent } from '../../../situation-summary/situation-summary.component';
 
+import { AgentInspectorComponent } from '../../../agent-inspector/agent-inspector.component';
 @Component({
   selector: 'app-panel-plugin-host',
   standalone: true,
   imports: [
+    AgentInspectorComponent,
     NotificationsPanelComponent,
     AgentsPanelComponent,
     KpiFilterComponent,

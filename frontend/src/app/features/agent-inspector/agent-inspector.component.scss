@@ -174,3 +174,118 @@
   border-color: var(--sbb-color-charcoal, #212121);
   color: #fff;
 }
+
+/* AGENT_INSPECTOR_COMPONENT_PANEL_FIX_START */
+:host {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.agent-overlay {
+  position: static !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  z-index: auto !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  min-height: 170px !important;
+  height: auto !important;
+
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+.ao-head,
+.ao-facts,
+.ao-actions {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.ao-facts,
+.ao-buttons {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  overflow: visible !important;
+}
+
+.ao-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  overflow: visible !important;
+}
+
+.ao-btn,
+.ao-fact {
+  white-space: nowrap !important;
+}
+/* AGENT_INSPECTOR_COMPONENT_PANEL_FIX_END */
+
+/* AGENT_INSPECTOR_EMPTY_STATE_STYLES_START */
+.agent-overlay--empty {
+  min-height: 170px !important;
+  height: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.ao-empty {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px;
+  box-sizing: border-box;
+  color: var(--sbb-color-granite, #686868);
+}
+
+.ao-empty__icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--sbb-color-red, #eb0000);
+  background: var(--sbb-color-milk, #f6f6f6);
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2);
+}
+
+.ao-empty__title {
+  font-weight: 700;
+  color: var(--sbb-color-charcoal, #1f1f1f);
+}
+
+.ao-empty__text {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.ao-empty__hint {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--sbb-color-granite, #686868);
+}
+/* AGENT_INSPECTOR_EMPTY_STATE_STYLES_END */
