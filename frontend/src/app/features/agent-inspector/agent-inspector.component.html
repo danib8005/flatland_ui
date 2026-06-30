@@ -49,4 +49,23 @@
       </div>
     }
   </div>
+} @else {
+  <!-- AGENT_INSPECTOR_EMPTY_STATE_START -->
+  <div
+    class="agent-overlay agent-overlay--empty"
+    role="status"
+    aria-live="polite"
+  >
+    <div class="ao-empty">
+      <div class="ao-empty__icon" aria-hidden="true">ⓘ</div>
+      <div class="ao-empty__title">No train selected</div>
+      <div class="ao-empty__text">
+        Hover over a train or select one on the map or in the Agents list.
+      </div>
+      <div class="ao-empty__hint">
+        The Agent Inspector will then show position, destination, status and available actions.
+      </div>
+    </div>
+  </div>
+  <!-- AGENT_INSPECTOR_EMPTY_STATE_END -->
 }
