@@ -1,9 +1,18 @@
-<sbb-expansion-panel class="lyne-feature-panel recommendations-panel-lyne-panel" color="white" size="s">
-  <sbb-expansion-panel-header>
-    <span class="lyne-panel-title">Recommendations</span>
-  </sbb-expansion-panel-header>
+@if (embedded) {
+  <ng-container [ngTemplateOutlet]="recommendationsContent"></ng-container>
+} @else {
+  <sbb-expansion-panel class="lyne-feature-panel recommendations-panel-lyne-panel" color="white" size="s">
+    <sbb-expansion-panel-header>
+      <span class="lyne-panel-title">Recommendations</span>
+    </sbb-expansion-panel-header>
 
-  <sbb-expansion-panel-content class="lyne-panel-content">
+    <sbb-expansion-panel-content class="lyne-panel-content">
+      <ng-container [ngTemplateOutlet]="recommendationsContent"></ng-container>
+    </sbb-expansion-panel-content>
+  </sbb-expansion-panel>
+}
+
+<ng-template #recommendationsContent>
   <div class="recommendations-panel">
 
     @if (store.recommendations().length === 0) {
@@ -30,7 +39,6 @@
               <p class="preview-hint">Hover zeigt die geänderte Route auf Karte & Marey</p>
             }
 
-            <!-- Confidence Bar -->
             <div class="conf-bar">
               <div class="conf-fill" [style.width]="confidencePct(r) + '%'"></div>
             </div>
@@ -45,6 +53,7 @@
                   Deaktiviert für Auto-Dispo
                 </span>
               }
+
               <button class="btn btn-reject" (click)="reject(r)" title="Decline this change">
                 Reject
               </button>
@@ -53,7 +62,6 @@
         }
       </div>
     }
-    
+
   </div>
-  </sbb-expansion-panel-content>
-</sbb-expansion-panel>
+</ng-template>

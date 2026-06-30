@@ -247,3 +247,36 @@
   transition: transform 0.15s ease;
 }
 .panel-caret.open { transform: rotate(90deg); }
+
+
+:host(.embedded) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: initial;
+  padding: 0;
+  margin: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+:host(.embedded):has(.empty) {
+  display: block;
+  min-height: 0;
+  flex: initial;
+  padding: 0;
+  border-bottom: 0;
+}
+
+:host(.embedded):not(:has(.empty)) {
+  min-height: 0;
+}
+
+:host(.embedded) .recommendations-panel {
+  width: 100%;
+  min-width: 0;
+}
+

@@ -1,4 +1,5 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, OnDestroy, computed, effect, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, HostBinding, Input, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
 import { ApiService } from '../../core/api.service';
 import { EventBusService } from '../../core/events/event-bus.service';
@@ -8,11 +9,19 @@ import { PolicyName } from '../../core/models';
 @Component({
   selector: 'app-recommendations-panel',
   standalone: true,
+  imports: [CommonModule],
   templateUrl: './recommendations-panel.component.html',
   styleUrl: './recommendations-panel.component.scss',
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class RecommendationsPanelComponent implements OnDestroy {
+  @Input() embedded = false;
+
+  @HostBinding('class.embedded')
+  get embeddedClass(): boolean {
+    return this.embedded;
+  }
+
   store = inject(SessionStore);
   api = inject(ApiService);
   bus = inject(EventBusService);
