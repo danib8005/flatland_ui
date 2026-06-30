@@ -1,52 +1,68 @@
-<div class="notifications-panel">
-  <div class="panel-head">
-    <h3 class="panel-title">Event Feed</h3>
-    @if (store.notifications().length > 0) {
-      <span class="feed-counts">
-        @if (errorCount() > 0) {
-          <span class="count count-error" title="Errors">{{ errorCount() }}</span>
-        }
-        @if (warningCount() > 0) {
-          <span class="count count-warning" title="Warnings">{{ warningCount() }}</span>
-        }
-        <span class="count count-total" title="Total events">{{ store.notifications().length }}</span>
-      </span>
-    }
-  </div>
+@if (embedded) {
+  <ng-container [ngTemplateOutlet]="notificationContent"></ng-container>
+} @else {
+  <sbb-expansion-panel class="lyne-feature-panel notifications-panel-lyne-panel" color="white" size="s">
+    <sbb-expansion-panel-header>
+      <span class="lyne-panel-title">Event Feed</span>
+    </sbb-expansion-panel-header>
 
-  @if (store.notifications().length === 0) {
-    <p class="empty">No events</p>
-  } @else {
-    <ul class="notif-list">
-      @for (n of store.notifications(); track n.id) {
-        <li class="notif"
-            [class.kind-error]="n.kind === 'error'"
-            [class.kind-warning]="n.kind === 'warning'"
-            [class.kind-info]="n.kind === 'info'"
-            [class.agent-related]="isAgentRelated(n)"
+    <sbb-expansion-panel-content class="lyne-panel-content">
+      <ng-container [ngTemplateOutlet]="notificationContent"></ng-container>
+    </sbb-expansion-panel-content>
+  </sbb-expansion-panel>
+}
+
+<ng-template #notificationContent>
+  <div class="notifications-panel">
+    <div class="panel-head">
+      <h3 class="panel-title">Event Feed</h3>
+      @if (store.notifications().length > 0) {
+        <span class="feed-counts">
+          @if (errorCount() > 0) {
+            <span class="count count-error" title="Errors">{{ errorCount() }}</span>
+          }
+          @if (warningCount() > 0) {
+            <span class="count count-warning" title="Warnings">{{ warningCount() }}</span>
+          }
+          <span class="count count-total" title="Total events">{{ store.notifications().length }}</span>
+        </span>
+      }
+    </div>
+
+    @if (store.notifications().length === 0) {
+      <p class="empty">No events</p>
+    } @else {
+      <ul class="notif-list">
+        @for (n of store.notifications(); track n.id) {
+          <li class="notif"
+              [class.kind-error]="n.kind === 'error'"
+              [class.kind-warning]="n.kind === 'warning'"
+              [class.kind-info]="n.kind === 'info'"
+              [class.agent-related]="isAgentRelated(n)"
               [class.single-agent-related]="singleNotificationAgentHandle(n) !== null"
               [class.multi-agent-related]="isAgentRelated(n) && singleNotificationAgentHandle(n) === null"
               [style.--notification-agent-color]="notificationAgentColor(n)"
-            [class.selected-agent-related]="isSelectedAgentRelated(n)"
-            [class.hovered-agent-related]="isHoveredAgentRelated(n)"
-            (mouseenter)="onNotificationMouseEnter(n)"
-            (mouseleave)="onNotificationMouseLeave()"
-            (click)="onNotificationClick(n)">
-          <span class="kind-marker" [attr.aria-label]="n.kind"></span>
-          <div class="content">
-            <span class="title">{{ n.title }}</span>
-            <span class="msg">{{ n.message }}</span>
-            @if (n.relatedElement) {
-              <span class="related">
-                {{ n.relatedElement.kind }} #{{ n.relatedElement.id }}
-              </span>
-            }
-          </div>
-          <button class="dismiss"
-                  (click)="dismiss(n, $event)"
-                  title="Dismiss">×</button>
-        </li>
-      }
-    </ul>
-  }
-</div>
+              [class.selected-agent-related]="isSelectedAgentRelated(n)"
+              [class.hovered-agent-related]="isHoveredAgentRelated(n)"
+              (mouseenter)="onNotificationMouseEnter(n)"
+              (mouseleave)="onNotificationMouseLeave()"
+              (click)="onNotificationClick(n)">
+            <span class="kind-marker" [attr.aria-label]="n.kind"></span>
+            <div class="content">
+              <span class="title">{{ n.title }}</span>
+              <span class="msg">{{ n.message }}</span>
+              @if (n.relatedElement) {
+                <span class="related">
+                  {{ n.relatedElement.kind }} #{{ n.relatedElement.id }}
+                </span>
+              }
+            </div>
+            <button class="dismiss"
+                    (click)="dismiss(n, $event)"
+                    title="Dismiss">×</button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</ng-template>

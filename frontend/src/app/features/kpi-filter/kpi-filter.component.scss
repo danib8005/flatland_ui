@@ -120,3 +120,25 @@
 .dot.filled:hover {
   background: #000;
 }
+
+
+:host(.embedded) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: initial;
+  flex-shrink: 1;
+  padding: 0;
+  margin: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+:host(.embedded) .kpi-filter {
+  width: 100%;
+  min-width: 0;
+}
+

@@ -285,3 +285,50 @@
   background: var(--sbb-color-blue, #0079c7);
   transition: width 1s linear;
 }
+
+
+/* SBB Lyne expansion-panel migration.
+   The caret/expand affordance is provided by <sbb-expansion-panel>. */
+sbb-expansion-panel.impact-panel {
+  display: block;
+}
+
+sbb-expansion-panel-header.ip-panel-head {
+  width: 100%;
+}
+
+.ip-caret {
+  display: none;
+}
+
+
+:host(.embedded) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: initial;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+:host(.embedded) .impact-panel {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+:host(.embedded) .impact-panel--embedded {
+  padding: 0;
+  background: transparent;
+  border-left: 0;
+  border-radius: 0;
+}
+
+:host(.embedded) .ip-panel-head--embedded {
+  margin-bottom: var(--sbb-spacing-fixed-2x, 0.5rem);
+}
+

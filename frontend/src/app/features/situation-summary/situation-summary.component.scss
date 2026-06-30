@@ -74,3 +74,16 @@
 
 .sit-cell.warn .sit-num { color: var(--sbb-color-orange, #cc8800); }
 .sit-cell.bad .sit-num { color: var(--sbb-color-red, #eb0000); }
+
+/* layout-panel-embed-fix:situation-summary */
+:host {
+  display: block;
+  width: 100%;
+  background: #fff;
+}
+
+.situation {
+  background: #fff;
+  box-sizing: border-box;
+  width: 100%;
+}

@@ -1,1 +1,13 @@
-<app-left-sidebar></app-left-sidebar>
+@if (embedded) {
+  <app-left-sidebar></app-left-sidebar>
+} @else {
+  <sbb-expansion-panel class="lyne-feature-panel agents-panel-lyne-panel" color="white" size="s" expanded>
+    <sbb-expansion-panel-header>
+      <span class="lyne-panel-title">Agents Panel</span>
+    </sbb-expansion-panel-header>
+
+    <sbb-expansion-panel-content class="lyne-panel-content">
+      <app-left-sidebar></app-left-sidebar>
+    </sbb-expansion-panel-content>
+  </sbb-expansion-panel>
+}

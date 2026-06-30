@@ -61,3 +61,24 @@
   border-color: #ffffff !important;
 }
 /* app interaction color concept overrides - end */
+
+
+:host(.embedded) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: initial;
+  padding: 0;
+  margin: 0;
+  border-bottom: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+:host(.embedded) app-left-sidebar {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+

@@ -1,90 +1,101 @@
-<div class="scenario-panel">
-  <button class="panel-head" type="button" (click)="toggleCollapsed()" [attr.aria-expanded]="!collapsed()">
-    <span class="panel-title">
-      {{ showRecommendedFraming() ? 'Scenarios — Policy Comparison' : 'Options — Policy Comparison' }}
-    </span>
-    <span class="panel-caret" [class.open]="!collapsed()" aria-hidden="true">▸</span>
-  </button>
+@if (embedded) {
+  <ng-container [ngTemplateOutlet]="scenarioContent"></ng-container>
+} @else {
+  <sbb-expansion-panel class="lyne-feature-panel scenario-panel-lyne-panel" color="white" size="s">
+    <sbb-expansion-panel-header>
+      <span class="lyne-panel-title">Scenarios</span>
+    </sbb-expansion-panel-header>
 
-  @if (!collapsed()) {
-  @if (store.scenarios().length === 0) {
-    <p class="empty">No scenarios available</p>
-  } @else {
-    <div class="scenarios">
-      @for (s of rankedScenarios(); track s.id) {
-        <div class="scenario-card"
-             [class.baseline]="s.isBaseline"
-             [class.recommended]="showRecommendedFraming() && s.isRecommended && !s.isBaseline"
-             [class.avoid]="showRecommendedFraming() && s.tag === 'avoid'" (mouseenter)="store.previewScenarioId.set(s.id)" (mouseleave)="store.previewScenarioId.set(null)">
+    <sbb-expansion-panel-content class="lyne-panel-content">
+      <ng-container [ngTemplateOutlet]="scenarioContent"></ng-container>
+    </sbb-expansion-panel-content>
+  </sbb-expansion-panel>
+}
 
-          <!-- Header row -->
-          <div class="card-header">
-            <h4 class="title">{{ s.title }}</h4>
-            @if (showRecommendedFraming()) {
-              @if (s.isRecommended && !s.isBaseline) {
-                <span class="badge recommended">Recommended</span>
-              } @else if (s.tag === 'avoid') {
-                <span class="badge avoid">Avoid</span>
-              }
-            }
-          </div>
+<ng-template #scenarioContent>
+  <div class="scenario-panel">
 
-          <!-- Headline: the prominent plain-language summary -->
-          <p class="headline"
-             [title]="s.description || ''"
-             [class.good]="(s.description || '').startsWith('✓')"
-             [class.warn]="(s.description || '').startsWith('⚠')"
-             [class.bad]="(s.description || '').startsWith('✗')">
-            {{ s.description }}
-          </p>
+    @if (store.scenarios().length === 0) {
+      <p class="empty">No scenarios available</p>
+    } @else {
+      <div class="scenarios">
+        @for (s of rankedScenarios(); track s.id) {
+          <div class="scenario-card"
+               [class.baseline]="s.isBaseline"
+               [class.recommended]="showRecommendedFraming() && s.isRecommended && !s.isBaseline"
+               [class.avoid]="showRecommendedFraming() && s.tag === 'avoid'"
+               (mouseenter)="store.previewScenarioId.set(s.id)"
+               (mouseleave)="store.previewScenarioId.set(null)">
 
-          <!-- Compact KPI strip -->
-          <div class="kpi-strip">
-            <span class="kpi-pill">
-              <span class="kpi-label">Done</span>
-              <span class="kpi-value">{{ s.kpis?.done ?? '–' }}/{{ totalAgents() }}</span>
-            </span>
-            <span class="kpi-pill" [class.bad]="(s.kpis?.deadlocks ?? 0) > 0">
-              <span class="kpi-label">Deadlock</span>
-              <span class="kpi-value">
-                {{ s.kpis?.deadlocks ?? '–' }}
-              </span>
-            </span>
-            <span class="kpi-pill" [class.warn]="(s.kpis?.meanDelay ?? 0) > 5">
-              <span class="kpi-label">Delay</span>
-              <span class="kpi-value">
-                {{ s.kpis?.meanDelay ?? '–' }}
-                @if ((s.kpis?.totalDelay ?? 0) > 0) {
-                  <span class="kpi-unit"> ({{ s.kpis?.totalDelay }} total)</span>
+            <div class="card-header">
+              <h4 class="title">{{ s.title }}</h4>
+              @if (showRecommendedFraming()) {
+                @if (s.isRecommended && !s.isBaseline) {
+                  <span class="badge recommended">Recommended</span>
+                } @else if (s.tag === 'avoid') {
+                  <span class="badge avoid">Avoid</span>
                 }
-              </span>
-            </span>
-            <span class="kpi-pill">
-              <span class="kpi-label">Steps</span>
-              <span class="kpi-value">
-                {{ s.kpis?.episodeSteps ?? '–' }}
-              </span>
-            </span>
-          </div>
-
-          @if (!s.isBaseline) {
-            <div class="actions">
-              @if (canSwitchToScenarioPolicy(s)) {
-                <button class="btn btn-confirm"
-                        [disabled]="confirming() === s.id"
-                        (click)="confirm(s)">
-                  {{ confirming() === s.id ? 'Switching…' : 'Switch to this policy' }}
-                </button>
-              } @else {
-                <span class="auto-dispatch-disabled">
-                  Deaktiviert für Auto-Dispo
-                </span>
               }
             </div>
-          }
-        </div>
-      }
-    </div>
-  }
-  }
-</div>
+
+            <p class="headline"
+               [title]="s.description || ''"
+               [class.good]="(s.description || '').startsWith('✓')"
+               [class.warn]="(s.description || '').startsWith('⚠')"
+               [class.bad]="(s.description || '').startsWith('✗')">
+              {{ s.description }}
+            </p>
+
+            <div class="kpi-strip">
+              <span class="kpi-pill">
+                <span class="kpi-label">Done</span>
+                <span class="kpi-value">{{ s.kpis?.done ?? '–' }}/{{ totalAgents() }}</span>
+              </span>
+
+              <span class="kpi-pill" [class.bad]="(s.kpis?.deadlocks ?? 0) > 0">
+                <span class="kpi-label">Deadlock</span>
+                <span class="kpi-value">
+                  {{ s.kpis?.deadlocks ?? '–' }}
+                </span>
+              </span>
+
+              <span class="kpi-pill" [class.warn]="(s.kpis?.meanDelay ?? 0) > 5">
+                <span class="kpi-label">Delay</span>
+                <span class="kpi-value">
+                  {{ s.kpis?.meanDelay ?? '–' }}
+                  @if ((s.kpis?.totalDelay ?? 0) > 0) {
+                    <span class="kpi-unit"> ({{ s.kpis?.totalDelay }} total)</span>
+                  }
+                </span>
+              </span>
+
+              <span class="kpi-pill">
+                <span class="kpi-label">Steps</span>
+                <span class="kpi-value">
+                  {{ s.kpis?.episodeSteps ?? '–' }}
+                </span>
+              </span>
+            </div>
+
+            @if (!s.isBaseline) {
+              <div class="actions">
+                @if (canSwitchToScenarioPolicy(s)) {
+                  <button class="btn btn-confirm"
+                          [disabled]="confirming() === s.id"
+                          (click)="confirm(s)">
+                    {{ confirming() === s.id ? 'Switching…' : 'Switch to this policy' }}
+                  </button>
+                } @else {
+                  <span class="auto-dispatch-disabled">
+                    Deaktiviert für Auto-Dispo
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+  </div>
+</ng-template>

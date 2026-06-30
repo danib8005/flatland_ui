@@ -1,4 +1,5 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, effect, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, HostBinding, Input, effect, inject, signal } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
 import { EventBusService } from '../../core/events/event-bus.service';
 import { KpiPriorities } from '../../core/events/event-types';
@@ -11,18 +12,26 @@ interface KpiDef {
 @Component({
   selector: 'app-kpi-filter',
   standalone: true,
+  imports: [CommonModule],
   templateUrl: './kpi-filter.component.html',
   styleUrl: './kpi-filter.component.scss',
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class KpiFilterComponent {
+  @Input() embedded = false;
+
+  @HostBinding('class.embedded')
+  get embeddedClass(): boolean {
+    return this.embedded;
+  }
+
   store = inject(SessionStore);
   bus = inject(EventBusService);
 
   /** KPI is the primary directive lever in Director mode → expanded there;
    *  collapsed elsewhere to keep the screen simple. Re-defaults on mode change;
    *  the user can still toggle within a mode. */
-  readonly collapsed = signal<boolean>(true);
+  readonly collapsed = signal<boolean>(false);
 
   constructor() {
     effect(() => {

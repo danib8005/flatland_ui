@@ -1,0 +1,80 @@
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.layout-sandbox {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--sbb-spacing-fixed-4x, 1rem);
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: var(--sbb-spacing-fixed-4x, 1rem);
+  background: var(--sbb-color-milk, #f6f6f6);
+}
+
+.layout-sandbox__header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--sbb-spacing-fixed-4x, 1rem);
+  min-width: 0;
+}
+
+.layout-sandbox__eyebrow {
+  margin: 0 0 var(--sbb-spacing-fixed-1x, 0.25rem);
+  color: var(--sbb-color-granite, #686868);
+  font-size: var(--sbb-font-size-text-xs, 0.75rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.layout-sandbox__title {
+  margin: 0;
+  color: var(--sbb-color-charcoal, #212121);
+  font-size: var(--sbb-font-size-text-xl, 1.5rem);
+  line-height: 1.2;
+}
+
+.layout-sandbox__hint {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--sbb-color-granite, #686868);
+  font-size: var(--sbb-font-size-text-s, 0.875rem);
+  line-height: 1.4;
+  text-align: right;
+}
+
+.layout-sandbox__stage {
+  min-width: 0;
+  min-height: 0;
+}
+
+
+/* Full-height layout sandbox: app header stays outside, sandbox fills remaining viewport. */
+:host {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.layout-sandbox {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.layout-sandbox__stage {
+  display: block;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+

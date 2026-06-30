@@ -1,0 +1,48 @@
+/* Stable LayoutRenderer baseline. */
+
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.layout-renderer {
+  display: grid;
+  gap: var(--sbb-spacing-fixed-3x, 0.75rem);
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.layout-renderer__column {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sbb-spacing-fixed-3x, 0.75rem);
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.layout-renderer__column app-panel-shell {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.layout-renderer__column[data-zone='center'] {
+  overflow: auto;
+}
+
+.layout-renderer__empty {
+  min-height: 6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--sbb-color-cloud, #d2d2d2);
+  border-radius: 4px;
+  color: var(--sbb-color-granite, #686868);
+  background: var(--sbb-color-milk, #f6f6f6);
+  font-size: 0.875rem;
+}

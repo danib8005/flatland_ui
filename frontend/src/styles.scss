@@ -412,3 +412,309 @@ app-layer-visibility .layer-visibility,
 .left-pane app-layer-visibility .layer-visibility {
   border-bottom: 0 !important;
 }
+
+/* Lyne expansion panel wrappers for feature panels */
+sbb-expansion-panel.lyne-feature-panel {
+  display: block;
+  margin-block-end: 1rem;
+}
+
+sbb-expansion-panel.lyne-feature-panel .lyne-panel-title {
+  font-weight: 700;
+}
+
+sbb-expansion-panel.lyne-feature-panel .lyne-panel-content {
+  padding-block-start: 0.75rem;
+}
+
+/* Pure Lyne expansion panels: hide legacy inner panel headers */
+sbb-expansion-panel-content .panel-head,
+sbb-expansion-panel-content .kpi-panel-head {
+  display: none !important;
+}
+
+sbb-expansion-panel.lyne-feature-panel,
+sbb-expansion-panel.impact-panel {
+  display: block;
+}
+
+/* Compact SBB Lyne expansion panels */
+sbb-expansion-panel.lyne-feature-panel,
+sbb-expansion-panel.impact-panel {
+  display: block;
+  margin-block-end: 0.5rem;
+}
+
+sbb-expansion-panel-content.lyne-panel-content {
+  display: block;
+}
+
+.lyne-panel-title,
+sbb-expansion-panel-header .panel-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+sbb-expansion-panel-content .lyne-panel-content {
+  padding: 0;
+}
+
+/* AGENT_INSPECTOR_PANEL_FIX_START */
+app-agent-inspector {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  flex: 0 0 auto !important;
+}
+
+app-agent-inspector .agent-overlay {
+  position: static !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  z-index: auto !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+
+  min-height: 170px !important;
+  height: auto !important;
+
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  box-sizing: border-box !important;
+
+  overflow: visible !important;
+
+  background: var(--sbb-color-white, #fff) !important;
+  border: 1px solid var(--sbb-color-cloud, #d2d2d2) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+
+app-agent-inspector .ao-head,
+app-agent-inspector .ao-facts,
+app-agent-inspector .ao-actions {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+app-agent-inspector .ao-head {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-wrap: nowrap !important;
+}
+
+app-agent-inspector .ao-title {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+app-agent-inspector .ao-state {
+  flex: 0 0 auto !important;
+}
+
+app-agent-inspector .ao-close {
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
+}
+
+app-agent-inspector .ao-facts {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  overflow: visible !important;
+}
+
+app-agent-inspector .ao-fact {
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+}
+
+app-agent-inspector .ao-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  overflow: visible !important;
+}
+
+app-agent-inspector .ao-buttons {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  overflow: visible !important;
+}
+
+app-agent-inspector .ao-btn {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+
+/*
+ * Agent Inspector inside app-panel-shell.
+ */
+app-panel-shell[data-panel-type="agent-inspector"],
+app-panel-shell[data-panel-type="agent-inspector"] .layout-panel-shell,
+app-panel-shell[data-panel-type="agent-inspector"] .layout-panel-shell__content,
+app-panel-shell[data-panel-type="agent-inspector"] .layout-panel-shell__body {
+  min-height: 190px !important;
+  height: auto !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+app-panel-shell[data-panel-type="agent-inspector"] app-agent-inspector {
+  display: block !important;
+  width: 100% !important;
+  min-height: 170px !important;
+}
+
+app-panel-shell[data-panel-type="agent-inspector"] .agent-overlay {
+  min-height: 170px !important;
+}
+
+/*
+ * Fallback if Agent Inspector is still directly inside right-pane.
+ */
+.right-pane > app-agent-inspector {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  min-height: 170px !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+/* AGENT_INSPECTOR_PANEL_FIX_END */
+
+/* AGENT_INSPECTOR_PLUGIN_HOST_FIX_START */
+app-panel-shell[data-panel-type="agent-inspector"] app-panel-plugin-host,
+app-panel-shell[data-panel-type="agent-inspector"] .panel-plugin-host,
+app-panel-shell[data-panel-type="agent-inspector"] .panel-plugin-host--scroll {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  min-height: 190px !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+app-panel-shell[data-panel-type="agent-inspector"] .panel-plugin-host__placeholder {
+  display: none !important;
+}
+
+app-panel-shell[data-panel-type="agent-inspector"] app-agent-inspector {
+  display: block !important;
+  width: 100% !important;
+  min-height: 170px !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+app-panel-shell[data-panel-type="agent-inspector"] app-agent-inspector .agent-overlay {
+  min-height: 170px !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+/* AGENT_INSPECTOR_PLUGIN_HOST_FIX_END */
+
+/* AGENT_INSPECTOR_COLLAPSED_SIZE_FIX_START */
+/*
+ * Agent Inspector sizing by expansion state:
+ * - expanded: keep enough space for header, facts and action buttons
+ * - collapsed: shrink to normal expansion-panel header height
+ */
+
+/* Expanded state: enforce useful minimum height. */
+app-panel-shell[data-panel-type="agent-inspector"]:has(sbb-expansion-panel[expanded]),
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel[expanded],
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel[expanded] .layout-panel-shell__content,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel[expanded] .layout-panel-shell__body,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel[expanded] app-panel-plugin-host,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel[expanded] .panel-plugin-host,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel[expanded] app-agent-inspector,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel[expanded] app-agent-inspector .agent-overlay {
+  min-height: 170px !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+/* Slightly larger for the shell/body so the inner inspector has room. */
+app-panel-shell[data-panel-type="agent-inspector"]:has(sbb-expansion-panel[expanded]),
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel[expanded],
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel[expanded] .layout-panel-shell__content,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel[expanded] .layout-panel-shell__body,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel[expanded] app-panel-plugin-host,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel[expanded] .panel-plugin-host {
+  min-height: 190px !important;
+}
+
+/* Collapsed state: remove the forced min-height from shell and expansion panel. */
+app-panel-shell[data-panel-type="agent-inspector"]:has(sbb-expansion-panel:not([expanded])),
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel:not([expanded]) {
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Collapsed state: content area must not reserve the inspector min-height. */
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel:not([expanded]) .layout-panel-shell__content,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel:not([expanded]) .layout-panel-shell__body,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel:not([expanded]) app-panel-plugin-host,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel:not([expanded]) .panel-plugin-host,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel:not([expanded]) app-agent-inspector,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel:not([expanded]) app-agent-inspector .agent-overlay {
+  min-height: 0 !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Keep the collapsed header normal/clickable. */
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel:not([expanded]) sbb-expansion-panel-header,
+app-panel-shell[data-panel-type="agent-inspector"] sbb-expansion-panel:not([expanded]) .layout-panel-shell__header {
+  min-height: unset !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Fallback if SBB toggles aria-expanded but not the expanded attribute. */
+app-panel-shell[data-panel-type="agent-inspector"]:has(sbb-expansion-panel-header[aria-expanded="false"]),
+app-panel-shell[data-panel-type="agent-inspector"]:has(sbb-expansion-panel-content[aria-hidden="true"]) {
+  min-height: 0 !important;
+  height: auto !important;
+}
+
+app-panel-shell[data-panel-type="agent-inspector"]:has(sbb-expansion-panel-header[aria-expanded="false"]) .layout-panel-shell__content,
+app-panel-shell[data-panel-type="agent-inspector"]:has(sbb-expansion-panel-content[aria-hidden="true"]) .layout-panel-shell__content,
+app-panel-shell[data-panel-type="agent-inspector"]:has(sbb-expansion-panel-header[aria-expanded="false"]) .layout-panel-shell__body,
+app-panel-shell[data-panel-type="agent-inspector"]:has(sbb-expansion-panel-content[aria-hidden="true"]) .layout-panel-shell__body {
+  min-height: 0 !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+}
+/* AGENT_INSPECTOR_COLLAPSED_SIZE_FIX_END */

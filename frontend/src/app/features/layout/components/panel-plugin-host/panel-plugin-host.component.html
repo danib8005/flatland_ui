@@ -1,0 +1,62 @@
+<div
+  class="panel-plugin-host"
+  [attr.data-panel-type]="panel.type"
+  [class.panel-plugin-host--canvas]="isCanvasPanel"
+  [class.panel-plugin-host--scroll]="!isCanvasPanel"
+>
+  @switch (panel.type) {
+    @case ('situation-summary') {
+      <app-situation-summary></app-situation-summary>
+    }
+
+    @case ('notifications') {
+      <app-notifications-panel [embedded]="true"></app-notifications-panel>
+    }
+
+    @case ('agents') {
+      <app-agents-panel [embedded]="true"></app-agents-panel>
+    }
+
+    @case ('kpi-filter') {
+      <app-kpi-filter [embedded]="true"></app-kpi-filter>
+    }
+
+    @case ('scenario') {
+      <app-scenario-panel [embedded]="true"></app-scenario-panel>
+    }
+
+    @case ('recommendations') {
+      <app-recommendations-panel [embedded]="true"></app-recommendations-panel>
+    }
+
+    @case ('impact') {
+      <app-impact-panel [embedded]="true"></app-impact-panel>
+    }
+
+    @case ('flatland-map') {
+      <div class="panel-plugin-host__map">
+        <app-flatland-map></app-flatland-map>
+      </div>
+    }
+
+    @case ('graphic-timetable') {
+      <div class="panel-plugin-host__timetable">
+        <app-graphic-timetable></app-graphic-timetable>
+      </div>
+    }
+
+    @case ('agent-inspector') {
+      <app-agent-inspector></app-agent-inspector>
+    }
+
+    @default {
+      <div class="panel-plugin-host__placeholder">
+        <div class="panel-plugin-host__label">Plugin host</div>
+        <div class="panel-plugin-host__type">{{ panel.type }}</div>
+        <div class="panel-plugin-host__hint">
+          No plugin component has been mapped for this panel type yet.
+        </div>
+      </div>
+    }
+  }
+</div>

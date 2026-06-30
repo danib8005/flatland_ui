@@ -1,5 +1,5 @@
 import {
-  Component, CUSTOM_ELEMENTS_SCHEMA, ElementRef, computed, effect, inject, signal, viewChild, HostListener
+  Component, CUSTOM_ELEMENTS_SCHEMA, ElementRef, computed, effect, inject, signal, viewChild, HostListener, AfterViewInit, OnDestroy
 } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
 import { AgentColorService } from '../../core/agent-color.service';
@@ -76,7 +76,7 @@ interface TrajectoryOverlaySegment {
   styleUrl: './flatland-map.component.scss',
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
-export class FlatlandMapComponent {
+export class FlatlandMapComponent implements AfterViewInit, OnDestroy {
   store = inject(SessionStore);
   private agentColors = inject(AgentColorService);
   readonly railHover = inject(RailCellHoverService);
@@ -120,8 +120,41 @@ export class FlatlandMapComponent {
   private dragStartPanY = 0;
   private svgRef = viewChild<ElementRef<SVGSVGElement>>('svgRoot');
 
+  // layout-panel-fill-fix:responsive-viewbox
+  // Actual rendered SVG aspect ratio. The viewBox is expanded to this ratio
+  // so preserveAspectRatio="xMidYMid meet" does not create uneven letterboxing.
+  private readonly viewportAspect = signal(0);
+  private resizeObserver?: ResizeObserver;
+
   private get svgEl(): SVGSVGElement | undefined {
     return this.svgRef()?.nativeElement;
+  }
+
+  ngAfterViewInit(): void {
+    const update = () => this.updateViewportAspect();
+
+    queueMicrotask(update);
+    setTimeout(update, 0);
+
+    const el = this.svgEl;
+    if (el && typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(update);
+      this.resizeObserver.observe(el);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
+  }
+
+  private updateViewportAspect(): void {
+    const el = this.svgEl;
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      this.viewportAspect.set(rect.width / rect.height);
+    }
   }
 
   constructor() {
@@ -177,10 +210,32 @@ export class FlatlandMapComponent {
 
   readonly viewBox = computed(() => {
     const b = this.bbox();
-    const x = b.minC * this.cellSize + this.panX();
-    const y = b.minR * this.cellSize + this.panY();
-    const w = (b.maxC - b.minC + 1) * this.cellSize * this.zoom();
-    const h = (b.maxR - b.minR + 1) * this.cellSize * this.zoom();
+
+    let x = b.minC * this.cellSize + this.panX();
+    let y = b.minR * this.cellSize + this.panY();
+    let w = (b.maxC - b.minC + 1) * this.cellSize * this.zoom();
+    let h = (b.maxR - b.minR + 1) * this.cellSize * this.zoom();
+
+    // layout-panel-fill-fix:responsive-viewbox
+    // Match the viewBox aspect ratio to the actual SVG viewport.
+    // This removes asymmetric top/bottom or left/right margins caused by
+    // preserveAspectRatio="xMidYMid meet", without using "slice" and without
+    // clipping map content.
+    const viewportAspect = this.viewportAspect();
+    if (viewportAspect > 0 && w > 0 && h > 0) {
+      const contentAspect = w / h;
+
+      if (viewportAspect > contentAspect) {
+        const newW = h * viewportAspect;
+        x -= (newW - w) / 2;
+        w = newW;
+      } else if (viewportAspect < contentAspect) {
+        const newH = w / viewportAspect;
+        y -= (newH - h) / 2;
+        h = newH;
+      }
+    }
+
     return `${x} ${y} ${w} ${h}`;
   });
 
