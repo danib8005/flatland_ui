@@ -138,29 +138,7 @@
     </section>
 
     <aside class="right-pane">
-            <sbb-expansion-panel
-        color="white"
-        size="s"
-        class="layout-panel-shell layout-panel-shell--expansion"
-        data-panel-type="agent-inspector"
-        data-panel-zone="right"
-        expanded
-      >
-        <sbb-expansion-panel-header slot="header">
-          <div class="layout-panel-shell__header">
-            <span class="layout-panel-shell__title">Agent Inspector</span>
-          </div>
-        </sbb-expansion-panel-header>
-
-        <sbb-expansion-panel-content
-          class="layout-panel-shell__content"
-          slot="content"
-        >
-          <div class="layout-panel-shell__body layout-panel-shell__body--scroll">
-            <app-agent-inspector></app-agent-inspector>
-          </div>
-        </sbb-expansion-panel-content>
-      </sbb-expansion-panel>
+      <app-agent-inspector></app-agent-inspector>
 
       @if (store.aiInControl()) {
         <app-goal-achievement></app-goal-achievement>
