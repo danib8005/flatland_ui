@@ -21,14 +21,22 @@ import { SURVEY_PARTS, DEFAULT_SURVEY_PARTS } from './core/survey/survey-configs
 import { ApiService } from './core/api.service';
 import { SessionStore } from './core/session.store';
 import { InteractionMode } from './core/events/event-types';
-import { LayoutSandboxComponent } from './features/layout';
 import { PanelInstance } from './core/layout';
 import { PanelShellComponent } from './features/layout/components/panel-shell/panel-shell.component';
+
+import { LayoutDesignerComponent } from './features/layout-designer/layout-designer.component';
+type RuntimeLayoutOption = {
+  id: string;
+  name: string;
+  kind: 'system' | 'user';
+  design?: any;
+};
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
+    LayoutDesignerComponent,
     ToolbarComponent,
     TrackLayoutComponent,
     GraphicTimetableComponent,
@@ -46,16 +54,56 @@ import { PanelShellComponent } from './features/layout/components/panel-shell/pa
     AgentInspectorComponent,
     AgentsPanelComponent,
     ViewToggleComponent,
-    LayoutSandboxComponent,
-    PanelShellComponent,
+PanelShellComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class AppComponent implements OnInit {
+
+  get showLayoutDesigner(): boolean {
+    return (
+      window.location.pathname === '/designer' ||
+      window.location.hash === '#/designer' ||
+      window.location.hash.endsWith('/designer')
+    );
+  }
+
+
+  private ensureDesignerSession(): void {
+    if (!this.showLayoutDesigner || this.designerSessionRequested) {
+      return;
+    }
+
+    this.designerSessionRequested = true;
+
+    queueMicrotask(() => {
+      try {
+        Promise.resolve(this.onNewSession() as unknown).catch((error) => {
+          console.error('Designer session creation failed', error);
+        });
+      } catch (error) {
+        console.error('Designer session creation failed', error);
+      }
+    });
+  }
+
+
+  openLayoutDesigner(): void {
+    window.location.href = '/designer';
+  }
+
   store = inject(SessionStore);
   private api = inject(ApiService);
+
+  readonly systemRuntimeLayoutId = 'system-default-runtime-layout';
+
+  readonly selectedRuntimeLayoutId = signal<string>(this.systemRuntimeLayoutId);
+
+  readonly runtimeLayoutOptions = signal<RuntimeLayoutOption[]>(this.loadRuntimeLayoutOptions());
+
+  private designerSessionRequested = false;
 
   // layout-runtime-bridge: panel shell based runtime layout
   // These are the first static runtime panel definitions. The later designer
@@ -647,8 +695,190 @@ export class AppComponent implements OnInit {
     }
   }
 
+  private readLocalStorage(key: string): string | null {
+    try {
+      return typeof localStorage === 'undefined' ? null : localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  private writeLocalStorage(key: string, value: string): void {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(key, value);
+      }
+    } catch {
+      // Ignore local storage errors.
+    }
+  }
+
+  loadRuntimeLayoutOptions(): RuntimeLayoutOption[] {
+    const options: RuntimeLayoutOption[] = [
+      {
+        id: this.systemRuntimeLayoutId,
+        name: 'Default Layout ✓ hardcoded',
+        kind: 'system',
+      },
+    ];
+
+    const candidateKeys = [
+      'flatland.designer.designs.v1',
+      'flatland.layoutDesigner.designs.v1',
+      'flatland.layouts.v1',
+    ];
+
+    for (const key of candidateKeys) {
+      try {
+        const raw = this.readLocalStorage(key);
+        const designs = raw ? JSON.parse(raw) : [];
+
+        if (!Array.isArray(designs)) {
+          continue;
+        }
+
+        for (const design of designs) {
+          if (!design?.id || !design?.layout?.columns) {
+            continue;
+          }
+
+          if (options.some((option) => option.id === String(design.id))) {
+            continue;
+          }
+
+          options.push({
+            id: String(design.id),
+            name: String(design.name || 'User Layout'),
+            kind: 'user',
+            design,
+          });
+        }
+      } catch {
+        // Ignore invalid storage entries.
+      }
+    }
+
+    return options;
+  }
+
+  refreshRuntimeLayouts(): void {
+    this.runtimeLayoutOptions.set(this.loadRuntimeLayoutOptions());
+
+    const selectedExists = this.runtimeLayoutOptions().some(
+      (layout) => layout.id === this.selectedRuntimeLayoutId()
+    );
+
+    if (!selectedExists) {
+      this.setRuntimeLayout(this.systemRuntimeLayoutId);
+    }
+  }
+
+  setRuntimeLayout(id: string): void {
+    this.selectedRuntimeLayoutId.set(id || this.systemRuntimeLayoutId);
+  }
+
+  activeRuntimeDesign(): any | null {
+    const selectedId = this.selectedRuntimeLayoutId();
+
+    // Important: the system/default layout is the hardcoded AppComponent layout.
+    // It must never be loaded from designer storage.
+    if (!selectedId || selectedId === this.systemRuntimeLayoutId) {
+      return null;
+    }
+
+    const option = this.runtimeLayoutOptions().find((layout) => layout.id === selectedId);
+
+    if (!option || option.kind === 'system') {
+      return null;
+    }
+
+    return option.design ?? null;
+  }
+
+  useSavedRuntimeLayout(): boolean {
+    return this.selectedRuntimeLayoutId() !== this.systemRuntimeLayoutId && !!this.activeRuntimeDesign();
+  }
+
+  runtimeGridTemplate(): string {
+    const columns = this.activeRuntimeDesign()?.layout?.columns ?? [];
+
+    if (!Array.isArray(columns) || !columns.length) {
+      return '280px minmax(0, 1fr) 320px';
+    }
+
+    return columns
+      .map((column: any) => {
+        const width = Math.max(160, Number(column?.width ?? 280));
+        return `minmax(160px, ${width}fr)`;
+      })
+      .join(' ');
+  }
+
+  runtimeColumnClass(column: any, index: number): string {
+    const role = String(column?.role || column?.name || '').toLowerCase();
+
+    if (role.includes('right')) {
+      return 'right-pane runtime-design__column runtime-design__column--right';
+    }
+
+    if (role.includes('main') || role.includes('center') || role.includes('map') || index === 1) {
+      return 'center-pane runtime-design__column runtime-design__column--center';
+    }
+
+    return 'left-pane runtime-design__column runtime-design__column--left';
+  }
+
+  toRuntimePanel(column: any, panel: any, order: number): PanelInstance {
+    const type = this.toRuntimePanelType(String(panel?.type ?? 'unknown'));
+    const zone = this.toRuntimeZone(column);
+
+    return {
+      id: `runtime-user-${panel?.id ?? order}`,
+      type,
+      title: String(panel?.title ?? type),
+      zone,
+      order,
+      collapsed: panel?.expanded === false,
+      hidden: false,
+      sizeMode: zone === 'center' ? 'fill' : 'auto',
+    } as PanelInstance;
+  }
+
+  private toRuntimeZone(column: any): 'left' | 'center' | 'right' {
+    const role = String(column?.role || column?.name || '').toLowerCase();
+
+    if (role.includes('right')) {
+      return 'right';
+    }
+
+    if (role.includes('main') || role.includes('center') || role.includes('map')) {
+      return 'center';
+    }
+
+    return 'left';
+  }
+
+  private toRuntimePanelType(type: string): string {
+    if (type === 'agents-list') {
+      return 'agents';
+    }
+
+    if (type === 'simulation-map') {
+      return 'flatland-map';
+    }
+
+    if (type === 'marey-chart') {
+      return 'graphic-timetable';
+    }
+
+    return type;
+  }
+
+
+
 
   ngOnInit(): void {
+    this.ensureDesignerSession();
     this.store.loadPolicies();
   }
 }

@@ -1,0 +1,42 @@
+export type DesignerSelection =
+  | { kind: 'design' }
+  | { kind: 'column'; columnId: string }
+  | { kind: 'panel'; columnId: string; panelId: string };
+
+export interface DesignerPanel {
+  id: string;
+  type: string;
+  title: string;
+  expanded: boolean;
+  collapsible: boolean;
+  minHeight: number;
+  height?: number | null;
+}
+
+export interface DesignerColumn {
+  id: string;
+  name: string;
+  width: number;
+  role: 'sidebar' | 'main' | 'custom';
+  panels: DesignerPanel[];
+}
+
+export interface DesignerLayout {
+  columns: DesignerColumn[];
+}
+
+export interface FlatlandDesign {
+  id: string;
+  name: string;
+  sessionId?: string;
+  scale: number;
+  createdAt: string;
+  updatedAt: string;
+  layout: DesignerLayout;
+}
+
+export interface DesignerExport {
+  version: 1;
+  exportedAt: string;
+  designs: FlatlandDesign[];
+}
