@@ -1,4 +1,5 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, computed, effect, inject, signal } from '@angular/core';
+import '@sbb-esta/lyne-elements/toggle-check.js';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, EventEmitter, Input, Output, computed, effect, inject, signal } from '@angular/core';
 import { SessionStore } from '../../core/session.store';
 import { PolicyName } from '../../core/models';
 import { ApiService } from '../../core/api.service';
@@ -11,6 +12,11 @@ import { ApiService } from '../../core/api.service';
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class ToolbarComponent {
+  @Input() settingsActive = false;
+  @Input() scenarioPolicyActive = false;
+  @Output() openSettings = new EventEmitter<void>();
+  @Output() openScenarioPolicy = new EventEmitter<void>();
+  @Output() resetRequested = new EventEmitter<void>();
   store = inject(SessionStore);
   private api = inject(ApiService);
   newWidth = signal(50);
@@ -77,6 +83,18 @@ export class ToolbarComponent {
       height: this.newHeight(),
       agents: this.newAgents(),
     });
+  }
+
+  showSettings() {
+    this.openSettings.emit();
+  }
+
+  showScenarioPolicy() {
+    this.openScenarioPolicy.emit();
+  }
+
+  requestReset() {
+    this.resetRequested.emit();
   }
 
   step(n: number) {

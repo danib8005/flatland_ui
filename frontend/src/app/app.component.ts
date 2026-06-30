@@ -467,10 +467,6 @@ export class AppComponent implements OnInit {
   resetWithSettings() {
     if (this.settingsMode()) this.applySettings();
     if (this.scenarioPolicyMode()) this.applyScenarioPolicySettings();
-
-    // Important: reset/new session must reuse the currently selected
-    // settings, including malfunction config. Do not fall back to defaults.
-    this.persistSessionSettings();
     this.onNewSession();
   }
 

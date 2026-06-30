@@ -28,6 +28,16 @@ export class LayoutSandboxComponent implements OnInit {
 
     const panels: PanelInstance[] = [
       {
+        id: 'sandbox-situation-summary',
+        type: 'situation-summary',
+        title: 'Situation Summary',
+        zone: 'left',
+        order: 5,
+        collapsed: false,
+        hidden: false,
+        sizeMode: 'auto',
+      },
+      {
         id: 'sandbox-notifications',
         type: 'notifications',
         title: 'Notifications',

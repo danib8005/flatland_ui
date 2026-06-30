@@ -9,6 +9,7 @@ import { RecommendationsPanelComponent } from '../../../recommendations-panel/re
 import { ImpactPanelComponent } from '../../../impact-panel/impact-panel.component';
 import { FlatlandMapComponent } from '../../../flatland-map/flatland-map.component';
 import { GraphicTimetableComponent } from '../../../graphic-timetable/graphic-timetable.component';
+import { SituationSummaryComponent } from '../../../situation-summary/situation-summary.component';
 
 @Component({
   selector: 'app-panel-plugin-host',
@@ -22,6 +23,7 @@ import { GraphicTimetableComponent } from '../../../graphic-timetable/graphic-ti
     ImpactPanelComponent,
     FlatlandMapComponent,
     GraphicTimetableComponent,
+    SituationSummaryComponent,
   ],
   templateUrl: './panel-plugin-host.component.html',
   styleUrl: './panel-plugin-host.component.scss',

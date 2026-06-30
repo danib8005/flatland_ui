@@ -107,3 +107,51 @@
 .layout-panel-shell__content[aria-hidden='true'] .layout-panel-shell__body--scroll {
   display: none !important;
 }
+
+/* layout-panel-embed-fix:canvas-shell */
+:host.layout-panel-shell-host--canvas {
+  display: block;
+  min-width: 0;
+}
+
+.layout-panel-shell--canvas {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.layout-panel-shell__body--canvas {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* layout-panel-fill-fix:canvas-body-fill */
+:host.layout-panel-shell-host--canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.layout-panel-shell--canvas {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.layout-panel-shell__body--canvas {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}

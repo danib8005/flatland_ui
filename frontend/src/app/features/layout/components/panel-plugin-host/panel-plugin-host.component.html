@@ -5,6 +5,10 @@
   [class.panel-plugin-host--scroll]="!isCanvasPanel"
 >
   @switch (panel.type) {
+    @case ('situation-summary') {
+      <app-situation-summary></app-situation-summary>
+    }
+
     @case ('notifications') {
       <app-notifications-panel [embedded]="true"></app-notifications-panel>
     }
