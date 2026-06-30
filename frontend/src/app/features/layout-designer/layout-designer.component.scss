@@ -616,3 +616,23 @@ button.primary.designer-action-btn:hover,
   animation: designer-button-click-pulse 420ms ease-out;
 }
 /* DESIGNER_BUTTON_FEEDBACK_END */
+
+/* DESIGNER_NEW_AND_CLEAR_LAYOUTS_START */
+.designer-action-btn--danger {
+  border-color: #eb0000 !important;
+  color: #eb0000 !important;
+  background: #fff !important;
+}
+
+.designer-action-btn--danger:hover {
+  background: #fff1f1 !important;
+  color: #c90000 !important;
+  border-color: #c90000 !important;
+}
+
+.designer-action-btn--danger:active,
+.designer-action-btn--danger.is-clicked {
+  background: #ffe0e0 !important;
+  box-shadow: 0 0 0 3px rgba(235, 0, 0, 0.18) !important;
+}
+/* DESIGNER_NEW_AND_CLEAR_LAYOUTS_END */
