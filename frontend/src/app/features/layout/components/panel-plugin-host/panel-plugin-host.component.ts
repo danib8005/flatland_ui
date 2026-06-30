@@ -8,6 +8,7 @@ import { ScenarioPanelComponent } from '../../../scenario-panel/scenario-panel.c
 import { RecommendationsPanelComponent } from '../../../recommendations-panel/recommendations-panel.component';
 import { ImpactPanelComponent } from '../../../impact-panel/impact-panel.component';
 import { FlatlandMapComponent } from '../../../flatland-map/flatland-map.component';
+import { GraphicTimetableComponent } from '../../../graphic-timetable/graphic-timetable.component';
 
 @Component({
   selector: 'app-panel-plugin-host',
@@ -20,6 +21,7 @@ import { FlatlandMapComponent } from '../../../flatland-map/flatland-map.compone
     RecommendationsPanelComponent,
     ImpactPanelComponent,
     FlatlandMapComponent,
+    GraphicTimetableComponent,
   ],
   templateUrl: './panel-plugin-host.component.html',
   styleUrl: './panel-plugin-host.component.scss',

@@ -58,3 +58,26 @@
   min-height: 0;
 }
 
+
+/* Center workspace with stacked map + timetable panels. */
+.layout-renderer__column[data-zone='center'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sbb-spacing-fixed-3x, 0.75rem);
+  min-height: 0;
+  overflow: auto;
+}
+
+.layout-renderer__column[data-zone='center'] app-panel-shell {
+  min-width: 0;
+}
+
+.layout-renderer__column[data-zone='center'] app-panel-shell:first-child {
+  flex: 1 1 auto;
+  min-height: 34rem;
+}
+
+.layout-renderer__column[data-zone='center'] app-panel-shell:not(:first-child) {
+  flex: 0 0 auto;
+}
+

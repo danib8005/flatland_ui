@@ -68,6 +68,16 @@ export class LayoutSandboxComponent implements OnInit {
         sizeMode: 'fill',
       },
       {
+        id: 'sandbox-graphic-timetable',
+        type: 'graphic-timetable',
+        title: 'Graphic Timetable',
+        zone: 'center',
+        order: 20,
+        collapsed: false,
+        hidden: false,
+        sizeMode: 'auto',
+      },
+      {
         id: 'sandbox-scenario',
         type: 'scenario',
         title: 'Scenario',
