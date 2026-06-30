@@ -36,3 +36,25 @@
   color: var(--sbb-color-granite, #686868);
   font-size: var(--sbb-font-size-text-xs, 0.75rem);
 }
+
+
+/* Let the center workspace consume all available vertical space. */
+.layout-renderer {
+  min-height: 0;
+}
+
+.layout-renderer__column {
+  min-height: 0;
+}
+
+.layout-renderer__column[data-zone='center'] {
+  height: 100%;
+  overflow: hidden;
+}
+
+.layout-renderer__column[data-zone='center'] app-panel-shell {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+

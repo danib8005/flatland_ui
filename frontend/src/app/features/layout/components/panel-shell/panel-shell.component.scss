@@ -49,3 +49,23 @@
   box-sizing: border-box;
   padding: var(--sbb-spacing-fixed-3x, 0.75rem);
 }
+
+
+/* Allow PanelShell to act as a full-height workspace container. */
+:host {
+  min-height: 0;
+}
+
+.layout-panel-shell {
+  min-height: 0;
+}
+
+.layout-panel-shell__content {
+  display: block;
+  min-height: 0;
+}
+
+.layout-panel-shell__body {
+  min-height: 0;
+}
+

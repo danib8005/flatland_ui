@@ -59,3 +59,22 @@
   min-height: 32rem;
 }
 
+
+/* Map plugin fills the center PanelShell body. */
+.panel-plugin-host__map {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.panel-plugin-host__map app-flatland-map {
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
