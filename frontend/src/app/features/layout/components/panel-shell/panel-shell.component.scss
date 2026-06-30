@@ -155,3 +155,15 @@
   min-height: 0;
   overflow: hidden;
 }
+
+
+/* layout-runtime-bridge:canvas-slot-size */
+:host.layout-panel-shell-host--canvas .layout-panel-shell--canvas,
+:host.layout-panel-shell-host--canvas .layout-panel-shell__body--canvas {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}

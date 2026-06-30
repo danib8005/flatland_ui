@@ -22,6 +22,8 @@ import { ApiService } from './core/api.service';
 import { SessionStore } from './core/session.store';
 import { InteractionMode } from './core/events/event-types';
 import { LayoutSandboxComponent } from './features/layout';
+import { PanelInstance } from './core/layout';
+import { PanelShellComponent } from './features/layout/components/panel-shell/panel-shell.component';
 
 @Component({
   selector: 'app-root',
@@ -45,6 +47,7 @@ import { LayoutSandboxComponent } from './features/layout';
     AgentsPanelComponent,
     ViewToggleComponent,
     LayoutSandboxComponent,
+    PanelShellComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
@@ -53,6 +56,108 @@ import { LayoutSandboxComponent } from './features/layout';
 export class AppComponent implements OnInit {
   store = inject(SessionStore);
   private api = inject(ApiService);
+
+  // layout-runtime-bridge: panel shell based runtime layout
+  // These are the first static runtime panel definitions. The later designer
+  // will write equivalent configs dynamically.
+  readonly panelSituationSummary: PanelInstance = {
+    id: 'runtime-situation-summary',
+    type: 'situation-summary',
+    title: 'Situation Summary',
+    zone: 'left',
+    order: 10,
+    collapsed: false,
+    hidden: false,
+    sizeMode: 'auto',
+  };
+
+  readonly panelNotifications: PanelInstance = {
+    id: 'runtime-notifications',
+    type: 'notifications',
+    title: 'Notifications',
+    zone: 'left',
+    order: 20,
+    collapsed: false,
+    hidden: false,
+    sizeMode: 'auto',
+  };
+
+  readonly panelAgents: PanelInstance = {
+    id: 'runtime-agents',
+    type: 'agents',
+    title: 'Agents',
+    zone: 'left',
+    order: 30,
+    collapsed: false,
+    hidden: false,
+    sizeMode: 'auto',
+  };
+
+  readonly panelFlatlandMap: PanelInstance = {
+    id: 'runtime-flatland-map',
+    type: 'flatland-map',
+    title: 'Flatland Map',
+    zone: 'center',
+    order: 10,
+    collapsed: false,
+    hidden: false,
+    sizeMode: 'fill',
+  };
+
+  readonly panelGraphicTimetable: PanelInstance = {
+    id: 'runtime-graphic-timetable',
+    type: 'graphic-timetable',
+    title: 'Graphic Timetable',
+    zone: 'center',
+    order: 20,
+    collapsed: false,
+    hidden: false,
+    sizeMode: 'fill',
+  };
+
+  readonly panelImpact: PanelInstance = {
+    id: 'runtime-impact',
+    type: 'impact',
+    title: 'Impact',
+    zone: 'right',
+    order: 10,
+    collapsed: false,
+    hidden: false,
+    sizeMode: 'auto',
+  };
+
+  readonly panelScenario: PanelInstance = {
+    id: 'runtime-scenario',
+    type: 'scenario',
+    title: 'Scenario',
+    zone: 'right',
+    order: 20,
+    collapsed: false,
+    hidden: false,
+    sizeMode: 'auto',
+  };
+
+  readonly panelRecommendations: PanelInstance = {
+    id: 'runtime-recommendations',
+    type: 'recommendations',
+    title: 'Recommendations',
+    zone: 'right',
+    order: 30,
+    collapsed: false,
+    hidden: false,
+    sizeMode: 'auto',
+  };
+
+  readonly panelKpiFilter: PanelInstance = {
+    id: 'runtime-kpi-filter',
+    type: 'kpi-filter',
+    title: 'KPI Filter',
+    zone: 'right',
+    order: 40,
+    collapsed: false,
+    hidden: false,
+    sizeMode: 'auto',
+  };
 
   /** Human-AI collaboration modes shown in the header switcher (WP 3.1/3.3/3.4). */
   readonly interactionModes: { id: InteractionMode; label: string; wp: string; description: string }[] = [

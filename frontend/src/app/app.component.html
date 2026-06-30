@@ -69,9 +69,9 @@
 @if (store.session()) {
   <div class="three-col">
     <aside class="left-pane">
-      <app-situation-summary></app-situation-summary>
-      <app-notifications-panel></app-notifications-panel>
-      <app-agents-panel></app-agents-panel>
+      <app-panel-shell [panel]="panelSituationSummary"></app-panel-shell>
+      <app-panel-shell [panel]="panelNotifications"></app-panel-shell>
+      <app-panel-shell [panel]="panelAgents"></app-panel-shell>
     </aside>
 
     <section class="center-pane">
@@ -123,14 +123,13 @@
 
         @if (store.showMap()) {
           <section class="map-section">
-            <app-track-layout></app-track-layout>
-            <app-agent-inspector></app-agent-inspector>
+            <app-panel-shell [panel]="panelFlatlandMap"></app-panel-shell>
           </section>
         }
 
         @if (store.showMarey()) {
           <section class="marey-section">
-            <app-graphic-timetable></app-graphic-timetable>
+            <app-panel-shell [panel]="panelGraphicTimetable"></app-panel-shell>
           </section>
         }
       </div>
@@ -139,16 +138,21 @@
     </section>
 
     <aside class="right-pane">
+      <app-agent-inspector></app-agent-inspector>
+
       @if (store.aiInControl()) {
         <app-goal-achievement></app-goal-achievement>
       }
-      <app-impact-panel></app-impact-panel>
-      <app-scenario-panel></app-scenario-panel>
+
+      <app-panel-shell [panel]="panelImpact"></app-panel-shell>
+      <app-panel-shell [panel]="panelScenario"></app-panel-shell>
+
       @if (store.optionPresentation() === 'recommended') {
-        <app-recommendations-panel></app-recommendations-panel>
+        <app-panel-shell [panel]="panelRecommendations"></app-panel-shell>
       }
+
       <div class="right-kpi-filter">
-        <app-kpi-filter></app-kpi-filter>
+        <app-panel-shell [panel]="panelKpiFilter"></app-panel-shell>
       </div>
       @if (store.isCoLearning()) {
         @if (!store.episodeDone()) {
