@@ -759,6 +759,30 @@ export class SessionStore {
     }
   }
 
+  /** End the current session and return to the welcome screen — without a full
+   *  page reload. Tears down polling + WebSocket and clears session-derived
+   *  state so `session()` becomes null (which shows the welcome view). */
+  endSession(): void {
+    this._stopPolling();
+    this.ws.disconnect();
+    this.playing.set(false);
+    this.loading.set(false);
+    this.error.set(null);
+    this.message.set(null);
+    this.targetStep.set(null);
+    this.session.set(null);
+    this.state.set(null);
+    this.selectedHandle.set(null);
+    this._resetTrajectories();
+    this.impact.set([]);
+    this.scenarios.set([]);
+    this.recommendations.set([]);
+    this.notifications.set([]);
+    this.coLearningFeedback.set([]);
+    this.reflectionRequested.set(false);
+    this.previewScenarioId.set(null);
+  }
+
   reset() {
     const s = this.session();
     if (!s) return;

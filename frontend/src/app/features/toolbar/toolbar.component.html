@@ -79,26 +79,4 @@
   @if (store.message(); as msg) {
     <span class="info-msg">{{ msg }}</span>
   }
-
-  @if (store.session()) {
-    <sbb-toggle-check
-      size="m"
-      name="scenario-policy"
-      value="scenario-policy"
-      iconName="list-small"
-      [checked]="scenarioPolicyActive"
-      (change)="showScenarioPolicy()">
-      Scenarios / Policy
-    </sbb-toggle-check>
-  }
-
-  <sbb-toggle-check
-    size="m"
-    name="check"
-    value="single-checkbox"
-    iconName="gear-small"
-    [checked]="settingsActive"
-    (change)="showSettings()">
-    Settings
-  </sbb-toggle-check>
 </div>

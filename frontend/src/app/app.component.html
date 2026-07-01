@@ -9,14 +9,7 @@
       <span class="header-title-main">Flatland Dispatcher</span>
       <span class="header-title-sub">- A Human-AI Teaming Playground</span>
     </span>
-    <sbb-transparent-button
-      size="m"
-      class="layout-designer-toggle"
-      (click)="openLayoutDesigner()">
-      Layout Designer
-    </sbb-transparent-button>
 
-    
     @if (store.session()) {
       <div class="header-meta">
         <span class="grid_info-id">Grid: {{ store.state()?.width }} × {{ store.state()?.height }}</span>
@@ -59,7 +52,9 @@
           <sbb-menu-button icon-name="gear-small" (click)="openSettings()">Session Settings</sbb-menu-button>
           <sbb-menu-button icon-name="list-small" (click)="openScenarioPolicySettings()">Scenarios / Policy</sbb-menu-button>
           <sbb-menu-button (click)="resetWithSettings()">Reset session</sbb-menu-button>
+          <sbb-menu-button icon-name="arrow-left-small" (click)="exitToStart()">Exit to start</sbb-menu-button>
           <sbb-menu-button icon-name="form-small" (click)="openSurvey()">Post-session survey</sbb-menu-button>
+          <sbb-menu-button icon-name="grid-small" (click)="openLayoutDesigner()">Layout Designer</sbb-menu-button>
         </sbb-menu>
       </div>
     }
@@ -507,7 +502,6 @@
   <footer class="footer">
     <div class="footer-left">
       @if (store.session()) {
-        <span class="footer-mode" [attr.data-mode]="store.interactionMode()">{{ store.interactionMode() }}</span>
         <span>Step: <strong>{{ store.elapsedSteps() }}</strong> / {{ store.maxSteps() }}</span>
         <span>Agents: <strong>{{ store.agents().length }}</strong></span>
         @if (store.isCoLearning()) {

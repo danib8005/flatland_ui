@@ -288,6 +288,16 @@ export class AppComponent implements OnInit {
     this.demoComplete.set(false);
   }
 
+  /** Menu action: end the session and return to the welcome screen (no reload). */
+  exitToStart() {
+    this.store.stopDemo();
+    this.demoComplete.set(false);
+    this.settingsMode.set(false);
+    this.scenarioPolicyMode.set(false);
+    this.surveyActive.set(false);
+    this.store.endSession();
+  }
+
   /** Available survey building blocks + the draft selection edited in Settings. */
   readonly surveyParts = SURVEY_PARTS;
   draftSurveyParts = signal<string[]>([...DEFAULT_SURVEY_PARTS]);
