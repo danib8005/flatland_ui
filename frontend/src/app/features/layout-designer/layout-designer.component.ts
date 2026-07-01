@@ -689,12 +689,19 @@ export class LayoutDesignerComponent {
     this.setDesignerFooterStatus(message, 'saved');
   }
 
+
   refreshDesignerLayoutList(): void {
-    this.designs = this.loadDesignerLayoutsFromStorage();
+    const next = this.loadDesignerLayoutsFromStorage();
+    const current = JSON.stringify(this.designs ?? []);
+    const incoming = JSON.stringify(next);
+
+    if (current !== incoming) {
+      this.designs = next;
+    }
   }
 
+
   designerLayoutOptions(): FlatlandDesign[] {
-    this.refreshDesignerLayoutList();
     return this.designs;
   }
 
