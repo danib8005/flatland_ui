@@ -49,6 +49,13 @@
       <app-agent-inspector></app-agent-inspector>
     }
 
+    @case ('goal-achievement') {
+      <app-goal-achievement-panel
+        [panel]="panel"
+        [embedded]="true">
+      </app-goal-achievement-panel>
+    }
+
     @default {
       <div class="panel-plugin-host__placeholder">
         <div class="panel-plugin-host__label">Plugin host</div>

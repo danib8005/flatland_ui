@@ -12,10 +12,11 @@ import { GraphicTimetableComponent } from '../../../graphic-timetable/graphic-ti
 import { SituationSummaryComponent } from '../../../situation-summary/situation-summary.component';
 
 import { AgentInspectorComponent } from '../../../agent-inspector/agent-inspector.component';
+import { GoalAchievementPanelComponent } from '../../../../shared/layout/panels/goal-achievement-panel/goal-achievement-panel.component';
 @Component({
   selector: 'app-panel-plugin-host',
   standalone: true,
-  imports: [
+  imports: [GoalAchievementPanelComponent, 
     AgentInspectorComponent,
     NotificationsPanelComponent,
     AgentsPanelComponent,
