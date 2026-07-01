@@ -325,6 +325,15 @@ export class ImpactPanelComponent implements OnDestroy {
     }
     this._stopCountdown();
     this.dismiss(item.handle);
+
+    // Co-Learning reciprocity, step 2: once this decision is implemented AND
+    // nothing else is pending, this is the natural moment to reflect on it —
+    // nudge the reflection panel open. This ADDS to (does not replace) the
+    // manual "Reflect now" trigger: the human can still open/close it anytime,
+    // this just offers it at the best natural opportunity.
+    if (this.store.isCoLearning() && this.items().length === 0) {
+      this.store.reflectionRequested.set(true);
+    }
   }
 
   /** Apply an action's override. Returns false if reroute had no branch action
