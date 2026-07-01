@@ -6,7 +6,27 @@
     </div>
 
     <div class="designer__actions">
-            <button
+                  <label class="designer-layout-loader">
+        <span>Load Layout</span>
+        <select
+          [value]="design.id"
+          (focus)="refreshDesignerLayoutList()"
+          (change)="loadDesignerLayout($any($event.target).value)">
+          @for (layout of designerLayoutOptions(); track layout.id) {
+            <option [value]="layout.id">{{ layout.name }}</option>
+          }
+        </select>
+      </label>
+
+      <button
+        type="button"
+        class="designer-action-btn"
+        [class.is-clicked]="buttonFeedbackId === 'rename'"
+        (click)="renameCurrentLayout()">
+        Rename
+      </button>
+
+<button
         type="button"
         class="designer-action-btn"
         [class.is-clicked]="buttonFeedbackId === 'new-layout'"
@@ -18,12 +38,12 @@
         type="button"
         class="designer-action-btn designer-action-btn--danger"
         [class.is-clicked]="buttonFeedbackId === 'clear-layouts'"
-        (click)="clearAllUserLayouts()">
+        (click)="clearAllUserLayoutsClean()">
         Clear All Layouts
       </button>
 
 <button type="button" class="designer-action-btn" [class.is-clicked]="buttonFeedbackId === 'save'" (click)="saveWithFeedback()">Save</button>
-      <button type="button" class="designer-action-btn" [class.is-clicked]="buttonFeedbackId === 'save-as'" (click)="saveAsWithFeedback()">Save As…</button>
+      <button type="button" class="designer-action-btn" [class.is-clicked]="buttonFeedbackId === 'save-as'" (click)="saveAsWithPrompt()">Save As…</button>
       <button type="button" class="designer-action-btn" [class.is-clicked]="buttonFeedbackId === 'export'" (click)="exportJsonWithFeedback()">Export JSON</button>
 
       <label class="import-button designer-action-btn designer-import-btn" [class.is-clicked]="buttonFeedbackId === 'import'">
@@ -306,3 +326,17 @@
     </aside>
   </main>
 </div>
+
+
+<footer class="designer-footer-status" [attr.data-tone]="designerFooterStatusTone">
+  <div class="designer-footer-status__left">
+    <span class="designer-footer-status__dot"></span>
+    <span>{{ designerFooterStatusMessage }}</span>
+    <span class="designer-footer-status__dirty" *ngIf="isDirty">Unsaved changes</span>
+  </div>
+
+  <div class="designer-footer-status__right">
+    <span>Layout: <strong>{{ design.name }}</strong></span>
+    <span>ID: {{ design.id }}</span>
+  </div>
+</footer>
