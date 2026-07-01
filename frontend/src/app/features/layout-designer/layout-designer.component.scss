@@ -636,3 +636,120 @@ button.primary.designer-action-btn:hover,
   box-shadow: 0 0 0 3px rgba(235, 0, 0, 0.18) !important;
 }
 /* DESIGNER_NEW_AND_CLEAR_LAYOUTS_END */
+
+/* DESIGNER_POLISH_FOOTER_SAVE_LOAD_START */
+.designer-layout-loader {
+  display: grid;
+  gap: 3px;
+  min-width: 190px;
+}
+
+.designer-layout-loader span {
+  font-size: 10px;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #686868;
+  font-weight: 700;
+}
+
+.designer-layout-loader select {
+  min-height: 32px;
+  border: 1px solid #d2d2d2;
+  border-radius: 3px;
+  background: #fff;
+  color: #212121;
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+.designer-layout-loader select:hover {
+  border-color: #8d8d8d;
+}
+
+.designer-unsaved-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid #d2d2d2;
+  background: #f6f6f6;
+  color: #444;
+}
+
+.designer-unsaved-pill.is-dirty {
+  background: #fff8e1;
+  border-color: #ffd36a;
+  color: #6b4a00;
+}
+
+.designer-unsaved-pill.is-saved {
+  background: #eef8f0;
+  border-color: #8bcf9a;
+  color: #16692b;
+}
+
+.designer-footer-status {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 34px;
+  padding: 6px 14px;
+  border-top: 1px solid #d2d2d2;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(6px);
+  font-size: 12px;
+  color: #444;
+}
+
+.designer-footer-status__left,
+.designer-footer-status__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.designer-footer-status__right {
+  color: #686868;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.designer-footer-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #8d8d8d;
+  flex: 0 0 auto;
+}
+
+.designer-footer-status[data-tone='saved'] .designer-footer-status__dot {
+  background: #2e7d32;
+}
+
+.designer-footer-status[data-tone='dirty'] .designer-footer-status__dot {
+  background: #ffb300;
+}
+
+.designer-footer-status[data-tone='warn'] .designer-footer-status__dot {
+  background: #eb0000;
+}
+
+.designer-footer-status__dirty {
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #fff8e1;
+  color: #6b4a00;
+  font-weight: 800;
+}
+/* DESIGNER_POLISH_FOOTER_SAVE_LOAD_END */

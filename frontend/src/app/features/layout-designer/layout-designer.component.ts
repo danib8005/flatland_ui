@@ -68,6 +68,11 @@ export class LayoutDesignerComponent {
   buttonFeedbackId: string | null = null;
   private designerFeedbackTimer: any = null;
 
+  isDirty = false;
+  designerFooterStatusMessage = 'Ready';
+  designerFooterStatusTone: 'saved' | 'dirty' | 'info' | 'warn' = 'info';
+
+
   private undoStack: FlatlandDesign[] = [];
   private readonly maxUndoSteps = 50;
   private layoutDropHandled = false;
@@ -631,24 +636,258 @@ export class LayoutDesignerComponent {
   }
 
 
-  createNewLayoutFromDefault(): void {
-    this.design = this.createHardcodedRuntimeDesign();
-    this.selection = { kind: 'design' };
 
-    this.runLivePreview();
+  private cloneDesignerDesign(design: FlatlandDesign): FlatlandDesign {
+    return typeof structuredClone === 'function'
+      ? structuredClone(design)
+      : JSON.parse(JSON.stringify(design));
+  }
 
-    const feedback = (this as any).showDesignerFeedback;
-    if (typeof feedback === 'function') {
-      feedback.call(this, 'Hardcoded default copied. Edit and Save.', 'success', 'new-layout');
+  private readDesignerStorage(key: string): string | null {
+    try {
+      return typeof localStorage === 'undefined' ? null : localStorage.getItem(key);
+    } catch {
+      return null;
     }
   }
 
-  clearAllUserLayouts(): void {
+  private writeDesignerStorage(key: string, value: string): void {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(key, value);
+      }
+    } catch {
+      // Ignore local storage errors.
+    }
+  }
+
+  private removeDesignerStorage(key: string): void {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(key);
+      }
+    } catch {
+      // Ignore local storage errors.
+    }
+  }
+
+  private setDesignerFooterStatus(
+    message: string,
+    tone: 'saved' | 'dirty' | 'info' | 'warn' = 'info',
+  ): void {
+    this.designerFooterStatusMessage = message;
+    this.designerFooterStatusTone = tone;
+  }
+
+  private markDesignerDirty(message = 'Unsaved changes'): void {
+    this.isDirty = true;
+    this.setDesignerFooterStatus(message, 'dirty');
+  }
+
+  private markDesignerSaved(message = 'Layout saved'): void {
+    this.isDirty = false;
+    this.setDesignerFooterStatus(message, 'saved');
+  }
+
+  refreshDesignerLayoutList(): void {
+    this.designs = this.loadDesignerLayoutsFromStorage();
+  }
+
+  designerLayoutOptions(): FlatlandDesign[] {
+    this.refreshDesignerLayoutList();
+    return this.designs;
+  }
+
+  private loadDesignerLayoutsFromStorage(): FlatlandDesign[] {
+    const keys = [
+      'flatland.designer.designs.v1',
+      'flatland.layoutDesigner.designs.v1',
+      'flatland.layouts.v1',
+    ];
+
+    const result: FlatlandDesign[] = [];
+    const seen = new Set<string>();
+
+    for (const key of keys) {
+      try {
+        const raw = this.readDesignerStorage(key);
+        const parsed = raw ? JSON.parse(raw) : [];
+
+        if (!Array.isArray(parsed)) {
+          continue;
+        }
+
+        for (const item of parsed) {
+          if (!item?.id || !item?.layout?.columns || seen.has(String(item.id))) {
+            continue;
+          }
+
+          seen.add(String(item.id));
+          result.push(item as FlatlandDesign);
+        }
+      } catch {
+        // Ignore invalid storage entries.
+      }
+    }
+
+    return result.sort((a, b) =>
+      String(a.name || '').localeCompare(String(b.name || ''))
+    );
+  }
+
+  private persistCurrentDesignerLayout(): void {
+    const now = new Date().toISOString();
+    const current = this.cloneDesignerDesign({
+      ...this.design,
+      updatedAt: now,
+    });
+
+    const layouts = this.loadDesignerLayoutsFromStorage();
+    const index = layouts.findIndex((layout) => layout.id === current.id);
+
+    if (index >= 0) {
+      layouts[index] = current;
+    } else {
+      layouts.push(current);
+    }
+
+    this.design = current;
+    this.designs = layouts;
+
+    this.writeDesignerStorage('flatland.designer.designs.v1', JSON.stringify(layouts));
+    this.writeDesignerStorage('flatland.designer.active.v1', current.id);
+  }
+
+
+
+  saveWithFeedback(): void {
+    this.persistCurrentDesignerLayout();
+
+    const originalSave = (this as any).save;
+    if (typeof originalSave === 'function') {
+      try {
+        originalSave.call(this);
+      } catch {
+        // Local persistence above is authoritative for designer user layouts.
+      }
+    }
+
+    this.markDesignerSaved('Layout saved');
+
+    const feedback = (this as any).showDesignerFeedback;
+    if (typeof feedback === 'function') {
+      feedback.call(this, 'Layout saved', 'success', 'save');
+    }
+  }
+
+
+  saveAsWithPrompt(): void {
+    const proposed = `${this.design.name || 'Layout'} Copy`;
+    const name = window.prompt('Save layout as…', proposed);
+
+    if (name === null) {
+      this.setDesignerFooterStatus('Save As cancelled', 'info');
+      return;
+    }
+
+    const cleanName = name.trim();
+
+    if (!cleanName) {
+      this.setDesignerFooterStatus('Save As cancelled: name is empty', 'warn');
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const suffix = Date.now().toString(36);
+
+    this.design = this.cloneDesignerDesign({
+      ...this.design,
+      id: `layout-${suffix}`,
+      name: cleanName,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    this.selection = { kind: 'design' };
+    this.persistCurrentDesignerLayout();
+    this.runLivePreview();
+    this.markDesignerSaved(`Layout saved as “${cleanName}”`);
+
+    const feedback = (this as any).showDesignerFeedback;
+    if (typeof feedback === 'function') {
+      feedback.call(this, `Saved as “${cleanName}”`, 'success', 'save-as');
+    }
+  }
+
+  renameCurrentLayout(): void {
+    const name = window.prompt('Rename layout', this.design.name || 'Layout');
+
+    if (name === null) {
+      this.setDesignerFooterStatus('Rename cancelled', 'info');
+      return;
+    }
+
+    const cleanName = name.trim();
+
+    if (!cleanName) {
+      this.setDesignerFooterStatus('Rename cancelled: name is empty', 'warn');
+      return;
+    }
+
+    this.design = {
+      ...this.design,
+      name: cleanName,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.persistCurrentDesignerLayout();
+    this.markDesignerSaved(`Layout renamed to “${cleanName}”`);
+
+    const feedback = (this as any).showDesignerFeedback;
+    if (typeof feedback === 'function') {
+      feedback.call(this, `Renamed to “${cleanName}”`, 'success', 'rename');
+    }
+  }
+
+  loadDesignerLayout(id: string): void {
+    if (!id || id === this.design.id) {
+      return;
+    }
+
+    if (this.isDirty) {
+      const confirmed = window.confirm('Discard unsaved changes and load another layout?');
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    const layout = this.loadDesignerLayoutsFromStorage().find((item) => item.id === id);
+
+    if (!layout) {
+      this.setDesignerFooterStatus('Layout not found', 'warn');
+      return;
+    }
+
+    this.design = this.cloneDesignerDesign(layout);
+    this.selection = { kind: 'design' };
+    this.writeDesignerStorage('flatland.designer.active.v1', this.design.id);
+    this.runLivePreview();
+    this.markDesignerSaved(`Loaded “${this.design.name}”`);
+
+    const feedback = (this as any).showDesignerFeedback;
+    if (typeof feedback === 'function') {
+      feedback.call(this, `Loaded “${this.design.name}”`, 'success', 'load');
+    }
+  }
+
+  clearAllUserLayoutsClean(): void {
     const confirmed = window.confirm(
       'Delete all saved user layouts? The hardcoded default layout will stay available.'
     );
 
     if (!confirmed) {
+      this.setDesignerFooterStatus('Clear all cancelled', 'info');
       return;
     }
 
@@ -662,23 +901,42 @@ export class LayoutDesignerComponent {
     ];
 
     for (const key of keys) {
-      try {
-        localStorage.removeItem(key);
-      } catch {
-        // Ignore storage errors.
-      }
+      this.removeDesignerStorage(key);
     }
 
     this.designs = [];
+
+    const createDefault = (this as any).createHardcodedRuntimeDesign;
+    if (typeof createDefault === 'function') {
+      this.design = createDefault.call(this);
+    }
+
+    this.selection = { kind: 'design' };
+    this.runLivePreview();
+    this.markDesignerDirty('All user layouts cleared. Default copy ready to save.');
+
+    const feedback = (this as any).showDesignerFeedback;
+    if (typeof feedback === 'function') {
+      feedback.call(this, 'All user layouts cleared', 'warn', 'clear-layouts');
+    }
+  }
+
+
+  createNewLayoutFromDefault(): void {
     this.design = this.createHardcodedRuntimeDesign();
     this.selection = { kind: 'design' };
 
     this.runLivePreview();
+    this.markDesignerDirty('New default copy ready to edit');
 
     const feedback = (this as any).showDesignerFeedback;
     if (typeof feedback === 'function') {
-      feedback.call(this, 'All user layouts cleared. Default layout kept.', 'warn', 'clear-layouts');
+      feedback.call(this, 'Hardcoded default copied. Edit and Save.', 'success', 'new-layout');
     }
+  }
+
+  clearAllUserLayouts(): void {
+    this.clearAllUserLayoutsClean();
   }
 
   private createHardcodedRuntimeDesign(): FlatlandDesign {
@@ -748,14 +1006,9 @@ export class LayoutDesignerComponent {
   }
 
 
-  saveWithFeedback(): void {
-    this.callDesignerMethod(['save']);
-    this.showDesignerFeedback('Layout saved', 'success', 'save');
-  }
 
   saveAsWithFeedback(): void {
-    this.callDesignerMethod(['saveAs', 'saveAsNew', 'duplicateLayout']);
-    this.showDesignerFeedback('Layout duplicated as new layout', 'success', 'save-as');
+    this.saveAsWithPrompt();
   }
 
   exportJsonWithFeedback(): void {
@@ -865,6 +1118,7 @@ export class LayoutDesignerComponent {
   }
 
   private touch(): void {
+    this.markDesignerDirty();
     this.design.updatedAt = new Date().toISOString();
     this.runLivePreview();
   }
