@@ -1,101 +1,421 @@
-# Layout preset & alignment with the Designer prompt
+# Layout Preset and Designer Alignment
 
-This branch (`experiment/vibecoding-playground`) ships a **fixed, opinionated
-three-zone layout**. Adrian's
-[`UI_LAYOUT_DESIGNER_IMPLEMENTATION_PROMPT.md`](https://github.com/aiAdrian/flatland_ui/blob/aiAdrian/Designer/docs/UI_LAYOUT_DESIGNER_IMPLEMENTATION_PROMPT.md)
-(branch `aiAdrian/Designer`) instead asks for a **configurable layout *designer***
-(drag-and-drop panels, 1/2/3 columns, EventBus/SharedState, persistence,
-`/layout-designer` route, additive and non-invasive).
+## Purpose
 
-The two are **complementary, not competing**:
+This document explains how system/default layout presets, user-edited designer layouts, runtime layout selection, and component panel definitions should stay aligned.
 
-- The **designer system** is deferred — it is its own larger effort and should be
-  built additively as Adrian's prompt describes (new files under `core/layout/`
-  and `features/layout/`, mirror-don't-replace, phase by phase).
-- Our **three-zone layout is intended to become one `LayoutDefinition` preset**
-  inside that system — the "sensible default" a user could start from. This doc
-  expresses our current layout in the prompt's own vocabulary so the later
-  migration is mechanical.
+Use it as prompt context when changing:
 
-Panel rewrites on this branch (e.g. Agent Inspector → map overlay) are
-**intentional and sanctioned by the project owner** where they improve the
-content; they are not accidental regressions.
+- default layout presets
+- user layout persistence
+- runtime layout loading
+- designer palette entries
+- panel type names
+- plugin host mappings
+- import/export compatibility
+
+The goal is that runtime can render both system presets and designer-saved layouts through the same layout pipeline.
 
 ---
 
-## Our layout expressed as the prompt's models
+## Short Agent Context
 
-Illustrative only — matches the field names in the prompt's `PanelDefinition` /
-`LayoutDefinition`. Not wired at runtime yet (to avoid clashing with whatever
-already exists on `aiAdrian/Designer`).
+Use this text as context for a new AI agent:
 
-### Panels (PanelDefinition)
+```text
+We are working in the Flatland Dispatcher Angular frontend.
 
-| id | title | category | notes vs. baseline |
-|---|---|---|---|
-| `situation-summary` | Situation | situation | **new** (Hypervision synthesis) |
-| `notifications` | Event Feed | situation | relabelled, criticality markers |
-| `agents` | Agents | situation | moved to left column |
-| `flatland-map` | Map | visualisation | unchanged core |
-| `marey` | Marey | visualisation | unchanged core |
-| `layer-visibility` | Layers | visualisation | moved into map controls bar (chips) |
-| `agent-inspector` | Agent Details | visualisation | **rewritten** as floating map-corner overlay + actions |
-| `scenario` | Policies | intervention | neutral vs. recommended per mode |
-| `recommendations` | Recommendations | intervention | shown only in Recommendation mode |
-| `kpi-filter` | Options (KPI) | intervention | moved to right column |
+There are two related layout sources:
+1. System/default layout presets shipped with the app.
+2. User-created layouts saved by the Layout Designer.
 
-### Layout (LayoutDefinition)
+Both should use the same FlatlandDesign shape:
+- id
+- name
+- optional createdAt/updatedAt
+- layout.columns
+- columns[].panels
+- panels[].type/title/config/sizing
 
-```jsonc
-{
-  "id": "default-three-zone",
-  "name": "Three-zone (Situation · Visualisation · Intervention)",
-  "mode": "three-column",
-  "columns": [
-    { "id": "left",   "role": "situation",     "panels": ["situation-summary", "notifications", "agents"] },
-    { "id": "center", "role": "visualisation",  "panels": ["flatland-map", "marey" /* + layer-visibility in controls, agent-inspector as overlay */] },
-    { "id": "right",  "role": "intervention",   "panels": ["scenario", "recommendations", "kpi-filter"] }
-  ]
+Runtime should be able to render both system presets and user-created layouts through the same pipeline:
+FlatlandDesign -> columns -> panels -> PanelShellComponent -> PanelPluginHostComponent -> concrete Angular component.
+
+Important:
+- Presets and designer layouts must stay compatible.
+- Panel types in presets should exist in the designer palette or be intentionally preset-only.
+- Panel types must be mapped in PanelPluginHostComponent or safely fallback.
+- Runtime must fall back to default if the selected layout id is stale.
+```
+
+---
+
+## Why Alignment Matters
+
+System presets and designer layouts must stay aligned because the runtime should not care whether a layout came from code or localStorage.
+
+Healthy layout system:
+
+```text
+System preset
+  -> same shape as designer-saved layout
+  -> same runtime renderer
+  -> same panel shell
+  -> same plugin host
+  -> same concrete components
+```
+
+If presets and designer layouts drift apart, bugs appear.
+
+Typical bugs:
+
+- runtime can render presets but not user layouts
+- designer preview works but runtime fails
+- saved layouts miss fields expected by presets
+- panel types exist in presets but not in designer palette
+- designer can create panel types not mapped in plugin host
+- imported layouts break because fields are inconsistent
+
+The goal is one compatible layout contract.
+
+---
+
+## Canonical Layout Shape
+
+A valid layout should be representable as:
+
+```ts
+export interface FlatlandDesign {
+  id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+  layout: {
+    columns: DesignerColumn[];
+  };
 }
 ```
 
-Notes:
-- `layer-visibility` and `agent-inspector` are **not** ordinary column panels in
-  our build — they live in the map controls bar / as a map overlay. In the
-  designer model they'd be panels with a "docked to map" capability, or simply
-  map-internal widgets. Worth a short discussion when the designer lands.
-- Left column splits Event Feed / Agents 50/50; situation-summary is fixed-height
-  on top. In the designer this maps to per-panel height + a fixed/auto flag.
+Columns:
+
+```ts
+export interface DesignerColumn {
+  id: string;
+  title?: string;
+  zone?: 'left' | 'center' | 'right' | string;
+  widthPx?: number;
+  widthFr?: number;
+  panels: DesignerPanel[];
+}
+```
+
+Panels:
+
+```ts
+export interface DesignerPanel {
+  id: string;
+  type: string;
+  title: string;
+  zone?: string;
+  minHeight?: number;
+  height?: number | 'auto';
+  expanded?: boolean;
+  config?: Record<string, unknown>;
+}
+```
+
+System presets should avoid private runtime-only fields that the designer cannot preserve.
 
 ---
 
-## What is feature-layer vs. layout-layer
+## Preset Rules
 
-Helps Adrian adopt the parts independently:
+System/default presets should:
 
-**Feature-layer (independent of the layout system — safe to take as-is):**
-- Interaction modes `recommendation | co-learning | director` and the single
-  `optionPresentation` flag (`SessionStore`).
-- KPI filter wiring (`kpiWeights`) + scenario ranking.
-- Hypervision `situation-summary`.
-- Co-Learning intervention log + reflection panel.
-- Header mode switcher + app menu (Settings/Scenarios/Reset).
+- use stable ids
+- use human-readable names
+- use the same column/panel structure as designer layouts
+- use panel type strings that exist in plugin host
+- preferably use panel type strings visible in designer palette
+- include useful titles
+- include safe default sizing
+- keep `panel.config` JSON-serializable
+- avoid functions, service instances, DOM nodes or circular data
 
-**Layout-layer (the part that should eventually live inside the designer):**
-- The fixed three-column arrangement and panel moves.
-- Map controls bar (View + Layers).
-- Agent details as a map overlay.
+Good preset ids:
+
+```text
+default-dispatcher
+operations-overview
+map-and-agents
+compact-monitoring
+```
+
+Bad preset ids:
+
+```text
+layout-1
+test
+tmp
+new
+```
+
+Preset ids should be stable because they may be referenced by runtime selection storage.
 
 ---
 
-## Deferred (Adrian's prompt, not done here)
+## Designer Rules
 
-- `core/layout/` models + `panel-registry` + `layout-store`.
-- `ui-event-bus` / `ui-shared-state` services (we use `SessionStore` signals
-  directly; an `EventBusService` already exists for some panel events).
-- Drag-and-drop, resize, persistence (LocalStorage / JSON), start page.
-- `/layout-designer` and runtime layout-view routes.
-- Delivery via small Python update scripts.
+Designer-created layouts should:
 
-When we (or Adrian) start the designer: follow the prompt's phase order, keep it
-additive, and register `default-three-zone` above as the first built-in preset.
+- use the same shape as presets
+- generate unique ids for new layouts
+- generate unique ids for new panels
+- preserve `panel.type` exactly
+- preserve `panel.config` as JSON
+- persist to canonical localStorage keys
+- remain editable after reload
+- remain renderable by runtime
+
+The designer should not create panel types that runtime cannot safely render.
+
+If a type is experimental, the plugin host must still provide a placeholder fallback.
+
+---
+
+## Panel Type Alignment
+
+Every panel type used in any system preset should be checked against:
+
+1. Designer palette.
+2. Default panel creation logic.
+3. PanelPluginHostComponent mapping.
+4. Concrete component availability.
+5. Unknown fallback behaviour.
+
+For each `panel.type`, ask:
+
+```text
+Does a preset use this type?
+Can the designer palette create this type?
+Can the plugin host render this type?
+Does the component work without active session?
+Does the component work in runtime?
+Does the component work in designer preview?
+```
+
+If the type is intentionally preset-only, document that reason. Otherwise it should usually be visible in the designer palette as well.
+
+---
+
+## Runtime Layout Resolution
+
+Runtime should resolve a layout in a predictable order:
+
+1. Explicit runtime selected layout id.
+2. Designer active layout id.
+3. First stored user layout.
+4. System/default preset.
+
+If a stored selected id is stale:
+
+- ignore the stale id
+- choose a valid fallback
+- update selected id if appropriate
+- do not crash
+
+This is important after:
+
+- Clear All Layouts
+- deleting localStorage
+- switching branches
+- importing invalid layout JSON
+- renaming system preset ids
+- removing system preset ids
+
+---
+
+## Storage Keys
+
+Canonical keys:
+
+```text
+flatland.designer.designs.v1
+flatland.designer.active.v1
+flatland.runtime.selectedLayoutId.v1
+```
+
+Legacy keys that may need read compatibility:
+
+```text
+flatland.layoutDesigner.designs.v1
+flatland.layoutDesigner.active.v1
+flatland.layouts.v1
+```
+
+Recommended storage behaviour:
+
+Read:
+
+- canonical first
+- legacy if needed
+- ignore invalid JSON
+- ignore invalid layout objects
+- deduplicate by id
+- ensure default preset fallback
+
+Write:
+
+- canonical designer layouts key
+- canonical designer active key
+- runtime selected key when runtime selection changes
+
+---
+
+## Import / Export Alignment
+
+Exported layouts should be valid `FlatlandDesign` JSON.
+
+Imported layouts should be validated before becoming active.
+
+Validation checklist:
+
+- id exists or is generated
+- name exists or is generated
+- `layout.columns` is an array
+- each column has id
+- each column has panels array
+- each panel has id
+- each panel has type
+- each panel has title
+- config is serializable object if present
+
+Invalid imports should show feedback and must not corrupt current state.
+
+---
+
+## Migration and Compatibility
+
+If a preset or panel type changes, consider migration.
+
+### Renaming a panel type
+
+Bad:
+
+```text
+Old saved layouts use "marey-chart".
+Code now only supports "graphic-timetable".
+Old layouts break.
+```
+
+Better:
+
+```text
+Plugin host supports both:
+- marey-chart
+- graphic-timetable
+```
+
+or a migration maps old type to new type.
+
+### Adding config fields
+
+Bad:
+
+```ts
+const mode = panel.config.mode.toUpperCase();
+```
+
+This crashes if old layouts do not have `mode`.
+
+Better:
+
+```ts
+const mode = String(panel?.config?.['mode'] || 'default');
+```
+
+---
+
+## Default Layout Fallback
+
+There should always be a valid default layout.
+
+The default layout should:
+
+- render without user storage
+- render after Clear All Layouts
+- render after invalid localStorage
+- contain only mapped or safely fallback panel types
+- be usable in runtime
+- be usable in designer preview
+
+If the app cannot find the selected layout, it should fall back to this default.
+
+---
+
+## Prompt: Change or Add a System Preset
+
+```text
+Change or add a Flatland Dispatcher system layout preset.
+
+Context:
+- System presets and designer-saved layouts must use the same FlatlandDesign shape.
+- Runtime renders both through the same panel shell and plugin host.
+- Panel types in presets should be mapped in PanelPluginHostComponent.
+- Prefer panel types that are visible in the Layout Designer palette.
+- Unknown panel fallback must still work.
+
+Task:
+<describe preset change>
+
+Requirements:
+- Use stable preset id.
+- Use human-readable name.
+- Use valid columns and panels.
+- Keep panel.config serializable.
+- Do not break existing saved layouts.
+- Keep runtime fallback to default.
+- Keep build green.
+```
+
+---
+
+## Prompt: Align Designer and Presets
+
+```text
+Align Flatland Dispatcher Layout Designer and system presets.
+
+Context:
+- The designer creates FlatlandDesign objects.
+- System presets should use the same shape.
+- Runtime should render both user layouts and presets.
+- Panel types must align across presets, designer palette and plugin host.
+
+Please check:
+- all preset panel.type values
+- designer palette entries
+- default panel creation
+- PanelPluginHostComponent mapping
+- unknown panel fallback
+- runtime selected-layout fallback
+- localStorage compatibility
+```
+
+---
+
+## Alignment Checklist
+
+Before committing preset/designer alignment changes:
+
+```text
+[ ] Presets use valid FlatlandDesign shape.
+[ ] Designer saves the same shape.
+[ ] Runtime can load presets.
+[ ] Runtime can load designer layouts.
+[ ] Default fallback exists.
+[ ] Stale selected layout id does not crash runtime.
+[ ] Preset panel types are mapped or safely fallback.
+[ ] Designer palette types match plugin host types.
+[ ] Panel config remains serializable.
+[ ] Old saved layouts still render or migrate.
+[ ] Build passes.
+```
