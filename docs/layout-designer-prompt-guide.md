@@ -487,3 +487,183 @@ Before committing Layout Designer changes:
 [ ] Runtime still loads selected/default layout.
 [ ] Unknown panel types still show placeholder.
 ```
+
+<!-- PANEL_RENDERING_EXAMPLE_START -->
+
+## Correct Panel Rendering Example
+
+When documenting or prompting around panel rendering, do **not** use browser-rendered DOM as the source of truth.
+
+Browser DOM may contain generated Angular attributes, SBB web component shadow DOM, generated ids, and framework internals such as:
+
+```text
+_ngcontent-...
+_nghost-...
+shadowrootmode="open"
+sbb-expansion-panel-header-3
+aria-controls="sbb-expansion-panel-content-3"
+```
+
+These are runtime implementation details and should not be copied into source code or prompt examples.
+
+Use the source-level rendering model instead.
+
+### Correct Rendering Flow
+
+A designer panel is rendered through this flow:
+
+```text
+DesignerPanel
+  -> PanelShellComponent
+  -> PanelPluginHostComponent
+  -> concrete Angular component
+```
+
+Example:
+
+```text
+panel.type = "situation-summary"
+panel.title = "Situation Summary"
+panel.zone = "left"
+```
+
+The source-level structure is conceptually:
+
+```html
+<app-panel-shell
+  [panel]="panel"
+  [zone]="column.zone">
+</app-panel-shell>
+```
+
+Inside the shell, the shell owns the generic frame:
+
+```html
+<sbb-expansion-panel
+  class="layout-panel-shell layout-panel-shell--expansion"
+  [attr.data-panel-type]="panel.type"
+  [attr.data-panel-zone]="zone"
+  expanded>
+  <sbb-expansion-panel-header slot="header">
+    <div class="layout-panel-shell__header">
+      <span class="layout-panel-shell__title">
+        {{ panel.title }}
+      </span>
+    </div>
+  </sbb-expansion-panel-header>
+
+  <sbb-expansion-panel-content
+    class="layout-panel-shell__content"
+    slot="content">
+    <div class="layout-panel-shell__body layout-panel-shell__body--scroll">
+      <app-panel-plugin-host
+        [panel]="panel">
+      </app-panel-plugin-host>
+    </div>
+  </sbb-expansion-panel-content>
+</sbb-expansion-panel>
+```
+
+Inside the plugin host, `panel.type` selects the concrete component:
+
+```html
+<div
+  class="panel-plugin-host"
+  [attr.data-panel-type]="panel.type">
+  @switch (panel.type) {
+    @case ('situation-summary') {
+      <app-situation-summary></app-situation-summary>
+    }
+
+    @case ('new-user-component') {
+      <app-new-user-component
+        [panel]="panel"
+        [embedded]="true">
+      </app-new-user-component>
+    }
+
+    @default {
+      <div class="panel-plugin-host__placeholder">
+        <div class="panel-plugin-host__label">Plugin host</div>
+        <div class="panel-plugin-host__type">{{ panel.type }}</div>
+        <div class="panel-plugin-host__hint">
+          No plugin component has been mapped for this panel type yet.
+        </div>
+      </div>
+    }
+  }
+</div>
+```
+
+### Example: Adding a New Component
+
+If a new component should be visible in designer and runtime, the required alignment is:
+
+```text
+Designer palette entry:
+  type: "new-user-component"
+  title: "New User Component"
+
+Saved panel:
+  panel.type = "new-user-component"
+
+Plugin host:
+  @case ('new-user-component') {
+    <app-new-user-component
+      [panel]="panel"
+      [embedded]="true">
+    </app-new-user-component>
+  }
+```
+
+The new component should expose an embedded-safe API:
+
+```ts
+@Input() panel?: DesignerPanel;
+@Input() zone?: string;
+@Input() embedded = true;
+```
+
+The component must render safely in both contexts:
+
+```text
+Designer preview:
+  may have no active session
+
+Runtime:
+  may have active session data
+```
+
+Therefore the component should show an empty or placeholder state if required data is missing.
+
+### Important Prompt Rule
+
+When giving rendered browser HTML to an AI assistant, clarify:
+
+```text
+This is browser-rendered DOM for diagnosis only.
+Do not copy generated Angular attributes, shadow DOM, or generated ids into source code.
+Map the observed panel.type in PanelPluginHostComponent instead.
+```
+
+For example, if browser DOM shows:
+
+```text
+data-panel-type="goal-achievement"
+Plugin host placeholder:
+No plugin component has been mapped for this panel type yet.
+```
+
+The correct fix is not to edit the generated DOM.
+
+The correct fix is:
+
+```text
+1. Add or locate the Angular component.
+2. Import it in PanelPluginHostComponent.
+3. Add it to standalone imports if needed.
+4. Add @case ('goal-achievement') in PanelPluginHostComponent.
+5. Keep @default fallback.
+```
+
+<!-- PANEL_RENDERING_EXAMPLE_END -->

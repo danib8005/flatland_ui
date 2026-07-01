@@ -419,3 +419,109 @@ Before committing preset/designer alignment changes:
 [ ] Old saved layouts still render or migrate.
 [ ] Build passes.
 ```
+
+<!-- PANEL_RENDERING_EXAMPLE_START -->
+
+## Correct Panel Rendering Example for Presets
+
+System presets and designer-saved layouts should render through the same source-level structure.
+
+Do not document browser-generated DOM as implementation source. Browser output may include Angular generated attributes, SBB shadow DOM, runtime ids, and accessibility ids. These details are useful for diagnosis but not for source code examples.
+
+Correct source-level flow:
+
+```text
+FlatlandDesign
+  -> columns
+  -> panels
+  -> PanelShellComponent
+  -> PanelPluginHostComponent
+  -> concrete Angular component
+```
+
+Example preset panel:
+
+```ts
+{
+  id: 'summary-panel',
+  type: 'situation-summary',
+  title: 'Situation Summary',
+  zone: 'left',
+  minHeight: 150,
+  height: 'auto',
+  config: {}
+}
+```
+
+The renderer should pass this panel to the shell:
+
+```html
+<app-panel-shell
+  [panel]="panel"
+  [zone]="column.zone">
+</app-panel-shell>
+```
+
+The shell should provide the generic frame and delegate content rendering:
+
+```html
+<app-panel-plugin-host
+  [panel]="panel">
+</app-panel-plugin-host>
+```
+
+The plugin host should map the preset panel type:
+
+```html
+@switch (panel.type) {
+  @case ('situation-summary') {
+    <app-situation-summary></app-situation-summary>
+  }
+
+  @case ('new-user-component') {
+    <app-new-user-component
+      [panel]="panel"
+      [embedded]="true">
+    </app-new-user-component>
+  }
+
+  @default {
+    <div class="panel-plugin-host__placeholder">
+      <div class="panel-plugin-host__label">Plugin host</div>
+      <div class="panel-plugin-host__type">{{ panel.type }}</div>
+      <div class="panel-plugin-host__hint">
+        No plugin component has been mapped for this panel type yet.
+      </div>
+    </div>
+  }
+}
+```
+
+Preset alignment rule:
+
+```text
+Every panel.type used by a preset must either:
+- be mapped in PanelPluginHostComponent, or
+- intentionally render the unknown panel fallback.
+```
+
+If a preset uses:
+
+```text
+type: "goal-achievement"
+```
+
+then the plugin host should usually contain:
+
+```html
+@case ('goal-achievement') {
+  <app-goal-achievement-panel
+    [panel]="panel"
+    [embedded]="true">
+  </app-goal-achievement-panel>
+}
+```
+
+The designer palette, preset panel type, and plugin host mapping must use the exact same string.
+
+<!-- PANEL_RENDERING_EXAMPLE_END -->
