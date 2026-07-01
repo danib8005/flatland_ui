@@ -1,0 +1,105 @@
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.goal-achievement-panel {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid #e3e3e3;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #212121;
+}
+
+.goal-achievement-panel__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.goal-achievement-panel__eyebrow {
+  margin: 0 0 0.15rem;
+  color: #686868;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.goal-achievement-panel h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.goal-achievement-panel__badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  background: #eef6ff;
+  color: #075995;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.goal-achievement-panel[data-status='complete'] .goal-achievement-panel__badge {
+  background: #eef8f0;
+  color: #16692b;
+}
+
+.goal-achievement-panel[data-status='progress'] .goal-achievement-panel__badge {
+  background: #fff8e1;
+  color: #6b4a00;
+}
+
+.goal-achievement-panel__metric {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.goal-achievement-panel__value {
+  font-size: 1.65rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.goal-achievement-panel__label {
+  color: #686868;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.goal-achievement-panel__bar {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5e5e5;
+}
+
+.goal-achievement-panel__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2e7d32;
+  transition: width 160ms ease;
+}
+
+.goal-achievement-panel__hint {
+  margin: 0;
+  color: #686868;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
