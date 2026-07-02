@@ -27,6 +27,7 @@ import { PanelInstance } from './core/layout';
 import { PanelShellComponent } from './features/layout/components/panel-shell/panel-shell.component';
 
 import { LayoutDesignerComponent } from './features/layout-designer/layout-designer.component';
+import { PanelPluginHostComponent } from './features/layout/components/panel-plugin-host/panel-plugin-host.component';
 type RuntimeLayoutOption = {
   id: string;
   name: string;
@@ -38,6 +39,7 @@ type RuntimeLayoutOption = {
   selector: 'app-root',
   standalone: true,
   imports: [
+    PanelPluginHostComponent,
     LayoutDesignerComponent,
     ToolbarComponent,
     TrackLayoutComponent,
@@ -1178,6 +1180,15 @@ export class AppComponent implements OnInit {
     return null;
   }
 
+  isToggleCompositeRuntimePanel(panel: any): boolean {
+    const type = String(panel?.type ?? panel?.panelType ?? panel?.id ?? '').toLowerCase();
+
+    return type === 'toggle-view'
+      || type === 'layout-view-toggle'
+      || type === 'layout-view-toggle-panel'
+      || type === 'view-toggle';
+  }
+
 
   runtimeRows(layoutOrColumns: any): Array<{ id: string; columns: any[]; heightPx: number | null }> {
     const columns: any[] = Array.isArray(layoutOrColumns)
@@ -1208,6 +1219,7 @@ export class AppComponent implements OnInit {
         rows.push(row);
       }
 
+      this.normalizeNonCollapsibleRuntimePanels(column);
       row.columns.push(column);
 
       const columnRowHeight = this.runtimeColumnRowHeightPx(column);
@@ -1299,6 +1311,32 @@ export class AppComponent implements OnInit {
         return `minmax(0, ${percent.toFixed(4)}%)`;
       })
       .join(' ');
+  }
+
+  private readonly nonCollapsibleRuntimePanelTypes = new Set<string>([
+    'toggle-view',
+    'layout-view-toggle',
+    'layout-view-toggle-panel',
+    'view-toggle',
+  ]);
+
+  isNonCollapsibleRuntimePanel(panel: any): boolean {
+    const type = String(panel?.type ?? panel?.panelType ?? panel?.id ?? '').toLowerCase();
+    return this.nonCollapsibleRuntimePanelTypes.has(type);
+  }
+
+  normalizeNonCollapsibleRuntimePanels(column: any): void {
+    for (const panel of column?.panels ?? []) {
+      if (!this.isNonCollapsibleRuntimePanel(panel)) {
+        continue;
+      }
+
+      panel.collapsed = false;
+      panel.isCollapsed = false;
+      panel.expanded = true;
+      panel.collapsible = false;
+      panel.canCollapse = false;
+    }
   }
 
 }
