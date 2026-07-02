@@ -50,11 +50,10 @@
         </sbb-transparent-button>
         <sbb-menu trigger="app-menu-trigger">
           <sbb-menu-button icon-name="gear-small" (click)="openSettings()">Session Settings</sbb-menu-button>
-          <sbb-menu-button icon-name="list-small" (click)="openScenarioPolicySettings()">Scenarios / Policy</sbb-menu-button>
+          <sbb-menu-button icon-name="list-small" (click)="openScenarioPolicySettings()">Settings: Scenario / Policy</sbb-menu-button>
+          <sbb-menu-button icon-name="grid-small" (click)="openLayoutDesigner()">Layout Designer</sbb-menu-button>
           <sbb-menu-button (click)="resetWithSettings()">Reset session</sbb-menu-button>
           <sbb-menu-button icon-name="arrow-left-small" (click)="exitToStart()">Exit to start</sbb-menu-button>
-          <sbb-menu-button icon-name="form-small" (click)="openSurvey()">Post-session survey</sbb-menu-button>
-          <sbb-menu-button icon-name="grid-small" (click)="openLayoutDesigner()">Layout Designer</sbb-menu-button>
         </sbb-menu>
       </div>
     }
