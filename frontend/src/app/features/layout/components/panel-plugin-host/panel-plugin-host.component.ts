@@ -45,6 +45,19 @@ type ViewMode = 'only-map' | 'only-marey' | 'split';
   styleUrl: './panel-plugin-host.component.scss',
 })
 export class PanelPluginHostComponent implements OnInit, OnDestroy {
+  toggleSplitOrientation(): 'vertical' | 'horizontal' {
+    const panelAny = this.panel as any;
+
+    const value =
+      panelAny?.settings?.toggleSplitOrientation ??
+      panelAny?.settings?.splitOrientation ??
+      panelAny?.toggleSplitOrientation ??
+      panelAny?.splitOrientation ??
+      'vertical';
+
+    return value === 'horizontal' ? 'horizontal' : 'vertical';
+  }
+
   readonly store = inject(SessionStore);
 
   

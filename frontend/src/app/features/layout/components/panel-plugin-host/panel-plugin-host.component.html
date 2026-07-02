@@ -20,6 +20,8 @@
           [class.only-map]="store.showMap() && !store.showMarey()"
           [class.only-marey]="!store.showMap() && store.showMarey()"
           [class.split]="store.showMap() && store.showMarey()"
+          [class.split-vertical]="store.showMap() && store.showMarey() && toggleSplitOrientation() === 'vertical'"
+          [class.split-horizontal]="store.showMap() && store.showMarey() && toggleSplitOrientation() === 'horizontal'"
         >
           @if (store.showMap()) {
             <section class="panel-plugin-host__toggle-map map-section">
@@ -93,27 +95,21 @@
     }
 
     @case ('marey') {
-      @if (isViewVisible('marey')) {
-        <div class="panel-plugin-host__timetable">
-          <app-graphic-timetable></app-graphic-timetable>
-        </div>
-      }
+      <div class="panel-plugin-host__timetable">
+        <app-graphic-timetable></app-graphic-timetable>
+      </div>
     }
 
     @case ('marey-chart') {
-      @if (isViewVisible('marey')) {
-        <div class="panel-plugin-host__timetable">
-          <app-graphic-timetable></app-graphic-timetable>
-        </div>
-      }
+      <div class="panel-plugin-host__timetable">
+        <app-graphic-timetable></app-graphic-timetable>
+      </div>
     }
 
     @case ('graphic-timetable') {
-      @if (isViewVisible('marey')) {
-        <div class="panel-plugin-host__timetable">
-          <app-graphic-timetable></app-graphic-timetable>
-        </div>
-      }
+      <div class="panel-plugin-host__timetable">
+        <app-graphic-timetable></app-graphic-timetable>
+      </div>
     }
 
     @case ('agent-inspector') {

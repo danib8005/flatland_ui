@@ -433,3 +433,38 @@
   overflow: hidden;
 }
 
+
+/* >>> toggle-view split orientation support */
+
+.panel-plugin-host__toggle-views.split.split-vertical {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) !important;
+  grid-auto-flow: row !important;
+}
+
+.panel-plugin-host__toggle-views.split.split-vertical > .panel-plugin-host__toggle-map {
+  grid-area: 1 / 1 / 2 / 2 !important;
+}
+
+.panel-plugin-host__toggle-views.split.split-vertical > .panel-plugin-host__toggle-marey {
+  grid-area: 2 / 1 / 3 / 2 !important;
+}
+
+.panel-plugin-host__toggle-views.split.split-horizontal {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  grid-auto-flow: column !important;
+}
+
+.panel-plugin-host__toggle-views.split.split-horizontal > .panel-plugin-host__toggle-map {
+  grid-area: 1 / 1 / 2 / 2 !important;
+}
+
+.panel-plugin-host__toggle-views.split.split-horizontal > .panel-plugin-host__toggle-marey {
+  grid-area: 1 / 2 / 2 / 3 !important;
+}
+
+/* <<< toggle-view split orientation support */
+
