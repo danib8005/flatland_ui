@@ -1,5 +1,6 @@
-<sbb-expansion-panel class="lyne-feature-panel co-learning-reflection-lyne-panel" color="white" size="s">
-  <sbb-expansion-panel-header>
+<sbb-expansion-panel class="lyne-feature-panel co-learning-reflection-lyne-panel" color="white" size="s"
+  [attr.expanded]="reflectionOpen() ? '' : null">
+  <sbb-expansion-panel-header (click)="store.toggleReflectionRequested()">
     <span class="lyne-panel-title">Co-Learning reflection</span>
   </sbb-expansion-panel-header>
 

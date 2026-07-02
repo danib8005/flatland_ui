@@ -135,6 +135,14 @@
           }
         }
 
+        <!-- Director (WP 3.4): goal-achievement as the central supervision
+             dashboard, above the map. Situation overview lives in the middle. -->
+        @if (store.aiInControl()) {
+          <section class="center-dashboard">
+            <app-goal-achievement></app-goal-achievement>
+          </section>
+        }
+
         <div class="map-controls">
           <app-view-toggle></app-view-toggle>
           <span class="map-controls-divider"></span>
@@ -159,6 +167,14 @@
           }
         </div>
 
+        <!-- Co-Learning (WP 3.3): reflection surfaces centrally, as a tile
+             below the map (like the Marey view) — no longer buried bottom-right.
+             Collapsed by default; the operator opens it when they choose. -->
+        @if (store.isCoLearning()) {
+          <section class="center-reflection">
+            <app-co-learning-reflection></app-co-learning-reflection>
+          </section>
+        }
 
       </section>
 
@@ -180,10 +196,6 @@
                                                     data-panel-zone="right"
                                                   ></app-panel-shell>
 
-        @if (store.aiInControl()) {
-          <app-goal-achievement></app-goal-achievement>
-        }
-
         <app-panel-shell [panel]="panelImpact"></app-panel-shell>
         <app-panel-shell [panel]="panelScenario"></app-panel-shell>
 
@@ -194,19 +206,6 @@
         <div class="right-kpi-filter">
           <app-panel-shell [panel]="panelKpiFilter"></app-panel-shell>
         </div>
-        @if (store.isCoLearning()) {
-          @if (!store.episodeDone()) {
-            <button class="reflect-trigger" type="button"
-                    [class.active]="store.reflectionRequested()"
-                    (click)="store.toggleReflectionRequested()"
-                    title="Reflect on your decisions so far — you choose when">
-              {{ store.reflectionRequested() ? 'Hide reflection' : 'Reflect now' }}
-            </button>
-          }
-          @if (store.reflectionRequested() || store.episodeDone()) {
-            <app-co-learning-reflection></app-co-learning-reflection>
-          }
-        }
       </aside>
     </div>
     }

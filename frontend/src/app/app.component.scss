@@ -283,6 +283,30 @@
   border-bottom: none;
 }
 
+/* Director (WP 3.4): large goal-achievement dashboard above the map. The
+   supervision overview dominates the centre; the map sits below it. */
+.center-dashboard {
+  flex: 1 1 auto;
+  min-height: 220px;
+  max-height: 58%;
+  overflow: auto;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  background: var(--sbb-color-milk, #f6f6f6);
+}
+
+/* Co-Learning (WP 3.3): reflection tile below the map. Its own Lyne feature
+   panel is the single collapse surface (consistent with the other panels):
+   collapsed = just the header, open = content that scrolls within a capped
+   share of the centre. */
+.center-reflection {
+  flex: 0 0 auto;
+  max-height: 50%;
+  overflow: auto;
+  border-top: 1px solid var(--sbb-color-cloud, #d2d2d2);
+  background: var(--sbb-color-milk, #f6f6f6);
+}
+
 .footer {
   display: flex;
   align-items: center;

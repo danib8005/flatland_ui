@@ -29,6 +29,14 @@ export class CoLearningReflectionComponent {
 
   readonly dismissed = signal(false);
 
+  /**
+   * Single source of truth for the panel's open/closed state. Driven by
+   * `reflectionRequested` (toggled from the panel header, and set by the
+   * impact-panel nudge after a resolved decision) and forced open once the
+   * episode is done. Mirrors the app's panel-shell collapse pattern.
+   */
+  readonly reflectionOpen = computed(() => this.store.reflectionRequested() || this.store.episodeDone());
+
   // ── Mirroring [MR]: the operator's own run, reflected back ──────────
   readonly interventions = computed(() => this.store.coLearningFeedback());
   readonly interventionCount = computed(() => this.interventions().length);
