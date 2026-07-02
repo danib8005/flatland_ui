@@ -369,10 +369,15 @@ export class SessionStore {
   );
   readonly demoIsLast = computed(() => this.demoStepIndex() >= this.demoSequence.length - 1);
 
+  /** True while the intro/explainer screen for the current demo mode is showing,
+   *  before the human has chosen to start that mode's scenario. */
+  readonly demoIntroPending = signal(false);
+
   /** Begin the guided demo at the first mode (caller creates the session). */
   startDemo(): void {
     this.demoStepIndex.set(0);
     this.demoActive.set(true);
+    this.demoIntroPending.set(true);
     this.setInteractionMode(this.demoSequence[0]);
   }
 
@@ -383,13 +388,20 @@ export class SessionStore {
       return false;
     }
     this.demoStepIndex.update((i) => i + 1);
+    this.demoIntroPending.set(true);
     this.setInteractionMode(this.demoSequence[this.demoStepIndex()]);
     return true;
+  }
+
+  /** Human clicked "Start scenario" on the mode-intro screen. */
+  dismissDemoIntro(): void {
+    this.demoIntroPending.set(false);
   }
 
   stopDemo(): void {
     this.demoActive.set(false);
     this.demoStepIndex.set(0);
+    this.demoIntroPending.set(false);
   }
 
   setInteractionMode(mode: InteractionMode): void {
@@ -757,6 +769,30 @@ export class SessionStore {
       clearInterval(this._pollHandle);
       this._pollHandle = null;
     }
+  }
+
+  /** End the current session and return to the welcome screen — without a full
+   *  page reload. Tears down polling + WebSocket and clears session-derived
+   *  state so `session()` becomes null (which shows the welcome view). */
+  endSession(): void {
+    this._stopPolling();
+    this.ws.disconnect();
+    this.playing.set(false);
+    this.loading.set(false);
+    this.error.set(null);
+    this.message.set(null);
+    this.targetStep.set(null);
+    this.session.set(null);
+    this.state.set(null);
+    this.selectedHandle.set(null);
+    this._resetTrajectories();
+    this.impact.set([]);
+    this.scenarios.set([]);
+    this.recommendations.set([]);
+    this.notifications.set([]);
+    this.coLearningFeedback.set([]);
+    this.reflectionRequested.set(false);
+    this.previewScenarioId.set(null);
   }
 
   reset() {

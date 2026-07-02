@@ -17,6 +17,8 @@ import { GoalAchievementComponent } from './features/goal-achievement/goal-achie
 import { DirectorDirectiveComponent } from './features/director-directive/director-directive.component';
 import { SurveyComponent } from './features/survey/survey.component';
 import { ImpactPanelComponent } from './features/impact-panel/impact-panel.component';
+import { ModeIntroComponent } from './features/mode-intro/mode-intro.component';
+import { DemoCompleteComponent } from './features/demo-complete/demo-complete.component';
 import { SURVEY_PARTS, DEFAULT_SURVEY_PARTS } from './core/survey/survey-configs';
 import { ApiService } from './core/api.service';
 import { SessionStore } from './core/session.store';
@@ -54,6 +56,8 @@ type RuntimeLayoutOption = {
     AgentInspectorComponent,
     AgentsPanelComponent,
     ViewToggleComponent,
+    ModeIntroComponent,
+    DemoCompleteComponent,
 PanelShellComponent,
   ],
   templateUrl: './app.component.html',
@@ -286,6 +290,16 @@ export class AppComponent implements OnInit {
   exitDemo() {
     this.store.stopDemo();
     this.demoComplete.set(false);
+  }
+
+  /** Menu action: end the session and return to the welcome screen (no reload). */
+  exitToStart() {
+    this.store.stopDemo();
+    this.demoComplete.set(false);
+    this.settingsMode.set(false);
+    this.scenarioPolicyMode.set(false);
+    this.surveyActive.set(false);
+    this.store.endSession();
   }
 
   /** Available survey building blocks + the draft selection edited in Settings. */
