@@ -1,3 +1,5 @@
+import { InteractionMode } from '../../events/event-types';
+
 export type LayoutZone =
   | 'left'
   | 'center'
@@ -27,6 +29,16 @@ export interface PanelDefinition {
   defaultHeight?: number;
   defaultWidth?: number;
   capabilities: PanelCapabilities;
+  /**
+   * Interaction modes in which this panel type is offered. Omitted / 'all' =
+   * available in every mode. Availability is a property of the panel *type*,
+   * not of a placed instance; per-mode *behaviour* is handled inside the
+   * component (read `store.interactionMode()`), not here.
+   *
+   * Sketch only — declared for the mode-scoped-layout resolver to consume when
+   * building a mode's default layout. See docs/panel-mode-matrix.md.
+   */
+  availableModes?: InteractionMode[] | 'all';
 }
 
 export interface PanelInstance {
