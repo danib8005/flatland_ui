@@ -36,7 +36,7 @@ export interface PanelDefinition {
    * component (read `store.interactionMode()`), not here.
    *
    * Sketch only — declared for the mode-scoped-layout resolver to consume when
-   * building a mode's default layout. See docs/panel-mode-matrix.md.
+   * building a mode's default layout. See docs/reference/panel-mode-matrix.md.
    */
   availableModes?: InteractionMode[] | 'all';
 }

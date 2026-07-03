@@ -223,7 +223,7 @@ export class AppComponent implements OnInit {
 
   /**
    * Whether a panel type is offered in the current interaction mode. Single
-   * source of truth is PANEL_MODE_AVAILABILITY (see docs/panel-mode-matrix.md);
+   * source of truth is PANEL_MODE_AVAILABILITY (see docs/reference/panel-mode-matrix.md);
    * reading interactionMode() here keeps it reactive in the template. Replaces
    * scattered isCoLearning()/aiInControl() gating for the mode-specific panels.
    */

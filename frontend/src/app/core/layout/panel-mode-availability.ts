@@ -2,7 +2,7 @@ import { InteractionMode } from '../events/event-types';
 
 /**
  * Single source of truth for which panel *types* are offered per interaction
- * mode. Mirrors docs/panel-mode-matrix.md.
+ * mode. Mirrors docs/reference/panel-mode-matrix.md.
  *
  * Only panels that are restricted to specific modes are listed; any type not
  * present here is available in every mode ('all'). This is the availability the
