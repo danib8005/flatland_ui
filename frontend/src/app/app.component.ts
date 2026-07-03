@@ -19,10 +19,12 @@ import { SurveyComponent } from './features/survey/survey.component';
 import { ImpactPanelComponent } from './features/impact-panel/impact-panel.component';
 import { ModeIntroComponent } from './features/mode-intro/mode-intro.component';
 import { DemoCompleteComponent } from './features/demo-complete/demo-complete.component';
+import { HelpAboutComponent } from './features/help-about/help-about.component';
 import { SURVEY_PARTS, DEFAULT_SURVEY_PARTS } from './core/survey/survey-configs';
 import { ApiService } from './core/api.service';
 import { SessionStore } from './core/session.store';
 import { InteractionMode } from './core/events/event-types';
+import { INTERACTION_MODES } from './core/interaction-modes';
 import { PanelInstance, isPanelAvailableInMode } from './core/layout';
 import { PanelShellComponent } from './features/layout/components/panel-shell/panel-shell.component';
 
@@ -60,6 +62,7 @@ type RuntimeLayoutOption = {
     ViewToggleComponent,
     ModeIntroComponent,
     DemoCompleteComponent,
+    HelpAboutComponent,
 PanelShellComponent,
   ],
   templateUrl: './app.component.html',
@@ -213,12 +216,10 @@ export class AppComponent implements OnInit {
     sizeMode: 'auto',
   };
 
-  /** Human-AI collaboration modes shown in the header switcher (WP 3.1/3.3/3.4). */
-  readonly interactionModes: { id: InteractionMode; label: string; wp: string; description: string }[] = [
-    { id: 'recommendation', label: 'Recommendation', wp: 'WP 3.1', description: 'AI suggests, you decide.' },
-    { id: 'co-learning', label: 'Co-Learning', wp: 'WP 3.3', description: 'You and the AI adapt to each other.' },
-    { id: 'director', label: 'Director', wp: 'WP 3.4', description: 'AI acts autonomously on your high-level directives.' },
-  ];
+  /** Human-AI collaboration modes shown in the header switcher (WP 3.1/3.3/3.4).
+   *  Single source of truth in core/interaction-modes so the switcher and the
+   *  Help/About overlay can't drift apart. */
+  readonly interactionModes = INTERACTION_MODES;
 
   /**
    * Whether a panel type is offered in the current interaction mode. Single
@@ -257,6 +258,7 @@ export class AppComponent implements OnInit {
   settingsMode = signal(false);
   scenarioPolicyMode = signal(false);
   surveyActive = signal(false);
+  helpActive = signal(false);
   demoComplete = signal(false);
   showLayoutSandbox = signal(false);
 
@@ -333,6 +335,16 @@ export class AppComponent implements OnInit {
       ? Array.from(new Set([...cur, id]))
       : cur.filter((x) => x !== id);
     this.draftSurveyParts.set(next);
+  }
+
+  openHelp() {
+    this.helpActive.set(true);
+    this.blurActiveElement();
+  }
+
+  closeHelp() {
+    this.helpActive.set(false);
+    this.blurActiveElement();
   }
 
   openSurvey() {
@@ -692,6 +704,13 @@ export class AppComponent implements OnInit {
     // ESC priority:
     // 1) close open settings dialogs/panels
     // 2) only if no dialog/panel was open, deselect selected agent
+
+    if (this.helpActive()) {
+      this.closeHelp();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
 
     if (this.surveyActive()) {
       this.closeSurvey();

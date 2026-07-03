@@ -58,6 +58,7 @@
           <sbb-menu-button icon-name="gear-small" (click)="openSettings()">Session Settings…</sbb-menu-button>
           <sbb-menu-button icon-name="list-small" (click)="openScenarioPolicySettings()">Scenario &amp; Policies…</sbb-menu-button>
           <sbb-menu-link icon-name="grid-small" href="/designer">Layout Designer</sbb-menu-link>
+          <sbb-menu-button icon-name="circle-information-small" (click)="openHelp()">Help &amp; About</sbb-menu-button>
           <sbb-divider></sbb-divider>
           <!-- This run: interventions on the live session. Plain action items
                (no icons), matching the SBB pattern for action-only entries. -->
@@ -81,6 +82,8 @@
           <sbb-menu-button icon-name="gear-small" (click)="openSettings()">Session Settings…</sbb-menu-button>
           <sbb-menu-button icon-name="list-small" (click)="openScenarioPolicySettings()">Scenario &amp; Policies…</sbb-menu-button>
           <sbb-menu-link icon-name="grid-small" href="/designer">Layout Designer</sbb-menu-link>
+          <sbb-divider></sbb-divider>
+          <sbb-menu-button icon-name="circle-information-small" (click)="openHelp()">Help &amp; About</sbb-menu-button>
         </sbb-menu>
       </div>
     }
@@ -515,6 +518,14 @@
     </div>
   }
   <!-- /session-dialog-overlays -->
+
+  @if (helpActive()) {
+    <div class="session-dialog-backdrop" (click)="closeHelp()">
+      <div (click)="$event.stopPropagation()">
+        <app-help-about (closed)="closeHelp()"></app-help-about>
+      </div>
+    </div>
+  }
 
   @if (surveyActive()) {
     <div class="session-dialog-backdrop">
