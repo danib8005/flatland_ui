@@ -35,8 +35,13 @@
           <sbb-menu trigger="mode-trigger">
             @for (m of interactionModes; track m.id) {
               <sbb-menu-button (click)="store.setInteractionMode(m.id)">
-                {{ m.label }} ({{ m.wp }})
-                @if (store.interactionMode() === m.id) { <span class="menu-current"> · current</span> }
+                <span class="mode-option">
+                  <span class="mode-option-title">
+                    {{ m.label }} <span class="mode-option-wp">{{ m.wp }}</span>
+                    @if (store.interactionMode() === m.id) { <span class="menu-current">· current</span> }
+                  </span>
+                  <span class="mode-option-desc">{{ m.description }}</span>
+                </span>
               </sbb-menu-button>
             }
           </sbb-menu>

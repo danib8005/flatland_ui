@@ -109,6 +109,27 @@
   font-size: 12px;
 }
 
+/* Mode dropdown: two-line option (label + one-line description). */
+.mode-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.mode-option-wp {
+  color: var(--sbb-color-granite, #686868);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.mode-option-desc {
+  color: var(--sbb-color-granite, #686868);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
 .header-title-main {
   font-size: 18px;
   font-weight: 600;
