@@ -23,7 +23,7 @@ import { SURVEY_PARTS, DEFAULT_SURVEY_PARTS } from './core/survey/survey-configs
 import { ApiService } from './core/api.service';
 import { SessionStore } from './core/session.store';
 import { InteractionMode } from './core/events/event-types';
-import { PanelInstance } from './core/layout';
+import { PanelInstance, isPanelAvailableInMode } from './core/layout';
 import { PanelShellComponent } from './features/layout/components/panel-shell/panel-shell.component';
 
 import { LayoutDesignerComponent } from './features/layout-designer/layout-designer.component';
@@ -219,6 +219,16 @@ export class AppComponent implements OnInit {
     { id: 'co-learning', label: 'Co-Learning', wp: 'WP 3.3', description: 'You and the AI adapt to each other.' },
     { id: 'director', label: 'Director', wp: 'WP 3.4', description: 'AI acts autonomously on your high-level directives.' },
   ];
+
+  /**
+   * Whether a panel type is offered in the current interaction mode. Single
+   * source of truth is PANEL_MODE_AVAILABILITY (see docs/panel-mode-matrix.md);
+   * reading interactionMode() here keeps it reactive in the template. Replaces
+   * scattered isCoLearning()/aiInControl() gating for the mode-specific panels.
+   */
+  panelAvailable(type: string): boolean {
+    return isPanelAvailableInMode(type, this.store.interactionMode());
+  }
 
   /** Label of the currently active collaboration mode (for the header dropdown). */
   currentModeLabel(): string {

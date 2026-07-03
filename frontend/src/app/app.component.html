@@ -147,7 +147,7 @@
       </aside>
 
       <section class="center-pane">
-        @if (store.aiInControl()) {
+        @if (panelAvailable('director-directive')) {
           @if (store.playing()) {
             <div class="ai-control-banner" role="status">
               <span class="ai-control-dot"></span>
@@ -163,7 +163,7 @@
 
         <!-- Director (WP 3.4): goal-achievement as the central supervision
              dashboard, above the map. Situation overview lives in the middle. -->
-        @if (store.aiInControl()) {
+        @if (panelAvailable('goal-achievement')) {
           <section class="center-dashboard">
             <app-goal-achievement></app-goal-achievement>
           </section>
@@ -196,7 +196,7 @@
         <!-- Co-Learning (WP 3.3): reflection surfaces centrally, as a tile
              below the map (like the Marey view) — no longer buried bottom-right.
              Collapsed by default; the operator opens it when they choose. -->
-        @if (store.isCoLearning()) {
+        @if (panelAvailable('co-learning-reflection')) {
           <section class="center-reflection">
             <app-co-learning-reflection></app-co-learning-reflection>
           </section>
@@ -225,7 +225,7 @@
         <app-panel-shell [panel]="panelImpact"></app-panel-shell>
         <app-panel-shell [panel]="panelScenario"></app-panel-shell>
 
-        @if (store.optionPresentation() === 'recommended') {
+        @if (panelAvailable('recommendations')) {
           <app-panel-shell [panel]="panelRecommendations"></app-panel-shell>
         }
 
