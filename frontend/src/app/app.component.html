@@ -323,6 +323,12 @@
           <button class="settings-close" type="button" aria-label="Close settings" (click)="cancelSettings()">×</button>
         </div>
 
+        <div class="settings-tabs" role="tablist">
+          <button type="button" role="tab" [class.is-active]="settingsTab() === 'basic'" (click)="settingsTab.set('basic')">Basic</button>
+          <button type="button" role="tab" [class.is-active]="settingsTab() === 'advanced'" (click)="settingsTab.set('advanced')">Advanced</button>
+        </div>
+
+        @if (settingsTab() === 'basic') {
         <section class="settings-section">
           <h3>Grid</h3>
           <div class="settings-grid">
@@ -332,7 +338,9 @@
             <label><span>Max Steps</span><input type="number" min="100" max="3000" step="100" [value]="draftMaxSteps()" (input)="draftMaxSteps.set(+$any($event.target).value)"></label>
           </div>
         </section>
+        }
 
+        @if (settingsTab() === 'advanced') {
         <section class="settings-section">
           <h3>Timetable & Speed</h3>
           <div class="settings-grid">
@@ -443,6 +451,7 @@
             }
           </div>
         </section>
+        }
 
         <div class="settings-actions">
           <sbb-secondary-button (click)="cancelSettings()">Cancel</sbb-secondary-button>

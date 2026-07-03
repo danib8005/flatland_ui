@@ -256,6 +256,8 @@ export class AppComponent implements OnInit {
   newMalfunctionMaxDuration = signal(20);
 
   settingsMode = signal(false);
+  /** Session Settings dialog tab: Basic (grid only) vs Advanced (everything else). */
+  settingsTab = signal<'basic' | 'advanced'>('basic');
   scenarioPolicyMode = signal(false);
   surveyActive = signal(false);
   helpActive = signal(false);
@@ -558,6 +560,7 @@ export class AppComponent implements OnInit {
     this.draftRecommendationDuration.set(this.store.recommendationDurationSeconds());
     this.draftAutoPauseOnConflict.set(this.store.autoPauseOnConflict());
     this.scenarioPolicyMode.set(false);
+    this.settingsTab.set('basic');
     this.settingsMode.set(true);
     this.blurActiveElement();
   }

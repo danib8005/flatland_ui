@@ -695,6 +695,30 @@
   color: var(--sbb-color-charcoal, #212121);
 }
 
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 16px;
+  border-bottom: 1px solid var(--sbb-color-cloud, #e5e5e5);
+}
+
+.settings-tabs button {
+  border: none;
+  background: none;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--sbb-color-granite, #686868);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.settings-tabs button.is-active {
+  color: var(--sbb-color-charcoal, #212121);
+  border-bottom-color: var(--sbb-color-red, #eb0000);
+}
+
 .settings-section {
   margin-top: 22px;
 }
