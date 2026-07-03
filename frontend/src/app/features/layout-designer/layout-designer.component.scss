@@ -757,6 +757,14 @@ input[readonly] {
   content: none;
 }
 
+/* Muted hint in the inspector when the whole design is selected. */
+.inspector-hint {
+  color: var(--designer-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
 /* Brand block mirrors app.component.html's .header-brand + .header-title. */
 .designer__topbar > div:first-child {
   display: flex;

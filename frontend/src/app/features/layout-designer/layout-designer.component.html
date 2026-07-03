@@ -283,25 +283,7 @@
         <section *ngSwitchCase="'design'">
           <h3>Layout</h3>
 
-          <label>
-            Name
-            <input [(ngModel)]="design.name" (ngModelChange)="onDesignerChanged()" />
-          </label>
-
-          <label>
-            Session
-            <input [value]="activeSessionId || 'No active session connected'" readonly>
-          </label>
-
-          <label>
-            Scale
-            <select [(ngModel)]="design.scale" (ngModelChange)="onDesignerChanged()">
-              <option [ngValue]="0.7">70%</option>
-              <option [ngValue]="0.75">75%</option>
-              <option [ngValue]="0.8">80%</option>
-              <option [ngValue]="1">100%</option>
-            </select>
-          </label>
+          <p class="inspector-hint">Name, session and scale are set in the bar above. Select a row, column or panel to edit its details here.</p>
 
           <button type="button" (click)="deleteDesign()">Delete Layout</button>
         </section>
