@@ -4,7 +4,7 @@
 A modular HMI for interactive railway dispatching experiments, part of
 **AI4REALNET** (EU Horizon). Frontend: Angular (standalone components + signals)
 with SBB Lyne. Backend: FastAPI + Flatland-RL. See `README.md` and
-`docs/architecture.md`.
+`docs/reference/architecture.md`.
 
 ## Current focus — three human-AI interaction modes
 We are making the three collaboration modes **behaviourally distinct and
@@ -14,7 +14,7 @@ switchable** (they exist in code but currently behave almost identically):
 - `co-learning` → WP 3.3 — AI offers **neutral** options; human decides, reflects, simulates what-ifs
 - `director` → WP 3.4 — AI runs autonomously on high-level directives; human supervises (**adjustable autonomy**)
 
-### ► Authoritative spec: `docs/interaction-modes-brief.md`
+### ► Authoritative spec: `docs/reference/interaction-modes-brief.md`
 Read it before touching mode behaviour. It maps each step of the
 consortium-validated interaction flows onto concrete files/signals in this repo
 (`SessionStore.interactionMode`, `recommendations-panel`, `agent-inspector`,

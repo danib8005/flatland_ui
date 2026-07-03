@@ -1,0 +1,47 @@
+# Documentation index
+
+Docs are grouped by purpose. Start with **reference** for the living truth.
+
+## reference/ — living reference
+The authoritative specs and guides for how the app works today.
+
+- [interaction-modes-brief.md](reference/interaction-modes-brief.md) — **authoritative** mode spec (WP 3.1/3.3/3.4)
+- [architecture.md](reference/architecture.md) — system architecture
+- [mode-guide.md](reference/mode-guide.md) — the same task walked through all three modes
+- [panel-mode-matrix.md](reference/panel-mode-matrix.md) — per-panel availability & behaviour per mode
+- [visual-concept.md](reference/visual-concept.md) — canonical names for surfaces & the three zones
+- [component-shell-plugin-api.md](reference/component-shell-plugin-api.md) — panel shell / plugin API
+- [OVERVIEW.md](reference/OVERVIEW.md) — high-level overview + further-ideas index
+
+## plans/ — planned work
+Designs and roadmaps not yet (fully) built.
+
+- [mode-scoped-layouts-plan.md](plans/mode-scoped-layouts-plan.md)
+- [interaction-logging-plan.md](plans/interaction-logging-plan.md)
+- [scripted-events-plan.md](plans/scripted-events-plan.md)
+- [recommender-roadmap.md](plans/recommender-roadmap.md)
+- [heterogeneous-tracks.md](plans/heterogeneous-tracks.md)
+- [localized-blocking-decisions.md](plans/localized-blocking-decisions.md)
+- [recommendation-reliability.md](plans/recommendation-reliability.md)
+- [scenario-variants.md](plans/scenario-variants.md)
+- [co-learning-direction.md](plans/co-learning-direction.md)
+
+## scenarios/ — study & scenarios
+Experiment design and scenario material.
+
+- [guided-demo-scenario.md](scenarios/guided-demo-scenario.md)
+- [railway-scenarios.md](scenarios/railway-scenarios.md)
+- [experiment-storyboard.md](scenarios/experiment-storyboard.md)
+- [tile-01-conflict-aware-marey.md](scenarios/tile-01-conflict-aware-marey.md)
+
+## archive/ — one-off artefacts
+Prompt and exploration notes kept for provenance; not maintained.
+
+- [UI_LAYOUT_DESIGNER_IMPLEMENTATION_PROMPT.md](archive/UI_LAYOUT_DESIGNER_IMPLEMENTATION_PROMPT.md)
+- [layout-designer-prompt-guide.md](archive/layout-designer-prompt-guide.md)
+- [layout-preset-and-designer-alignment.md](archive/layout-preset-and-designer-alignment.md)
+- [ui-exploration-prompt.md](archive/ui-exploration-prompt.md)
+- [ui-exploration-synthesis.md](archive/ui-exploration-synthesis.md)
+- [component-agent-build-guide.md](archive/component-agent-build-guide.md)
+- [event-based-architecture-analysis.md](archive/event-based-architecture-analysis.md)
+- [variant-visualisation.md](archive/variant-visualisation.md)

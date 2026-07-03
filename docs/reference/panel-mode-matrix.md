@@ -2,7 +2,7 @@
 
 **Status:** first draft / working reference.
 **Companion of:** [interaction-modes-brief.md](interaction-modes-brief.md) (authoritative
-mode spec) and [mode-scoped-layouts-plan.md](mode-scoped-layouts-plan.md) (how
+mode spec) and [mode-scoped-layouts-plan.md](../plans/mode-scoped-layouts-plan.md) (how
 per-mode layouts get resolved).
 
 This file answers two questions for every panel:
