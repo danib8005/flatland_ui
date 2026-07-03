@@ -535,18 +535,6 @@ input[readonly] {
   box-shadow: 0 0 0 3px rgba(235, 0, 0, 0.14);
 }
 
-button.primary.designer-action-btn,
-.designer-action-btn--primary {
-  font-weight: 700;
-}
-
-button.primary.designer-action-btn:hover,
-.designer-action-btn--primary:hover {
-  background: #c90000;
-  border-color: #c90000;
-  color: #fff;
-}
-
 .designer-import-btn {
   display: inline-flex;
   align-items: center;
@@ -633,36 +621,6 @@ button.primary.designer-action-btn:hover,
 /* DESIGNER_NEW_AND_CLEAR_LAYOUTS_END */
 
 /* DESIGNER_POLISH_FOOTER_SAVE_LOAD_START */
-.designer-layout-loader {
-  display: grid;
-  gap: 3px;
-  min-width: 190px;
-}
-
-.designer-layout-loader span {
-  font-size: 10px;
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #686868;
-  font-weight: 700;
-}
-
-.designer-layout-loader select {
-  min-height: 32px;
-  border: 1px solid #d2d2d2;
-  border-radius: 3px;
-  background: #fff;
-  color: #212121;
-  font: inherit;
-  font-size: 13px;
-  padding: 4px 8px;
-}
-
-.designer-layout-loader select:hover {
-  border-color: #8d8d8d;
-}
-
 .designer-unsaved-pill {
   display: inline-flex;
   align-items: center;
@@ -919,21 +877,6 @@ button.primary.designer-action-btn:hover,
   box-shadow: 0 0 0 3px rgba(235, 0, 0, 0.16) !important;
 }
 
-/* Primary Home button. */
-button.primary.designer-action-btn,
-.designer-action-btn--primary {
-  border-color: var(--designer-red) !important;
-  background: var(--designer-red) !important;
-  color: #fff !important;
-}
-
-button.primary.designer-action-btn:hover,
-.designer-action-btn--primary:hover {
-  border-color: var(--designer-red-dark) !important;
-  background: var(--designer-red-dark) !important;
-  color: #fff !important;
-}
-
 /* Danger is clear but still light. */
 .designer-action-btn--danger {
   border-color: #f0a0a0 !important;
@@ -969,35 +912,6 @@ button.primary.designer-action-btn:hover,
   max-width: 280px !important;
   border-radius: 999px !important;
   font-size: 12px !important;
-}
-
-/* ---------- Load layout in topbar ---------- */
-.designer-layout-loader {
-  min-width: 220px !important;
-  padding: 3px 8px 5px;
-  border: 1px solid var(--designer-cloud);
-  border-radius: 4px;
-  background: #fafafa;
-  box-shadow: var(--designer-shadow-soft);
-}
-
-.designer-layout-loader span {
-  color: var(--designer-muted) !important;
-  font-size: 9px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.08em !important;
-}
-
-.designer-layout-loader select {
-  min-height: 26px !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background:
-    linear-gradient(180deg, transparent calc(100% - 1px), var(--designer-red) calc(100% - 1px)) !important;
-  color: var(--designer-text) !important;
-  font-size: 13px !important;
-  font-weight: 700;
-  padding: 2px 22px 2px 0 !important;
 }
 
 /* ---------- Meta / layout bar ---------- */
@@ -1176,10 +1090,6 @@ button.primary.designer-action-btn:hover,
   .designer__meta {
     grid-template-columns: repeat(2, minmax(150px, 1fr)) !important;
   }
-
-  .designer-layout-loader {
-    min-width: 180px !important;
-  }
 }
 /* DESIGNER_LYNE_TOOLBAR_STYLE_END */
 
@@ -1305,22 +1215,8 @@ button.primary.designer-action-btn:hover,
   row-gap: 8px !important;
 }
 
-.designer-layout-loader {
-  max-width: 260px;
-}
-
-.designer-layout-loader select {
-  text-overflow: ellipsis;
-}
-
 /* Better visual grouping for destructive action in toolbar. */
 .designer-action-btn--danger {
-  margin-left: 4px;
-}
-
-/* Home button separated as final navigation action. */
-button.primary.designer-action-btn,
-.designer-action-btn--primary {
   margin-left: 4px;
 }
 
