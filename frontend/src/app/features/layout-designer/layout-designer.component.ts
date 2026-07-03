@@ -1359,37 +1359,6 @@ startColumnResize(column: DesignerColumn, event: PointerEvent): void {
     }
   }
 
-  renameCurrentLayout(): void {
-    const name = window.prompt('Rename layout', this.design.name || 'Layout');
-
-    if (name === null) {
-      this.setDesignerFooterStatus('Rename cancelled', 'info');
-      return;
-    }
-
-    const cleanName = name.trim();
-
-    if (!cleanName) {
-      this.setDesignerFooterStatus('Rename cancelled: name is empty', 'warn');
-      return;
-    }
-
-    this.design = {
-      ...this.design,
-      name: cleanName,
-      updatedAt: new Date().toISOString(),
-    };
-
-    this.persistCurrentDesignerLayout();
-    this.refreshDesignerLayoutList();
-    this.markDesignerSaved(`Layout renamed to “${cleanName}”`);
-
-    const feedback = (this as any).showDesignerFeedback;
-    if (typeof feedback === 'function') {
-      feedback.call(this, `Renamed to “${cleanName}”`, 'success', 'rename');
-    }
-  }
-
   loadDesignerLayout(id: string): void {
     if (!id || id === this.design.id) {
       return;
@@ -1567,21 +1536,6 @@ startColumnResize(column: DesignerColumn, event: PointerEvent): void {
     this.callDesignerMethod(['importJson', 'importJSON', 'importDesign', 'loadJson'], [event]);
     this.showDesignerFeedback('Layout JSON imported', 'success', 'import');
   }
-
-  goHomeWithFeedback(): void {
-    this.showDesignerFeedback('Opening Home…', 'info', 'home');
-
-    window.setTimeout(() => {
-      const fn = (this as any).goHome;
-
-      if (typeof fn === 'function') {
-        fn.call(this);
-      } else {
-        window.location.href = '/';
-      }
-    }, 120);
-  }
-
 
   goHome(): void {
     window.location.href = '/';
