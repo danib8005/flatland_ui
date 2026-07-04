@@ -6,6 +6,7 @@ Docs are grouped by purpose. Start with **reference** for the living truth.
 The authoritative specs and guides for how the app works today.
 
 - [interaction-modes-brief.md](reference/interaction-modes-brief.md) — **authoritative** mode spec (WP 3.1/3.3/3.4)
+- [interaction-framework.md](reference/interaction-framework.md) — tile taxonomy (kind × granularity), function allocation, Human-in-Control, accountability seam
 - [architecture.md](reference/architecture.md) — system architecture
 - [mode-guide.md](reference/mode-guide.md) — the same task walked through all three modes
 - [panel-mode-matrix.md](reference/panel-mode-matrix.md) — per-panel availability & behaviour per mode
