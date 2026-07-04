@@ -91,6 +91,24 @@ export class ImpactPanelComponent implements OnDestroy {
     return Math.max(0, Math.min(1, rem / total));
   });
 
+  /**
+   * How this panel behaves per interaction mode — the single place mode is
+   * branched on inside this component (framing is handled in the template via
+   * store.optionPresentation()). See docs/reference/panel-mode-matrix.md.
+   *  - decisionMoment: how a new conflict engages the human.
+   *      'countdown' → gentle global pause + auto-apply countdown (Recommendation)
+   *      'hold'      → localized hold of affected trains, world keeps running (Co-Learning)
+   *      'none'      → AI handles it, no decision moment (Director)
+   *  - reflectAfterDecision: nudge the reflection panel once the last decision lands.
+   */
+  readonly modeBehavior = computed<{ decisionMoment: 'countdown' | 'hold' | 'none'; reflectAfterDecision: boolean }>(() => {
+    switch (this.store.interactionMode()) {
+      case 'recommendation': return { decisionMoment: 'countdown', reflectAfterDecision: false };
+      case 'co-learning':    return { decisionMoment: 'hold', reflectAfterDecision: true };
+      case 'director':       return { decisionMoment: 'none', reflectAfterDecision: false };
+    }
+  });
+
   constructor() {
     // Auto-EXPAND when conflicts appear; never auto-collapse (that open/close
     // thrash was part of the chaotic feel). The user can collapse manually.
@@ -127,14 +145,15 @@ export class ImpactPanelComponent implements OnDestroy {
 
         const has = live.length > 0;
         const newConflict = has && !this._hadImpact;
+        const strategy = this.modeBehavior().decisionMoment;
         const engage = newConflict && this.store.demoActive() && this.store.playing()
-          && this.store.interactionMode() !== 'director'
+          && strategy !== 'none'
           && this.store.autoPauseOnConflict();
 
         if (engage) {
-          if (this.store.isCoLearning()) {
-            // Localized blocking: hold the affected trains, keep the world
-            // running. The human releases them by deciding (no global pause,
+          if (strategy === 'hold') {
+            // Localized blocking (Co-Learning): hold the affected trains, keep the
+            // world running. The human releases them by deciding (no global pause,
             // no auto-apply). Delay accrues = realistic pressure.
             this._holdAffected();
           } else {
@@ -331,7 +350,7 @@ export class ImpactPanelComponent implements OnDestroy {
     // nudge the reflection panel open. This ADDS to (does not replace) the
     // manual "Reflect now" trigger: the human can still open/close it anytime,
     // this just offers it at the best natural opportunity.
-    if (this.store.isCoLearning() && this.items().length === 0) {
+    if (this.modeBehavior().reflectAfterDecision && this.items().length === 0) {
       this.store.reflectionRequested.set(true);
     }
   }
