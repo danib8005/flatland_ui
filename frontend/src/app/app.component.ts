@@ -350,6 +350,10 @@ export class AppComponent implements OnInit {
   }
 
   openSurvey() {
+    // Answering is gated to the end of a run. In the guided demo, "Finish mode
+    // & survey" is itself the deliberate end of that mode, so it is allowed even
+    // before episodeDone; a regular session must have finished its episode.
+    if (!this.store.episodeDone() && !this.store.demoActive()) return;
     this.surveyActive.set(true);
     this.blurActiveElement();
   }
