@@ -17,6 +17,7 @@ The authoritative specs and guides for how the app works today.
 ## plans/ — planned work
 Designs and roadmaps not yet (fully) built.
 
+- [tile-catalog.md](plans/tile-catalog.md) — candidate tiles: sources (D3.1/D3.2/UIX/owner), effort, changes, contribution to core questions
 - [mode-scoped-layouts-plan.md](plans/mode-scoped-layouts-plan.md)
 - [interaction-logging-plan.md](plans/interaction-logging-plan.md)
 - [scripted-events-plan.md](plans/scripted-events-plan.md)
